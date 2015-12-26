@@ -39,11 +39,14 @@ class RFWritePort:
 
 
 class RegisterFile:
-    def __init__(self):
-        self.clk = Signal(False)
-        self.portA = RFReadPort()
-        self.portB = RFReadPort()
-        self.writePort = RFWritePort()
+    def __init__(self, clk: Signal,
+                 portA: RFReadPort,
+                 portB: RFReadPort,
+                 writePort: RFWritePort):
+        self.clk = clk
+        self.portA = portA
+        self.portB = portB
+        self.writePort = writePort
         self._registers = [Signal(modbv(0)[32:]) for ii in range(0, 32)]
 
     def GetRTL(self):
@@ -63,9 +66,6 @@ class RegisterFile:
                 self._registers[writePort.wa].next = writePort.wd
 
         return read, write
-
-    def GetSignals(self):
-        return (self.clk, self.portA, self.portB, self.writePort)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120

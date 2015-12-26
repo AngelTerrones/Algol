@@ -20,8 +20,11 @@
 # THE SOFTWARE.
 
 from Algol.regfile import RegisterFile
+from Algol.regfile import RFReadPort
+from Algol.regfile import RFWritePort
 import random
 from myhdl import instance
+from myhdl import Signal
 from myhdl import delay
 from myhdl import Simulation
 from myhdl import StopSimulation
@@ -33,8 +36,14 @@ def _testbench():
     Compare the data from portA and portB with the values
     stored in a temporal list. Print error in case of mismatch.
     '''
-    regFile = RegisterFile()
-    clk, portA, portB, writePort = regFile.GetSignals()
+    clk = Signal(False)
+    portA = RFReadPort()
+    portB = RFReadPort()
+    writePort = RFWritePort()
+    regFile = RegisterFile(clk=clk,
+                           portA=portA,
+                           portB=portB,
+                           writePort=writePort)
     dut = regFile.GetRTL()
 
     values = [random.randrange(0, 2**32) for _ in range(32)]  # random values. Used as reference.
