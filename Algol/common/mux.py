@@ -43,9 +43,6 @@ class Mux:
 
         return rtl
 
-    def GetSignals(self):
-        return self.sel, self.inputs, self.out
-
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
 # flycheck-flake8rc: ".flake8rc"
