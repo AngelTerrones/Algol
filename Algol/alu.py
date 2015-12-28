@@ -51,8 +51,9 @@ class ALUPortIO:
 
 
 class ALU:
-    def __init__(self):
-        self.IO = ALUPortIO()
+    def __init__(self,
+                 IO: ALUPortIO):
+        self.IO = IO
 
     def GetRTL(self):
         io = self.IO
@@ -92,9 +93,6 @@ class ALU:
                 io.output.next = 0
 
         return rtl
-
-    def GetSignals(self):
-        return self.IO
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120

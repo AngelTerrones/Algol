@@ -19,7 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from Algol.alu import ALU, ALUFunction
+from Algol.alu import ALU
+from Algol.alu import ALUFunction
+from Algol.alu import ALUPortIO
 import random
 from myhdl import modbv
 from myhdl import instance
@@ -32,13 +34,13 @@ def _testbench():
     """
     Testbech for the ALU module
     """
-    alu = ALU()
-    aluIO = alu.GetSignals()
+    aluIO = ALUPortIO()
+    alu = ALU(aluIO)
     dut = alu.GetRTL()
 
     @instance
     def stimulus():
-        yield delay(10)
+        yield delay(5)
 
         # Execute 1000 tests.
         for j in range(1000):
@@ -50,7 +52,7 @@ def _testbench():
             # Test each function
             for i in range(16):
                 aluIO.function.next = i
-                yield delay(5)
+                yield delay(1)
                 shamt = aluIO.input2[5:0]
 
                 if i == ALUFunction.OP_ADD:
