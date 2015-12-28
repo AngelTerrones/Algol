@@ -405,11 +405,11 @@ class CSR:
                 mtime_full.next = 0
                 mtvec.next = 0x100  # Magic number. Priviledge ISA v1.7
             else:
-                cycle_full.next += 1
-                time_full.next += 1
-                mtime_full.next += 1
+                cycle_full.next = cycle_full + 1
+                time_full.next = time_full + 1
+                mtime_full.next = mtime_full + 1
                 if self.retire:
-                    instret_full.next += 1
+                    instret_full.next = instret_full + 1
                 if wen_internal:
                     if addr == CSRAddressMap.CSR_ADDR_CYCLE:
                         cycle_full[32:0] = wdata_aux
