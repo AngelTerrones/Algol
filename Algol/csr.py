@@ -25,6 +25,7 @@ from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
 from myhdl import concat
+from consts import Consts
 
 
 class CSRAddressMap:
@@ -403,7 +404,7 @@ class CSR:
                 time_full.next = 0
                 instret_full.next = 0
                 mtime_full.next = 0
-                mtvec.next = 0x100  # Magic number. Priviledge ISA v1.7
+                mtvec.next = Consts.MTVEC
             else:
                 cycle_full.next = cycle_full + 1
                 time_full.next = time_full + 1
