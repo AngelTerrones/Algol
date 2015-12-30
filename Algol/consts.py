@@ -48,12 +48,24 @@ class Consts:
     OP1_IMZ    = modbv(2)[2:]
     # RS2 Operand Select Signal
     OP2_X      = modbv(0)[3:]
-    OP2_RS2    = modbv(1)[3:]
-    OP2_ITYPE  = modbv(2)[3:]
-    OP2_STYPE  = modbv(3)[3:]
-    OP2_SBTYPE = modbv(4)[3:]
-    OP2_UTYPE  = modbv(5)[3:]
-    OP2_JUTYPE = modbv(6)[3:]
+    OP2_RS2    = modbv(0)[3:]
+    OP2_ITYPE  = modbv(1)[3:]
+    OP2_STYPE  = modbv(2)[3:]
+    OP2_SBTYPE = modbv(3)[3:]
+    OP2_UTYPE  = modbv(4)[3:]
+    OP2_UJTYPE = modbv(5)[3:]
+    # Forwarding
+    FWD_X      = modbv(0)[2:]
+    FWD_N      = modbv(0)[2:]
+    FWD_EX     = modbv(1)[2:]
+    FWD_MEM    = modbv(2)[2:]
+    FWD_WB     = modbv(3)[2:]
+    # WB signals
+    WB_X       = 0
+    WB_ALU     = 0
+    WB_MEM     = 1
+    WB_PC4     = 2
+    WB_CSR     = 3
     # PRIV
     MTVEC      = 0x100
     START_ADDR = MTVEC + 0x100
