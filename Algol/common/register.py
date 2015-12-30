@@ -29,7 +29,8 @@ class Register:
                  rst: Signal,
                  we: Signal,
                  i: Signal,
-                 o: Signal):
+                 o: Signal,
+                 init=0):
         assert len(i) == len(o), "Input and Output length mismatch"
 
         self.clk = clk
@@ -37,12 +38,13 @@ class Register:
         self.we = we
         self.i = i
         self.o = o
+        self.init = init
 
     def GetRTL(self):
         @always(self.clk.posedge)
         def rtl():
             if self.rst == 1:
-                self.o.next = 0
+                self.o.next = self.init
             elif self.we == 1:
                 self.o.next = self.i
             else:
