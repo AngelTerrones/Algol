@@ -79,7 +79,7 @@ def test_valid_settings():
     width = 8
     n_inputs = 1
     sel_width = ceil(log2(n_inputs))
-    sel = Signal(modbv(0)[sel_width:])
+    sel = Signal(modbv(0)[max(sel_width, 2):])
     inputs = [Signal(modbv(0)[width:]) for _ in range(2**sel_width)]
     out = Signal(modbv(0)[width:])
 
