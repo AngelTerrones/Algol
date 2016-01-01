@@ -64,7 +64,7 @@ def _testbench():
     return dut, stimulus
 
 
-def test_regfile():
+def test_mux():
     """
     Test behavioral
     """
