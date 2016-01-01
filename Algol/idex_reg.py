@@ -37,29 +37,31 @@ class IDEXReg:
                  id_kill:         Signal(False),
                  pipeline_kill:   Signal(False),
                  id_pc:           Signal(modbv(0)[32:]),
+                 id_instruction:  Signal,
                  id_br_type:      Signal(modbv(0)[2:]),
-                 id_op1_data:     Signal,
-                 id_op2_data:     Signal,
+                 id_rs1_data:     Signal,
+                 id_rs2_data:     Signal,
+                 id_sel_imm:      Signal,
                  id_alu_funct:    Signal,
-                 id_mem_wdata:    Signal,
                  id_mem_type:     Signal,
                  id_mem_funct:    Signal,
                  id_mem_valid:    Signal,
                  id_csr_cmd:      Signal,
-                 id_mem_data_sel: Signal,
+                 id_mem_data_sel: Signal,  # *
                  id_wb_addr:      Signal,
                  id_wb_we:        Signal,
                  ex_pc:           Signal,
+                 ex_instruction:  Signal,
                  ex_br_type:      Signal,
-                 ex_op1_data:     Signal,
-                 ex_op2_data:     Signal,
+                 ex_rs1_data:     Signal,
+                 ex_rs2_data:     Signal,
+                 ex_sel_imm:      Signal,
                  ex_alu_funct:    Signal,
-                 ex_mem_wdata:    Signal,
                  ex_mem_type:     Signal,
                  ex_mem_funct:    Signal,
                  ex_mem_valid:    Signal,
                  ex_csr_cmd:      Signal,
-                 ex_wb_data_sel:  Signal,
+                 ex_wb_data_sel:  Signal,  # *
                  ex_wb_addr:      Signal,
                  ex_wb_we:        Signal):
         # inputs
@@ -70,11 +72,12 @@ class IDEXReg:
         self.id_kill         = id_kill
         self.pipeline_kill   = pipeline_kill
         self.id_pc           = id_pc
+        self.id_instruction  = id_instruction
         self.id_br_type      = id_br_type
-        self.id_op1_data     = id_op1_data
-        self.id_op2_data     = id_op2_data
+        self.id_rs1_data     = id_rs1_data
+        self.id_rs2_data     = id_rs2_data
+        self.id_sel_imm      = id_sel_imm
         self.id_alu_funct    = id_alu_funct
-        self.id_mem_wdata    = id_mem_wdata
         self.id_mem_type     = id_mem_type
         self.id_mem_funct    = id_mem_funct
         self.id_mem_valid    = id_mem_valid
@@ -84,11 +87,12 @@ class IDEXReg:
         self.id_wb_we        = id_wb_we
         # outputs
         self.ex_pc           = ex_pc
+        self.ex_instruction  = ex_instruction
         self.ex_br_type      = ex_br_type
-        self.ex_op1_data     = ex_op1_data
-        self.ex_op2_data     = ex_op2_data
+        self.ex_rs1_data     = ex_rs1_data
+        self.ex_rs2_data     = ex_rs2_data
+        self.ex_sel_imm      = ex_sel_imm
         self.ex_alu_funct    = ex_alu_funct
-        self.ex_mem_wdata    = ex_mem_wdata
         self.ex_mem_type     = ex_mem_type
         self.ex_mem_funct    = ex_mem_funct
         self.ex_mem_valid    = ex_mem_valid
@@ -102,11 +106,12 @@ class IDEXReg:
         def rtl():
             if self.rst == 1:
                 self.ex_pc.next          = 0  # ?
+                self.ex_instruction.next = Consts.BUBBLE
                 self.ex_branch_type.next = Consts.BR_X
-                self.ex_op1_data.next    = 0xDEADF00D
-                self.ex_op2_data.next    = 0xDEADF00D
+                self.ex_rs1_data.next    = 0
+                self.ex_rs2_data.next    = 0
+                self.ex_sel_imm          = Consts.IMM_X
                 self.ex_alu_funct.next   = ALUFunction.OP_ADD
-                self.ex_mem_wdata.next   = 0x0BADC0DE
                 self.ex_mem_type.next    = MemoryOpConstant.MT_X
                 self.ex_mem_funct.next   = MemoryOpConstant.M_X
                 self.ex_mem_valid.next   = False
@@ -117,6 +122,7 @@ class IDEXReg:
             else:
                 # id_stall and full_stall are not related.
                 if self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall):
+                    self.ex_instruction.next = Consts.BUBBLE
                     self.ex_branch_type.next = Consts.BR_X
                     self.ex_mem_valid.next   = False
                     self.ex_mem_funct.next   = MemoryOpConstant.M_X
@@ -125,10 +131,11 @@ class IDEXReg:
                     self.ex_wb_we.next       = False
                 elif (not self.id_stall and not self.full_stall):
                     self.ex_pc.next          = self.id_pc
-                    self.ex_op1_data.next    = self.id_op1_data
-                    self.ex_op2_data.next    = self.id_op2_data
+                    self.ex_instruction      = self.id_instruction
+                    self.ex_rs1_data.next    = self.id_rs1_data
+                    self.ex_rs2_data.next    = self.id_rs2_data
+                    self.ex_sel_imm          = self.id_sel_imm
                     self.ex_alu_funct.next   = self.id_alu_funct
-                    self.ex_mem_wdata.next   = self.id_op2
                     self.ex_mem_type.next    = self.id_mem_type
                     self.ex_wb_data_sel.next = self.id_wb_select
 

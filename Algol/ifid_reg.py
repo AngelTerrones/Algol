@@ -22,6 +22,7 @@
 from myhdl import Signal
 from myhdl import modbv
 from myhdl import always
+from consts import Consts
 
 
 class IFIDReg:
@@ -54,10 +55,10 @@ class IFIDReg:
         def rtl():
             if self.rst == 1:
                 self.id_pc.next = 0
-                self.id_instruction.next = 0  # bubble
+                self.id_instruction.next = Consts.BUBBLE
             else:
                 if self.pipeline_kill or self.if_kill:
-                    self.id_instruction.next = 0  # insert bubble here
+                    self.id_instruction.next = Consts.BUBBLE
                 elif not self.id_stall and not self.full_stall:
                     self.id_pc.next = self.if_pc
                     self.id_instruction.next = self.if_instruction

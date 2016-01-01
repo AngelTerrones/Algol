@@ -39,7 +39,7 @@ class EXMEMReg:
                  ex_mem_funct:    Signal,
                  ex_mem_valid:    Signal,
                  ex_csr_cmd:      Signal,
-                 ex_wb_data_sel:  Signal,
+                 ex_mem_data_sel:  Signal,
                  ex_wb_addr:      Signal,
                  ex_wb_we:        Signal,
                  mem_pc:          Signal,
@@ -49,35 +49,35 @@ class EXMEMReg:
                  mem_mem_funct:   Signal,
                  mem_mem_valid:   Signal,
                  mem_csr_cmd:     Signal,
-                 mem_wb_data_sel: Signal,
+                 mem_mem_data_sel: Signal,
                  mem_wb_addr:     Signal,
                  mem_wb_we:       Signal):
         # inputs
-        self.clk             = clk
-        self.rst             = rst
-        self.full_stall      = full_stall
-        self.pipeline_kill   = pipeline_kill
-        self.ex_pc           = ex_pc
-        self.ex_alu_out      = ex_alu_out
-        self.ex_mem_wdata    = ex_mem_wdata
-        self.ex_mem_type     = ex_mem_type
-        self.ex_mem_funct    = ex_mem_funct
-        self.ex_mem_valid    = ex_mem_valid
-        self.ex_csr_cmd      = ex_csr_cmd
-        self.ex_wb_data_sel  = ex_wb_data_sel
-        self.ex_wb_addr      = ex_wb_addr
-        self.ex_wb_we        = ex_wb_we
+        self.clk              = clk
+        self.rst              = rst
+        self.full_stall       = full_stall
+        self.pipeline_kill    = pipeline_kill
+        self.ex_pc            = ex_pc
+        self.ex_alu_out       = ex_alu_out
+        self.ex_mem_wdata     = ex_mem_wdata
+        self.ex_mem_type      = ex_mem_type
+        self.ex_mem_funct     = ex_mem_funct
+        self.ex_mem_valid     = ex_mem_valid
+        self.ex_csr_cmd       = ex_csr_cmd
+        self.ex_mem_data_sel  = ex_mem_data_sel
+        self.ex_wb_addr       = ex_wb_addr
+        self.ex_wb_we         = ex_wb_we
         # outputs
-        self.mem_pc          = mem_pc
-        self.mem_alu_out     = mem_alu_out
-        self.mem_mem_wdata   = mem_mem_wdata
-        self.mem_mem_type    = mem_mem_type
-        self.mem_mem_funct   = mem_mem_funct
-        self.mem_mem_valid   = mem_mem_valid
-        self.mem_csr_cmd     = mem_csr_cmd
-        self.mem_wb_data_sel = mem_wb_data_sel
-        self.mem_wb_addr     = mem_wb_addr
-        self.mem_wb_we       = mem_wb_we
+        self.mem_pc           = mem_pc
+        self.mem_alu_out      = mem_alu_out
+        self.mem_mem_wdata    = mem_mem_wdata
+        self.mem_mem_type     = mem_mem_type
+        self.mem_mem_funct    = mem_mem_funct
+        self.mem_mem_valid    = mem_mem_valid
+        self.mem_csr_cmd      = mem_csr_cmd
+        self.mem_mem_data_sel = mem_mem_data_sel
+        self.mem_wb_addr      = mem_wb_addr
+        self.mem_wb_we        = mem_wb_we
 
     def GetRTL(self):
         @always(self.clk.posedge)
@@ -91,7 +91,7 @@ class EXMEMReg:
                 self.mem_mem_wdata   = 0
                 self.mem_mem_type    = MemoryOpConstant.MT_X
                 self.mem_mem_funct   = MemoryOpConstant.M_X
-                self.mem_wb_data_sel = Consts.WB_X
+                self.mem_mem_data_sel = Consts.WB_X
                 self.mem_wb_addr     = 0
             else:
                 if self.pipeline_kill:
@@ -107,7 +107,7 @@ class EXMEMReg:
                     self.mem_mem_funct   = self.ex_mem_funct
                     self.mem_mem_valid   = self.ex_mem_valid
                     self.mem_csr_cmd     = self.ex_csr_cmd
-                    self.mem_wb_data_sel = self.ex_wb_data_sel
+                    self.mem_mem_data_sel = self.ex_mem_data_sel
                     self.mem_wb_addr     = self.ex_wb_addr
                     self.mem_wb_we       = self.ex_wb_we
 
