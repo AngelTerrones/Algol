@@ -24,43 +24,55 @@ from myhdl import modbv
 
 class Consts:
     # control signals
+    X          = False
     Y          = True
     N          = False
     # PC Select Signal
-    PC_4       = modbv(0)[2:]
-    PC_BRJMP   = modbv(1)[2:]
-    PC_JALR    = modbv(2)[2:]
-    PC_EXC     = modbv(3)[2:]
+    SZ_PC_SEL  = 2
+    PC_4       = modbv(0)[SZ_PC_SEL:]
+    PC_BRJMP   = modbv(1)[SZ_PC_SEL:]
+    PC_JALR    = modbv(2)[SZ_PC_SEL:]
+    PC_EXC     = modbv(3)[SZ_PC_SEL:]
     # Branch type
-    BR_N       = modbv(0)[4:]
-    BR_NE      = modbv(1)[4:]
-    BR_EQ      = modbv(2)[4:]
-    BR_GE      = modbv(3)[4:]
-    BR_GEU     = modbv(4)[4:]
-    BR_LT      = modbv(5)[4:]
-    BR_LTU     = modbv(6)[4:]
-    BR_J       = modbv(7)[4:]
-    BR_JR      = modbv(8)[4:]
+    SZ_BR      = 4
+    BR_X       = 0
+    BR_N       = modbv(0)[SZ_BR:]
+    BR_NE      = modbv(1)[SZ_BR:]
+    BR_EQ      = modbv(2)[SZ_BR:]
+    BR_GE      = modbv(3)[SZ_BR:]
+    BR_GEU     = modbv(4)[SZ_BR:]
+    BR_LT      = modbv(5)[SZ_BR:]
+    BR_LTU     = modbv(6)[SZ_BR:]
+    BR_J       = modbv(7)[SZ_BR:]
     # RS1 Operand Select Signal
-    OP1_X      = modbv(0)[2:]
-    OP1_RS1    = modbv(0)[2:]
-    OP1_PC     = modbv(1)[2:]
-    OP1_IMZ    = modbv(2)[2:]
+    SZ_OP1     = 2
+    OP1_X      = modbv(0)[SZ_OP1:]
+    OP1_ZERO   = modbv(0)[SZ_OP1:]
+    OP1_RS1    = modbv(1)[SZ_OP1:]
+    OP1_PC     = modbv(2)[SZ_OP1:]
     # RS2 Operand Select Signal
-    OP2_X      = modbv(0)[3:]
-    OP2_RS2    = modbv(0)[3:]
-    OP2_ITYPE  = modbv(1)[3:]
-    OP2_STYPE  = modbv(2)[3:]
-    OP2_SBTYPE = modbv(3)[3:]
-    OP2_UTYPE  = modbv(4)[3:]
-    OP2_UJTYPE = modbv(5)[3:]
+    SZ_OP2     = 3
+    OP2_X      = modbv(0)[SZ_OP2:]
+    OP2_ZERO   = modbv(0)[SZ_OP2:]
+    OP2_RS2    = modbv(1)[SZ_OP2:]
+    OP2_IMM    = modbv(2)[SZ_OP2:]
+    OP2_FOUR   = modbv(3)[SZ_OP2:]
+    # IMM
+    SZ_IMM     = 3
+    IMM_X      = 0
+    IMM_S      = 0
+    IMM_SB     = 1
+    IMM_U      = 2
+    IMM_UJ     = 3
+    IMM_I      = 4
+    IMM_Z      = 5
     # Forwarding
-    FWD_X      = modbv(0)[2:]
-    FWD_N      = modbv(0)[2:]
-    FWD_EX     = modbv(1)[2:]
-    FWD_MEM    = modbv(2)[2:]
-    FWD_WB     = modbv(3)[2:]
+    SZ_FWD     = 1
+    FWD_X      = False
+    FWD_N      = False
+    FWD_Y      = True
     # WB signals
+    SZ_WB      = 2
     WB_X       = 0
     WB_ALU     = 0
     WB_MEM     = 1
@@ -69,6 +81,9 @@ class Consts:
     # PRIV
     MTVEC      = 0x100
     START_ADDR = MTVEC + 0x100
+    # NOP
+    BUBBLE     = 0x4033  # XOR r0, r0, r0
+    NOP        = 0x13    # ADDI r0, r0, 0
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
