@@ -24,6 +24,7 @@ from myhdl import modbv
 
 
 class MemoryOpConstant:
+    SZ_MT = 3
     MT_X  = 0
     MT_B  = 1
     MT_H  = 2
@@ -31,6 +32,7 @@ class MemoryOpConstant:
     MT_BU = 4
     MT_HU = 5
 
+    SZ_M  = 1
     M_X   = 0
     M_XRD = 0
     M_XWR = 1
@@ -38,23 +40,23 @@ class MemoryOpConstant:
 
 class MemPortIO:
     def __init__(self):
-        self.req = MemReq()
+        self.req  = MemReq()
         self.resp = MemResp()
 
 
 class MemReq:
     def __init__(self):
-        self.addr = Signal(modbv(0)[32:])
-        self.data = Signal(modbv(0)[32:])
-        self.fcn = Signal(modbv(0)[3:])
-        self.typ = Signal(False)
+        self.addr  = Signal(modbv(0)[32:])
+        self.data  = Signal(modbv(0)[32:])
+        self.fcn   = Signal(modbv(0)[3:])
+        self.typ   = Signal(False)
         self.ready = Signal(False)
         self.valid = Signal(False)
 
 
 class MemResp:
     def __init__(self):
-        self.data = Signal(modbv(0)[32:])
+        self.data  = Signal(modbv(0)[32:])
         self.valid = Signal(False)
 
 # Local Variables:

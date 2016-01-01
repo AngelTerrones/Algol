@@ -25,9 +25,9 @@ from myhdl import always_comb
 
 class Mux:
     def __init__(self,
-                 sel: Signal,
+                 sel:    Signal,
                  inputs: [Signal],
-                 out: Signal):
+                 out:    Signal):
         # Check valid settings
         assert len(inputs) >= 2, "Inputs must be >= 2"
 

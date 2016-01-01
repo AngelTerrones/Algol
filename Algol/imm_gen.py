@@ -31,9 +31,9 @@ class IMMGen:
                  sel:         Signal,
                  instruction: Signal,
                  imm:         Signal):
-        self.sel = sel
+        self.sel         = sel
         self.instruction = instruction
-        self.imm = imm
+        self.imm         = imm
 
     def GetRTL(self):
         sign   = Signal(False)
@@ -46,19 +46,19 @@ class IMMGen:
 
         @always_comb
         def rtl():
-            sign.next = False if self.sel == Consts.IMM_Z else self.instruction[31]
-            b30_20.next = self.instruction[31:20] if self.sel == Consts.IMM_U else sign
-            b19_12.next = self.instruction[20:12] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_UJ) else sign
-            b11.next = (False if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else
-                        (self.instruction[20] if self.sel == Consts.IMM_UJ else
-                         (self.instruction[7] if self.sel == Consts.IMM_SB else sign)))
-            b10_5.next = 0 if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else self.instruction[31:25]
-            b4_1.next = (0 if self.sel == Consts.IMM_U else
-                         (self.instruction[12:8] if (self.sel == Consts.IMM_S or self.sel == Consts.IMM_SB) else
-                          (self.instruction[20:16] if self.sel == Consts.IMM_Z else self.instruction[25:21])))
-            b0.next = (self.instruction[7] if self.sel == Consts.IMM_S else
-                       (self.instruction[20] if self.sel == Consts.IMM_I else
-                        (self.instruction[15] if self.sel == Consts.IMM_Z else False)))
+            sign.next     = False if self.sel == Consts.IMM_Z else self.instruction[31]
+            b30_20.next   = self.instruction[31:20] if self.sel == Consts.IMM_U else sign
+            b19_12.next   = self.instruction[20:12] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_UJ) else sign
+            b11.next      = (False if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else
+                             (self.instruction[20] if self.sel == Consts.IMM_UJ else
+                              (self.instruction[7] if self.sel == Consts.IMM_SB else sign)))
+            b10_5.next    = 0 if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else self.instruction[31:25]
+            b4_1.next     = (0 if self.sel == Consts.IMM_U else
+                             (self.instruction[12:8] if (self.sel == Consts.IMM_S or self.sel == Consts.IMM_SB) else
+                              (self.instruction[20:16] if self.sel == Consts.IMM_Z else self.instruction[25:21])))
+            b0.next       = (self.instruction[7] if self.sel == Consts.IMM_S else
+                             (self.instruction[20] if self.sel == Consts.IMM_I else
+                              (self.instruction[15] if self.sel == Consts.IMM_Z else False)))
             self.imm.next = concat(sign, b30_20, b19_12, b11, b10_5, b4_1, b0)
 
         return rtl

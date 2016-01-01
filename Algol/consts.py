@@ -76,8 +76,7 @@ class Consts:
     WB_X       = 0
     WB_ALU     = 0
     WB_MEM     = 1
-    WB_PC4     = 2
-    WB_CSR     = 3
+    WB_CSR     = 2
     # PRIV
     MTVEC      = 0x100
     START_ADDR = MTVEC + 0x100

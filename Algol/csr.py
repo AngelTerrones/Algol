@@ -35,6 +35,7 @@ class CSRAddressMap:
     - Supervisor level (subset)
     - Machine level (subset)
     """
+    SZ_ADDR            = 12
     CSR_ADDR_CYCLE     = 0xC00
     CSR_ADDR_TIME      = 0xC01
     CSR_ADDR_INSTRET   = 0xC02
@@ -65,6 +66,7 @@ class CSRAddressMap:
 
 
 class CSRExceptionCode:
+    SZ_ECODE               = 4
     # Exception codes
     E_INST_ADDR_MISALIGNED = 0
     E_INST_ACCESS_FAULT    = 1
@@ -79,11 +81,13 @@ class CSRExceptionCode:
     E_ECALL_FROM_H         = 10
     E_ECALL_FROM_M         = 11
     # Interrupt codes
+    SZ_ICODE               = 1
     I_SOFTWARE             = 0
     I_TIMER                = 1
 
 
 class CSRCommand:
+    SZ_CMD    = 3
     CSR_IDLE  = 0
     CSR_READ  = 4
     CSR_WRITE = 5
@@ -92,16 +96,17 @@ class CSRCommand:
 
 
 class CSRModes:
-    PRV_U = 0
-    PRV_S = 1
-    PRV_H = 2
-    PRV_M = 3
+    SZ_MODE = 2
+    PRV_U   = 0
+    PRV_S   = 1
+    PRV_H   = 2
+    PRV_M   = 3
 
 
 class CSRFileRWIO:
     def __init__(self):
-        self.addr = Signal(modbv(0)[12:])   # I
-        self.cmd = Signal(modbv(0)[3:])     # I
+        self.addr  = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])   # I
+        self.cmd   = Signal(modbv(0)[CSRCommand.SZ_CMD:])     # I
         self.wdata = Signal(modbv(0)[32:])  # I
         self.rdata = Signal(modbv(0)[32:])  # O
 
@@ -109,7 +114,7 @@ class CSRFileRWIO:
 class CSRExceptionIO:
     def __init__(self):
         self.exception           = Signal(False)          # I
-        self.exception_code      = Signal(modbv(0)[4:])   # I
+        self.exception_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])   # I
         self.eret                = Signal(False)          # I
         self.exception_load_addr = Signal(modbv(0)[32:])  # I
         self.exception_pc        = Signal(modbv(0)[32:])  # I
@@ -119,12 +124,12 @@ class CSRExceptionIO:
 
 class CSR:
     def __init__(self,
-                 clk: Signal(False),
-                 rst: Signal(False),
-                 rw: CSRFileRWIO,
-                 exc_io: CSRExceptionIO,
-                 retire: Signal(False),
-                 prv: Signal(modbv(0)[2:]),
+                 clk:            Signal(False),
+                 rst:            Signal(False),
+                 rw:             CSRFileRWIO(),
+                 exc_io:         CSRExceptionIO(),
+                 retire:         Signal(False),
+                 prv:            Signal(modbv(0)[CSRModes.SZ_MODE:]),
                  illegal_access: Signal(False)):
         self.clk            = clk
         self.rst            = rst
@@ -174,7 +179,7 @@ class CSR:
         msie            = Signal(False)
         mtip            = Signal(False)
         msip            = Signal(False)
-        mecode          = Signal(modbv(0)[4:])
+        mecode          = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
         mint            = Signal(False)
         ie              = Signal(False)
         mtimer_expired  = Signal(False)
@@ -186,7 +191,7 @@ class CSR:
         uinterrupt      = Signal(False)
         minterrupt      = Signal(False)
         interrupt_taken = Signal(False)
-        interrupt_code  = Signal(modbv(0)[4:])
+        interrupt_code  = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
         code_imem       = Signal(False)
 
         @always_comb
@@ -201,15 +206,15 @@ class CSR:
             mtimeh.next                        = mtime_full[64:32]
 
             self.exc_io.exception_handler.next = mtvec + (self.mode << 6)
-            self.prv.next                      = priv_stack[2 + 1:1]
+            self.prv.next                      = priv_stack[3:1]
             self.illegal_access.next           = illegal_region | (system_en & (not defined))
             self.exc_io.epc.next               = mepc
             ie.next                            = priv_stack[0]
             system_en.next                     = self.rw.cmd[3]
             system_wen.next                    = self.rw.cmd[0] | self.rw.cmd[1]
             wen_internal.next                  = system_wen
-            illegal_region.next                = ((system_wen & (self.rw.addr[11 + 1:10])) |
-                                                  (system_en & (self.rw.add[10 + 1:8] > self.prv)))
+            illegal_region.next                = ((system_wen & (self.rw.addr[12:10])) |
+                                                  (system_en & (self.rw.add[11:8] > self.prv)))
             uinterrupt.next                    = 0
             minterrupt.next                    = mtie & mtimer_expired
             mcpuid.next                        = (1 << 20) | (1 << 8)  # RV32I, support for U mode
@@ -249,12 +254,12 @@ class CSR:
             if self.rst:
                 priv_stack.next = 0b000110
             elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS):
-                priv_stack.next = wdata_aux[5 + 1:0]
+                priv_stack.next = wdata_aux[6:0]
             elif self.exception:
                 # All exceptions to machine mode
-                priv_stack.next = concat(priv_stack[2 + 1:0], modbv(0b11)[2:], False)
+                priv_stack.next = concat(priv_stack[3:0], modbv(0b11)[2:], False)
             elif self.exc_io.eret:
-                priv_stack.next = concat(modbv(0)[2:], True, priv_stack[2 + 1:0])
+                priv_stack.next = concat(modbv(0)[2:], True, priv_stack[3:0])
 
         @always(self.clk.posedge)
         def _mtip_msip():
@@ -292,7 +297,7 @@ class CSR:
                 mecode.next = 0
                 mint.next = 0
             elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MCAUSE):
-                mecode.next = wdata_aux[3 + 1:0]
+                mecode.next = wdata_aux[4:0]
                 mint.next = wdata_aux[31]
             elif interrupt_taken:
                 mecode.next = interrupt_code
@@ -446,8 +451,6 @@ class CSR:
                         time_full[64:32] = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
                         instret_full[64:32] = wdata_aux
-                    else:
-                        print("unimplemented register: {0}".format(addr))
 
         return instances()
 

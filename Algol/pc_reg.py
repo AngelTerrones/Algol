@@ -27,13 +27,13 @@ from myhdl import always
 
 class PCreg:
     def __init__(self,
-                 clk: Signal(False),
-                 rst: Signal(False),
-                 id_stall: Signal(False),
-                 full_stall: Signal(False),
+                 clk:           Signal(False),
+                 rst:           Signal(False),
+                 id_stall:      Signal(False),
+                 full_stall:    Signal(False),
                  pipeline_kill: Signal(False),
-                 a_pc: Signal(modbv(0)[32:]),
-                 if_pc: Signal(modbv(0)[32:])):
+                 a_pc:          Signal(modbv(0)[32:]),
+                 if_pc:         Signal(modbv(0)[32:])):
         # inputs
         self.clk           = clk
         self.rst           = rst

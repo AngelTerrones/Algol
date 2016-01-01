@@ -26,6 +26,7 @@ from myhdl import modbv
 
 
 class ALUFunction:
+    SZ_OP   = 4
     OP_ADD  = 0
     OP_SLL  = 1
     OP_XOR  = 4
@@ -44,7 +45,7 @@ class ALUFunction:
 
 class ALUPortIO:
     def __init__(self):
-        self.function = Signal(modbv(0)[4:])
+        self.function = Signal(modbv(0)[ALUFunction.SZ_OP:])
         self.input1 = Signal(modbv(0)[32:])
         self.input2 = Signal(modbv(0)[32:])
         self.output = Signal(modbv(0)[32:])

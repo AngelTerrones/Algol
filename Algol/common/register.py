@@ -25,11 +25,11 @@ from myhdl import always
 
 class Register:
     def __init__(self,
-                 clk: Signal,
-                 rst: Signal,
-                 we: Signal,
-                 i: Signal,
-                 o: Signal,
+                 clk:     Signal,
+                 rst:     Signal,
+                 we:      Signal,
+                 i:       Signal,
+                 o:       Signal,
                  init=0):
         assert len(i) == len(o), "Input and Output length mismatch"
 

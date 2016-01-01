@@ -20,7 +20,6 @@
 # THE SOFTWARE.
 
 from myhdl import Signal
-from myhdl import modbv
 from myhdl import always
 from consts import Consts
 from alu import ALUFunction
@@ -30,15 +29,15 @@ from csr import CSRCommand
 
 class IDEXReg:
     def __init__(self,
-                 clk:             Signal(False),
-                 rst:             Signal(False),
-                 id_stall:        Signal(False),
-                 full_stall:      Signal(False),
-                 id_kill:         Signal(False),
-                 pipeline_kill:   Signal(False),
-                 id_pc:           Signal(modbv(0)[32:]),
+                 clk:             Signal,
+                 rst:             Signal,
+                 id_stall:        Signal,
+                 full_stall:      Signal,
+                 id_kill:         Signal,
+                 pipeline_kill:   Signal,
+                 id_pc:           Signal,
                  id_instruction:  Signal,
-                 id_br_type:      Signal(modbv(0)[2:]),
+                 id_br_type:      Signal,
                  id_rs1_data:     Signal,
                  id_rs2_data:     Signal,
                  id_sel_imm:      Signal,
@@ -47,7 +46,7 @@ class IDEXReg:
                  id_mem_funct:    Signal,
                  id_mem_valid:    Signal,
                  id_csr_cmd:      Signal,
-                 id_mem_data_sel: Signal,  # *
+                 id_mem_data_sel: Signal,
                  id_wb_addr:      Signal,
                  id_wb_we:        Signal,
                  ex_pc:           Signal,
@@ -61,7 +60,7 @@ class IDEXReg:
                  ex_mem_funct:    Signal,
                  ex_mem_valid:    Signal,
                  ex_csr_cmd:      Signal,
-                 ex_wb_data_sel:  Signal,  # *
+                 ex_wb_data_sel:  Signal,
                  ex_wb_addr:      Signal,
                  ex_wb_we:        Signal):
         # inputs
