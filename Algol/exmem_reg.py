@@ -38,6 +38,7 @@ class EXMEMReg:
                  ex_mem_type:      Signal,
                  ex_mem_funct:     Signal,
                  ex_mem_valid:     Signal,
+                 ex_csr_addr:      Signal,
                  ex_csr_cmd:       Signal,
                  ex_mem_data_sel:  Signal,
                  ex_wb_addr:       Signal,
@@ -48,6 +49,7 @@ class EXMEMReg:
                  mem_mem_type:     Signal,
                  mem_mem_funct:    Signal,
                  mem_mem_valid:    Signal,
+                 mem_csr_addr:     Signal,
                  mem_csr_cmd:      Signal,
                  mem_mem_data_sel: Signal,
                  mem_wb_addr:      Signal,
@@ -63,6 +65,7 @@ class EXMEMReg:
         self.ex_mem_type      = ex_mem_type
         self.ex_mem_funct     = ex_mem_funct
         self.ex_mem_valid     = ex_mem_valid
+        self.ex_csr_addr      = ex_csr_addr
         self.ex_csr_cmd       = ex_csr_cmd
         self.ex_mem_data_sel  = ex_mem_data_sel
         self.ex_wb_addr       = ex_wb_addr
@@ -74,6 +77,7 @@ class EXMEMReg:
         self.mem_mem_type     = mem_mem_type
         self.mem_mem_funct    = mem_mem_funct
         self.mem_mem_valid    = mem_mem_valid
+        self.mem_csr_addr     = mem_csr_addr
         self.mem_csr_cmd      = mem_csr_cmd
         self.mem_mem_data_sel = mem_mem_data_sel
         self.mem_wb_addr      = mem_wb_addr
@@ -83,33 +87,34 @@ class EXMEMReg:
         @always(self.clk.posedge)
         def rtl():
             if self.rst == 1:
-                self.mem_pc           = 0
-                self.mem_mem_valid    = False
-                self.mem_csr_cmd      = CSRCommand.CSR_IDLE
-                self.mem_wb_we        = False
-                self.mem_alu_out      = 0
-                self.mem_mem_wdata    = 0
-                self.mem_mem_type     = MemoryOpConstant.MT_X
-                self.mem_mem_funct    = MemoryOpConstant.M_X
-                self.mem_mem_data_sel = Consts.WB_X
-                self.mem_wb_addr      = 0
+                self.mem_pc.next           = 0
+                self.mem_mem_valid.next    = False
+                self.mem_csr_addr.next     = 0
+                self.mem_csr_cmd.next      = CSRCommand.CSR_IDLE
+                self.mem_alu_out.next      = 0
+                self.mem_mem_wdata.next    = 0
+                self.mem_mem_type.next     = MemoryOpConstant.MT_X
+                self.mem_mem_funct.next    = MemoryOpConstant.M_X
+                self.mem_mem_data_sel.next = Consts.WB_X
+                self.mem_wb_addr.next      = 0
+                self.mem_wb_we.next        = False
             else:
                 if self.pipeline_kill:
-                    self.mem_pc        = 0
-                    self.mem_mem_valid = False
-                    self.mem_csr_cmd   = CSRCommand.CSR_IDLE
-                    self.mem_wb_we     = False
+                    self.mem_mem_valid.next = False
+                    self.mem_csr_cmd.next   = CSRCommand.CSR_IDLE
+                    self.mem_wb_we.next     = False
                 elif not self.full_stall:
-                    self.mem_pc           = self.ex_pc
-                    self.mem_alu_out      = self.ex_alu_out
-                    self.mem_mem_wdata    = self.ex_mem_wdata
-                    self.mem_mem_type     = self.ex_mem_type
-                    self.mem_mem_funct    = self.ex_mem_funct
-                    self.mem_mem_valid    = self.ex_mem_valid
-                    self.mem_csr_cmd      = self.ex_csr_cmd
-                    self.mem_mem_data_sel = self.ex_mem_data_sel
-                    self.mem_wb_addr      = self.ex_wb_addr
-                    self.mem_wb_we        = self.ex_wb_we
+                    self.mem_pc.next           = self.ex_pc
+                    self.mem_alu_out.next      = self.ex_alu_out
+                    self.mem_mem_wdata.next    = self.ex_mem_wdata
+                    self.mem_mem_type.next     = self.ex_mem_type
+                    self.mem_mem_funct.next    = self.ex_mem_funct
+                    self.mem_mem_valid.next    = self.ex_mem_valid
+                    self.mem_csr_addr.next     = self.ex_csr_addr
+                    self.mem_csr_cmd.next      = self.ex_csr_cmd
+                    self.mem_mem_data_sel.next = self.ex_mem_data_sel
+                    self.mem_wb_addr.next      = self.ex_wb_addr
+                    self.mem_wb_we.next        = self.ex_wb_we
 
         return rtl
 
