@@ -67,10 +67,11 @@ class Consts:
     IMM_I      = 4
     IMM_Z      = 5
     # Forwarding
-    SZ_FWD     = 1
-    FWD_X      = False
-    FWD_N      = False
-    FWD_Y      = True
+    SZ_FWD     = 2
+    FWD_X      = 0
+    FWD_N      = 0
+    FWD_MEM    = 1
+    FWD_WB     = 2
     # WB signals
     SZ_WB      = 2
     WB_X       = 0
