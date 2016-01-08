@@ -105,21 +105,21 @@ class CSRModes:
 
 class CSRFileRWIO:
     def __init__(self):
-        self.addr  = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])   # I
-        self.cmd   = Signal(modbv(0)[CSRCommand.SZ_CMD:])     # I
-        self.wdata = Signal(modbv(0)[32:])  # I
-        self.rdata = Signal(modbv(0)[32:])  # O
+        self.addr  = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])  # I: Register address
+        self.cmd   = Signal(modbv(0)[CSRCommand.SZ_CMD:])      # I: command
+        self.wdata = Signal(modbv(0)[32:])  # I: input data
+        self.rdata = Signal(modbv(0)[32:])  # O: output data
 
 
 class CSRExceptionIO:
     def __init__(self):
-        self.exception           = Signal(False)          # I
-        self.exception_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])   # I
-        self.eret                = Signal(False)          # I
-        self.exception_load_addr = Signal(modbv(0)[32:])  # I
+        self.exception           = Signal(False)          # I: from Control Unit.
+        self.exception_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])   # I: from Control Unit.
+        self.eret                = Signal(False)          # I: the current instruction (@MEM) is ERET.
+        self.exception_load_addr = Signal(modbv(0)[32:])  # I: Load address caused an exception.
         self.exception_pc        = Signal(modbv(0)[32:])  # I
-        self.exception_handler   = Signal(modbv(0)[32:])  # O
-        self.epc                 = Signal(modbv(0)[32:])  # O
+        self.exception_handler   = Signal(modbv(0)[32:])  # O: Trap PC
+        self.epc                 = Signal(modbv(0)[32:])  # O: Return address
 
 
 class CSR:
