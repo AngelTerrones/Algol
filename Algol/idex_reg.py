@@ -42,6 +42,8 @@ class IDEXReg:
                  id_rs2_data:     Signal,
                  id_rs1_addr:     Signal,
                  id_rs2_addr:     Signal,
+                 id_op1_select:   Signal,
+                 id_op2_select:   Signal,
                  id_sel_imm:      Signal,
                  id_alu_funct:    Signal,
                  id_mem_type:     Signal,
@@ -57,16 +59,18 @@ class IDEXReg:
                  ex_br_type:      Signal,
                  ex_rs1_data:     Signal,
                  ex_rs2_data:     Signal,
+                 ex_op1_select:   Signal,
+                 ex_op2_select:   Signal,
+                 ex_sel_imm:      Signal,
                  ex_rs1_addr:     Signal,
                  ex_rs2_addr:     Signal,
-                 ex_sel_imm:      Signal,
                  ex_alu_funct:    Signal,
                  ex_mem_type:     Signal,
                  ex_mem_funct:    Signal,
                  ex_mem_valid:    Signal,
                  ex_csr_addr:     Signal,
                  ex_csr_cmd:      Signal,
-                 ex_wb_data_sel:  Signal,
+                 ex_mem_data_sel: Signal,
                  ex_wb_addr:      Signal,
                  ex_wb_we:        Signal):
         # inputs
@@ -108,7 +112,7 @@ class IDEXReg:
         self.ex_mem_valid    = ex_mem_valid
         self.ex_csr_cmd      = ex_csr_cmd
         self.ex_csr_addr     = ex_csr_addr
-        self.ex_wb_data_sel  = ex_wb_data_sel
+        self.ex_mem_data_sel = ex_mem_data_sel
         self.ex_wb_addr      = ex_wb_addr
         self.ex_wb_we        = ex_wb_we
 
@@ -130,7 +134,7 @@ class IDEXReg:
                 self.ex_mem_valid.next   = False
                 self.ex_csr_addr.next    = 0
                 self.ex_csr_cmd.next     = CSRCommand.CSR_IDLE
-                self.ex_wb_data_sel.next = Consts.WB_X
+                self.ex_mem_data_sel.next = Consts.WB_X
                 self.ex_wb_addr.next     = 0
                 self.ex_wb_we.next       = False
             else:
@@ -143,23 +147,23 @@ class IDEXReg:
                     self.ex_csr_cmd.next     = CSRCommand.CSR_IDLE
                     self.ex_wb_we.next       = False
                 elif (not self.id_stall and not self.full_stall):
-                    self.ex_pc.next          = self.id_pc
-                    self.ex_instruction      = self.id_instruction
-                    self.ex_rs1_data.next    = self.id_rs1_data
-                    self.ex_rs2_data.next    = self.id_rs2_data
-                    self.ex_rs1_addr.next    = self.id_rs1_addr
-                    self.ex_rs2_addr.next    = self.id_rs2_addr
-                    self.ex_sel_imm.next     = self.id_sel_imm
-                    self.ex_alu_funct.next   = self.id_alu_funct
-                    self.ex_mem_type.next    = self.id_mem_type
-                    self.ex_wb_data_sel.next = self.id_wb_select
-                    self.ex_branch_type.next = self.id_br_type
-                    self.ex_mem_valid.next   = self.id_mem_valid
-                    self.ex_mem_funct.next   = self.id_mem_funct
-                    self.ex_csr_addr.next    = self.id_csr_addr
-                    self.ex_csr_cmd.next     = self.id_csr_cmd
-                    self.ex_wb_addr.next     = self.id_wb_addr
-                    self.ex_wb_we.next       = self.id_rf_we
+                    self.ex_pc.next           = self.id_pc
+                    self.ex_instruction       = self.id_instruction
+                    self.ex_rs1_data.next     = self.id_rs1_data
+                    self.ex_rs2_data.next     = self.id_rs2_data
+                    self.ex_rs1_addr.next     = self.id_rs1_addr
+                    self.ex_rs2_addr.next     = self.id_rs2_addr
+                    self.ex_sel_imm.next      = self.id_sel_imm
+                    self.ex_alu_funct.next    = self.id_alu_funct
+                    self.ex_mem_type.next     = self.id_mem_type
+                    self.ex_mem_data_sel.next = self.id_mem_data_sel
+                    self.ex_branch_type.next  = self.id_br_type
+                    self.ex_mem_valid.next    = self.id_mem_valid
+                    self.ex_mem_funct.next    = self.id_mem_funct
+                    self.ex_csr_addr.next     = self.id_csr_addr
+                    self.ex_csr_cmd.next      = self.id_csr_cmd
+                    self.ex_wb_addr.next      = self.id_wb_addr
+                    self.ex_wb_we.next        = self.id_rf_we
 
         return rtl
 
