@@ -32,10 +32,10 @@ class MemoryOpConstant:
     MT_BU = 4
     MT_HU = 5
 
-    SZ_M  = 1
-    M_X   = 0
-    M_XRD = 0
-    M_XWR = 1
+    SZ_M = 1
+    M_X  = 0
+    M_RD = 0
+    M_WR = 1
 
 
 class MemPortIO:
