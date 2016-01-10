@@ -51,7 +51,7 @@ class Consts:
     OP1_RS1    = modbv(1)[SZ_OP1:]
     OP1_PC     = modbv(2)[SZ_OP1:]
     # RS2 Operand Select Signal
-    SZ_OP2     = 3
+    SZ_OP2     = 2
     OP2_X      = modbv(0)[SZ_OP2:]
     OP2_ZERO   = modbv(0)[SZ_OP2:]
     OP2_RS2    = modbv(1)[SZ_OP2:]
