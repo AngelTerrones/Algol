@@ -163,7 +163,7 @@ class IDEXReg:
                     self.ex_csr_addr.next     = self.id_csr_addr
                     self.ex_csr_cmd.next      = self.id_csr_cmd
                     self.ex_wb_addr.next      = self.id_wb_addr
-                    self.ex_wb_we.next        = self.id_rf_we
+                    self.ex_wb_we.next        = self.id_wb_we
 
         return rtl
 
