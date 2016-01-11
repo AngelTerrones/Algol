@@ -50,7 +50,6 @@ class MemReq:
         self.data  = Signal(modbv(0)[32:])
         self.fcn   = Signal(modbv(0)[3:])
         self.typ   = Signal(False)
-        self.ready = Signal(False)
         self.valid = Signal(False)
 
 
