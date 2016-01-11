@@ -31,6 +31,7 @@ from myhdl import Signal
 from myhdl import always
 from myhdl import always_comb
 from myhdl import modbv
+from myhdl import instances
 
 
 class Ctrlpath:
@@ -58,8 +59,11 @@ class Ctrlpath:
                  ex_fwd2_select:     Signal,
                  ex_rs1_addr:        Signal,
                  ex_rs2_addr:        Signal,
+                 ex_wb_we:           Signal,
                  mem_wb_addr:        Signal,
+                 mem_wb_we:          Signal,
                  wb_wb_addr:         Signal,
+                 wb_wb_we:           Signal,
                  csr_exception:      Signal,
                  csr_exception_code: Signal,
                  csr_eret:           Signal,
@@ -95,6 +99,7 @@ class Ctrlpath:
         self.ex_rs2_addr        = ex_rs2_addr
         self.mem_wb_addr        = mem_wb_addr
         self.wb_wb_addr         = wb_wb_addr
+
         self.csr_exception      = csr_exception
         self.csr_exception_code = csr_exception_code
         self.csr_eret           = csr_eret
@@ -107,7 +112,68 @@ class Ctrlpath:
         self.dmem               = dmem
 
     def GetRTL(self):
-        pass
+        control   = Signal(modbv(0)[32:])
+
+        @always_comb
+        def _assignments():
+            self.pc_select.next       = control[2:0]
+            self.id_br_type.next      = control[6:2]
+            self.id_op1_select.next   = control[8:6]
+            self.id_op2_select.next   = control[10:8]
+            self.id_sel_imm.next      = control[13:10]
+            self.id_alu_funct.next    = control[17:13]
+            self.id_mem_type.next     = control[20:17]
+            self.id_mem_funct.next    = control[20]
+            self.id_mem_valid.next    = control[21]
+            self.id_csr_cmd.next      = control[25:22]
+            self.id_mem_data_sel.next = control[27:25]
+            self.id_wb_we.next        = control[27]
+            self.ex_fwd1_select.next  = control[30:28]
+            self.ex_fwd2_select.next  = control[32:30]
+
+        @always_comb
+        def _ctrl_assignment():
+            control.next = 0
+
+        @always_comb
+        def _fwd_ctrl():
+            self.ex_fwd1_select.next = Consts.FWD_X
+            self.ex_fwd2_select.next = Consts.FWD_X
+
+        @always_comb
+        def _ctrl_pipeline():
+            pass
+
+        @always_comb
+        def _exc_detect():
+            pass
+
+        @always_comb
+        def _imem_assignment():
+            self.imem.req.addr.next           = self.imem_pipeline.req.addr
+            self.imem.req.data.next           = self.imem_pipeline.req.data
+            self.imem.req.fcn.next            = self.imem_pipeline.req.fcn
+            self.imem.req.typ.next            = self.imem_pipeline.req.typ
+            self.imem_pipeline.resp.data.next = self.imem.resp.data
+
+        @always_comb
+        def _imem_control():
+            self.imem.req.valid.next = self.imem_pipeline.req.valid and (not self.imem.resp.valid)
+
+        @always_comb
+        def _dmem_assignment():
+            global self
+            self.dmem.req.addr.next           = self.dmem_pipeline.req.addr
+            self.dmem.req.data.next           = self.dmem_pipeline.req.data
+            self.dmem.req.fcn.next            = self.dmem_pipeline.req.fcn
+            self.dmem.req.typ.next            = self.dmem_pipeline.req.typ
+            self.dmem_pipeline.resp.data.next = self.dmem.resp.data
+
+        @always_comb
+        def _dmem_control():
+            self.dmem.req.valid.next = self.dmem_pipeline.req.valid and (not self.dmem.resp.valid)
+
+        return instances()
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
