@@ -78,35 +78,36 @@ class Datapath:
         # ID stage
         id_pc              = Signal(modbv(0)[32:])
         id_instruction     = Signal(modbv(0)[32:])
-
         id_rf_portA        = RFReadPort()
         id_rf_portB        = RFReadPort()
-        id_wb_addr         = Signal(modbv(0)[5:])
-        id_br_type         = Signal(modbv(0)[Consts.SZ_BR:])
-        id_rs1_data        = Signal(modbv(0)[32:])
-        id_rs2_data        = Signal(modbv(0)[32:])
         id_rs1_addr        = Signal(modbv(0)[5:])
         id_rs2_addr        = Signal(modbv(0)[5:])
+        id_wb_addr         = Signal(modbv(0)[5:])
+        id_imm             = Signal(modbv(0)[32:])
+        id_sel_imm         = Signal(modbv(0)[Consts.SZ_IMM:])
+        id_rs1_data        = Signal(modbv(0)[32:])
+        id_rs2_data        = Signal(modbv(0)[32:])
+        id_fwd1_select     = Signal(modbv(0)[Consts.SZ_FWD:])
+        id_fwd2_select     = Signal(modbv(0)[Consts.SZ_FWD:])
+        id_op1             = Signal(modbv(0)[32:])
+        id_op2             = Signal(modbv(0)[32:])
+        id_op1_data        = Signal(modbv(0)[32:])
+        id_op2_data        = Signal(modbv(0)[32:])
         id_op1_select      = Signal(modbv(0)[Consts.SZ_OP1])
         id_op2_select      = Signal(modbv(0)[Consts.SZ_OP2])
-        id_sel_imm         = Signal(modbv(0)[Consts.SZ_IMM:])
         id_alu_funct       = Signal(modbv(0)[ALUFunction.SZ_OP:])
         id_mem_type        = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
         id_mem_funct       = Signal(False)
         id_mem_valid       = Signal(False)
+        id_mem_wdata       = Signal(modbv(0)[32:])
         id_csr_addr        = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
         id_csr_cmd         = Signal(modbv(0)[CSRCommand.SZ_CMD:])
         id_mem_data_sel    = Signal(modbv(0)[Consts.SZ_WB:])
         id_wb_we           = Signal(False)
+        id_pc_brjmp        = Signal(modbv(0)[32:])
+        id_pc_jalr         = Signal(modbv(0)[32:])
         # EX stage
         ex_pc              = Signal(modbv(0)[32:])
-        ex_instruction     = Signal(modbv(0)[32:])
-        ex_br_type         = Signal(modbv(0)[Consts.SZ_BR:])
-        ex_rs1_data        = Signal(modbv(0)[32:])
-        ex_rs2_data        = Signal(modbv(0)[32:])
-        ex_sel_imm         = Signal(modbv(0)[Consts.SZ_IMM:])
-        ex_rs1_addr        = Signal(modbv(0)[5:])
-        ex_rs2_addr        = Signal(modbv(0)[5:])
         ex_alu_out         = Signal(modbv(0)[32:])
         ex_alu_funct       = Signal(modbv(0)[ALUFunction.SZ_OP:])
         ex_mem_wdata       = Signal(modbv(0)[32:])
@@ -118,20 +119,10 @@ class Datapath:
         ex_mem_data_sel    = Signal(modbv(0)[Consts.SZ_WB:])
         ex_wb_addr         = Signal(modbv(0)[5:])
         ex_wb_we           = Signal(False)
-
-        ex_op1_select      = Signal(modbv(0)[Consts.SZ_OP1:])
-        ex_op2_select      = Signal(modbv(0)[Consts.SZ_OP2:])
-        ex_fwd1_select     = Signal(modbv(0)[Consts.SZ_FWD:])
-        ex_fwd2_select     = Signal(modbv(0)[Consts.SZ_FWD:])
-        ex_imm             = Signal(modbv(0)[32:])
-        ex_op1             = Signal(modbv(0)[32:])
-        ex_op2             = Signal(modbv(0)[32:])
         ex_op1_data        = Signal(modbv(0)[32:])
         ex_op2_data        = Signal(modbv(0)[32:])
         aluIO              = ALUPortIO()
 
-        ex_pc_brjmp        = Signal(modbv(0)[32:])
-        ex_pc_jalr         = Signal(modbv(0)[32:])
         # MEM stage
         exc_pc             = Signal(modbv(0)[32:])
         mem_pc             = Signal(modbv(0)[32:])
@@ -144,6 +135,7 @@ class Datapath:
         mem_csr_cmd        = Signal(modbv(0)[CSRCommand.SZ_CMD:])
         mem_mem_data_sel   = Signal(modbv(0)[Consts.SZ_WB:])
         mem_wb_addr        = Signal(modbv(0)[5:])
+        mem_wb_wdata       = Signal(modbv(0)[32:])
         mem_wb_we          = Signal(False)
 
         csr_rw             = CSRFileRWIO()
@@ -157,8 +149,6 @@ class Datapath:
 
         mem_mem_data       = Signal(modbv(0)[32:])
         mem_csr_data       = Signal(modbv(0)[32:])
-
-        mem_mem_wdata      = Signal(modbv(0)[32:])
 
         # WB stage
         wb_pc              = Signal(modbv(0)[32:])
@@ -178,7 +168,6 @@ class Datapath:
                              full_stall,
                              pipeline_kill,
                              pc_select,
-                             id_br_type,
                              id_op1_select,
                              id_op2_select,
                              id_sel_imm,
@@ -189,10 +178,10 @@ class Datapath:
                              id_csr_cmd,
                              id_mem_data_sel,
                              id_wb_we,
-                             ex_fwd1_select,
-                             ex_fwd2_select,
-                             ex_rs1_addr,
-                             ex_rs2_addr,
+                             id_fwd1_select,
+                             id_fwd2_select,
+                             id_rs1_addr,
+                             id_rs2_addr,
                              ex_wb_we,
                              mem_wb_addr,
                              mem_wb_we,
@@ -211,16 +200,16 @@ class Datapath:
 
         @always_comb
         def _ctrl_assignments():
-            csr_exc_io.exception.next = csr_exception
+            csr_exc_io.exception.next      = csr_exception
             csr_exc_io.exception_code.next = csr_exception_code
-            csr_exc_io.eret.next = csr_eret
+            csr_exc_io.eret.next           = csr_eret
 
         # A stage
         # ----------------------------------------------------------------------
         pc_mux = Mux4(pc_select,
                       if_pc_next,
-                      ex_pc_brjmp,
-                      ex_pc_jalr,
+                      id_pc_brjmp,
+                      id_pc_jalr,
                       exc_pc,
                       a_pc).GetRTL()
         # IF stage
@@ -235,13 +224,13 @@ class Datapath:
 
         @always_comb
         def _pc_next():
-            imem_pipeline.req.addr.next = if_pc
-            if_pc_next.next     = if_pc + 4
-            if_instruction.next = imem_pipeline.resp.data
+            imem_pipeline.req.addr.next  = if_pc
+            if_pc_next.next              = if_pc + 4
+            if_instruction.next          = imem_pipeline.resp.data
             # --
-            imem_pipeline.req.data.next = 0xDEADC0DE
-            imem_pipeline.req.fcn.next = MemoryOpConstant.MT_W
-            imem_pipeline.req.typ.next = MemoryOpConstant.M_RD
+            imem_pipeline.req.data.next  = 0xDEADC0DE
+            imem_pipeline.req.fcn.next   = MemoryOpConstant.MT_W
+            imem_pipeline.req.typ.next   = MemoryOpConstant.M_RD
             imem_pipeline.req.valid.next = True
 
         # ID stage
@@ -254,6 +243,7 @@ class Datapath:
                            pipeline_kill,
                            if_pc,
                            if_instruction,
+                           # ----------
                            id_pc,
                            id_instruction).GetRTL()
 
@@ -263,15 +253,48 @@ class Datapath:
                                 id_rf_portB,
                                 wb_rf_writePort).GetRTL()
 
+        op1_data_fwd = Mux4(id_fwd1_select,
+                            id_rs1_data,
+                            ex_alu_out,
+                            mem_wb_wdata,
+                            wb_wb_wdata,
+                            id_op1).GetRTL()
+
+        op2_data_fwd = Mux4(id_fwd2_select,
+                            id_rs2_data,
+                            ex_alu_out,
+                            mem_wb_wdata,
+                            wb_wb_wdata,
+                            id_op2).GetRTL()
+
+        imm_gen = IMMGen(id_sel_imm,
+                         id_instruction,
+                         id_imm).GetRTL()
+
+        op1_mux = Mux4(id_op1_select,
+                       0x00000000,
+                       id_op1,
+                       id_pc,
+                       0x00000000,
+                       id_op1_data).GetRTL()
+
+        op2_mux = Mux4(id_op2_select,
+                       0x00000000,
+                       id_op2,
+                       id_imm,
+                       0x00000004,
+                       id_op2_data).GetRTL()
+
         @always_comb
         def _id_assignment():
-            id_rs1_addr.next    = id_instruction[20:15]
-            id_rs2_addr.next    = id_instruction[25:20]
             id_rf_portA.ra.next = id_instruction[20:15]
             id_rf_portB.ra.next = id_instruction[25:20]
             id_rs1_data.next    = id_rf_portA.rd
             id_rs2_data.next    = id_rf_portB.rd
             id_csr_addr.next    = id_instruction[32:20]
+            id_mem_wdata.next   = id_op2
+            id_pc_brjmp.next    = id_pc + id_imm
+            id_pc_jalr.next     = id_op1
 
         # EX stage
         # ----------------------------------------------------------------------
@@ -282,75 +305,32 @@ class Datapath:
                            id_kill,
                            pipeline_kill,
                            id_pc,
-                           id_instruction,
-                           id_br_type,
-                           id_rs1_data,
-                           id_rs2_data,
-                           id_rs1_addr,
-                           id_rs2_addr,
-                           id_op1_select,
-                           id_op2_select,
-                           id_sel_imm,
+                           id_op1_data,
+                           id_op2_data,
                            id_alu_funct,
                            id_mem_type,
                            id_mem_funct,
                            id_mem_valid,
+                           id_mem_wdata,
                            id_csr_addr,
                            id_csr_cmd,
                            id_mem_data_sel,
                            id_wb_addr,
                            id_wb_we,
+                           # ----------
                            ex_pc,
-                           ex_instruction,
-                           ex_br_type,
-                           ex_rs1_data,
-                           ex_rs2_data,
-                           ex_op1_select,
-                           ex_op2_select,
-                           ex_sel_imm,
-                           ex_rs1_addr,
-                           ex_rs2_addr,
+                           ex_op1_data,
+                           ex_op2_data,
                            ex_alu_funct,
                            ex_mem_type,
                            ex_mem_funct,
                            ex_mem_valid,
+                           ex_mem_wdata,
                            ex_csr_addr,
                            ex_csr_cmd,
                            ex_mem_data_sel,
                            ex_wb_addr,
                            ex_wb_we).GetRTL()
-
-        op1_data_fwd = Mux4(ex_fwd1_select,
-                            ex_rs1_data,
-                            mem_mem_wdata,
-                            wb_wb_wdata,
-                            0,
-                            ex_op1).GetRTL()
-
-        op2_data_fwd = Mux4(ex_fwd2_select,
-                            ex_rs2_data,
-                            mem_mem_wdata,
-                            wb_wb_wdata,
-                            0,
-                            ex_op2).GetRTL()
-
-        imm_gen = IMMGen(ex_sel_imm,
-                         ex_instruction,
-                         ex_imm).GetRTL()
-
-        op1_mux = Mux4(ex_op1_select,
-                       0,
-                       ex_op1,
-                       ex_pc,
-                       0,
-                       ex_op1_data).GetRTL()
-
-        op2_mux = Mux4(ex_op2_select,
-                       0,
-                       ex_op2,
-                       ex_imm,
-                       4,
-                       ex_op2_data).GetRTL()
 
         alu = ALU(aluIO).GetRTL()
 
@@ -361,9 +341,6 @@ class Datapath:
             aluIO.input2.next   = ex_op2_data
             aluIO.output.next   = ex_alu_out
             ex_alu_out.next     = aluIO.output
-            ex_pc_brjmp.next    = ex_pc + ex_imm
-            ex_pc_jalr.next     = aluIO.output
-            ex_mem_wdata.next   = ex_op2
 
         # MEM stage
         # ----------------------------------------------------------------------
@@ -382,6 +359,7 @@ class Datapath:
                              ex_mem_data_sel,
                              ex_wb_addr,
                              ex_wb_we,
+                             # -----
                              mem_pc,
                              mem_alu_out,
                              mem_mem_wdata,
@@ -407,7 +385,7 @@ class Datapath:
                          mem_mem_data,
                          mem_csr_data,
                          0,
-                         mem_mem_wdata).GetRTL()
+                         mem_wb_wdata).GetRTL()
 
         @always_comb
         def _mem_assignments():
@@ -427,7 +405,7 @@ class Datapath:
                              pipeline_kill,
                              mem_pc,
                              mem_wb_addr,
-                             mem_mem_wdata,
+                             mem_wb_wdata,
                              mem_wb_we,
                              wb_pc,
                              wb_wb_addr,
