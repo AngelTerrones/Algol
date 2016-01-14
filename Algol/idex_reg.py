@@ -36,38 +36,26 @@ class IDEXReg:
                  id_kill:         Signal,
                  pipeline_kill:   Signal,
                  id_pc:           Signal,
-                 id_instruction:  Signal,
-                 id_br_type:      Signal,
-                 id_rs1_data:     Signal,
-                 id_rs2_data:     Signal,
-                 id_rs1_addr:     Signal,
-                 id_rs2_addr:     Signal,
-                 id_op1_select:   Signal,
-                 id_op2_select:   Signal,
-                 id_sel_imm:      Signal,
+                 id_op1_data:     Signal,
+                 id_op2_data:     Signal,
                  id_alu_funct:    Signal,
                  id_mem_type:     Signal,
                  id_mem_funct:    Signal,
                  id_mem_valid:    Signal,
+                 id_mem_wdata:    Signal,
                  id_csr_addr:     Signal,
                  id_csr_cmd:      Signal,
                  id_mem_data_sel: Signal,
                  id_wb_addr:      Signal,
                  id_wb_we:        Signal,
                  ex_pc:           Signal,
-                 ex_instruction:  Signal,
-                 ex_br_type:      Signal,
-                 ex_rs1_data:     Signal,
-                 ex_rs2_data:     Signal,
-                 ex_op1_select:   Signal,
-                 ex_op2_select:   Signal,
-                 ex_sel_imm:      Signal,
-                 ex_rs1_addr:     Signal,
-                 ex_rs2_addr:     Signal,
+                 ex_op1_data:     Signal,
+                 ex_op2_data:     Signal,
                  ex_alu_funct:    Signal,
                  ex_mem_type:     Signal,
                  ex_mem_funct:    Signal,
                  ex_mem_valid:    Signal,
+                 ex_mem_wdata:    Signal,
                  ex_csr_addr:     Signal,
                  ex_csr_cmd:      Signal,
                  ex_mem_data_sel: Signal,
@@ -81,17 +69,13 @@ class IDEXReg:
         self.id_kill         = id_kill
         self.pipeline_kill   = pipeline_kill
         self.id_pc           = id_pc
-        self.id_instruction  = id_instruction
-        self.id_br_type      = id_br_type
-        self.id_rs1_data     = id_rs1_data
-        self.id_rs2_data     = id_rs2_data
-        self.id_rs1_addr     = id_rs1_addr
-        self.id_rs2_addr     = id_rs2_addr
-        self.id_sel_imm      = id_sel_imm
+        self.id_op1_data     = id_op1_data
+        self.id_op2_data     = id_op2_data
         self.id_alu_funct    = id_alu_funct
         self.id_mem_type     = id_mem_type
         self.id_mem_funct    = id_mem_funct
         self.id_mem_valid    = id_mem_valid
+        self.id_mem_wdata    = id_mem_wdata
         self.id_csr_addr     = id_csr_addr
         self.id_csr_cmd      = id_csr_cmd
         self.id_mem_data_sel = id_mem_data_sel
@@ -99,19 +83,15 @@ class IDEXReg:
         self.id_wb_we        = id_wb_we
         # outputs
         self.ex_pc           = ex_pc
-        self.ex_instruction  = ex_instruction
-        self.ex_br_type      = ex_br_type
-        self.ex_rs1_data     = ex_rs1_data
-        self.ex_rs2_data     = ex_rs2_data
-        self.ex_rs1_addr     = ex_rs1_addr
-        self.ex_rs2_addr     = ex_rs2_addr
-        self.ex_sel_imm      = ex_sel_imm
+        self.ex_op1_data     = ex_op1_data
+        self.ex_op2_data     = ex_op2_data
         self.ex_alu_funct    = ex_alu_funct
         self.ex_mem_type     = ex_mem_type
         self.ex_mem_funct    = ex_mem_funct
         self.ex_mem_valid    = ex_mem_valid
-        self.ex_csr_cmd      = ex_csr_cmd
+        self.ex_mem_wdata    = ex_mem_wdata
         self.ex_csr_addr     = ex_csr_addr
+        self.ex_csr_cmd      = ex_csr_cmd
         self.ex_mem_data_sel = ex_mem_data_sel
         self.ex_wb_addr      = ex_wb_addr
         self.ex_wb_we        = ex_wb_we
@@ -119,49 +99,40 @@ class IDEXReg:
     def GetRTL(self):
         @always(self.clk.posedge)
         def rtl():
+            global self
             if self.rst == 1:
-                self.ex_pc.next          = 0
-                self.ex_instruction.next = Consts.BUBBLE
-                self.ex_branch_type.next = Consts.BR_X
-                self.ex_rs1_data.next    = 0
-                self.ex_rs2_data.next    = 0
-                self.ex_rs1_addr.next    = 0
-                self.ex_rs2_addr.next    = 0
-                self.ex_sel_imm          = Consts.IMM_X
-                self.ex_alu_funct.next   = ALUFunction.OP_ADD
-                self.ex_mem_type.next    = MemoryOpConstant.MT_X
-                self.ex_mem_funct.next   = MemoryOpConstant.M_X
-                self.ex_mem_valid.next   = False
-                self.ex_csr_addr.next    = 0
-                self.ex_csr_cmd.next     = CSRCommand.CSR_IDLE
+                self.ex_pc.next           = 0
+                self.ex_op1_data.next     = 0
+                self.ex_op2_data.next     = 0
+                self.ex_alu_funct.next    = ALUFunction.OP_ADD
+                self.ex_mem_type.next     = MemoryOpConstant.MT_X
+                self.ex_mem_funct.next    = MemoryOpConstant.M_X
+                self.ex_mem_valid.next    = False
+                self.ex_mem_wdata.next    = 0
+                self.ex_csr_addr.next     = 0
+                self.ex_csr_cmd.next      = CSRCommand.CSR_IDLE
                 self.ex_mem_data_sel.next = Consts.WB_X
-                self.ex_wb_addr.next     = 0
-                self.ex_wb_we.next       = False
+                self.ex_wb_addr.next      = 0
+                self.ex_wb_we.next        = False
             else:
                 # id_stall and full_stall are not related.
                 if self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall):
-                    self.ex_instruction.next = Consts.BUBBLE
-                    self.ex_branch_type.next = Consts.BR_X
                     self.ex_mem_valid.next   = False
                     self.ex_mem_funct.next   = MemoryOpConstant.M_X
                     self.ex_csr_cmd.next     = CSRCommand.CSR_IDLE
                     self.ex_wb_we.next       = False
                 elif (not self.id_stall and not self.full_stall):
                     self.ex_pc.next           = self.id_pc
-                    self.ex_instruction       = self.id_instruction
-                    self.ex_rs1_data.next     = self.id_rs1_data
-                    self.ex_rs2_data.next     = self.id_rs2_data
-                    self.ex_rs1_addr.next     = self.id_rs1_addr
-                    self.ex_rs2_addr.next     = self.id_rs2_addr
-                    self.ex_sel_imm.next      = self.id_sel_imm
+                    self.ex_op1_data.next     = self.id_op1_data
+                    self.ex_op2_data.next     = self.id_op2_data
                     self.ex_alu_funct.next    = self.id_alu_funct
                     self.ex_mem_type.next     = self.id_mem_type
-                    self.ex_mem_data_sel.next = self.id_mem_data_sel
-                    self.ex_branch_type.next  = self.id_br_type
-                    self.ex_mem_valid.next    = self.id_mem_valid
                     self.ex_mem_funct.next    = self.id_mem_funct
+                    self.ex_mem_valid.next    = self.id_mem_valid
+                    self.ex_mem_wdata.next    = self.id_mem_wdata
                     self.ex_csr_addr.next     = self.id_csr_addr
                     self.ex_csr_cmd.next      = self.id_csr_cmd
+                    self.ex_mem_data_sel.next = self.id_mem_data_sel
                     self.ex_wb_addr.next      = self.id_wb_addr
                     self.ex_wb_we.next        = self.id_wb_we
 
