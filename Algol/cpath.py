@@ -44,7 +44,6 @@ class Ctrlpath:
                  full_stall:         Signal,
                  pipeline_kill:      Signal,
                  pc_select:          Signal,
-                 id_br_type:         Signal,
                  id_op1_select:      Signal,
                  id_op2_select:      Signal,
                  id_sel_imm:         Signal,
@@ -55,10 +54,11 @@ class Ctrlpath:
                  id_csr_cmd:         Signal,
                  id_mem_data_sel:    Signal,
                  id_wb_we:           Signal,
-                 ex_fwd1_select:     Signal,
-                 ex_fwd2_select:     Signal,
-                 ex_rs1_addr:        Signal,
-                 ex_rs2_addr:        Signal,
+                 id_fwd1_select:     Signal,
+                 id_fwd2_select:     Signal,
+                 id_rs1_addr:        Signal,
+                 id_rs2_addr:        Signal,
+                 ex_wb_addr:         Signal,
                  ex_wb_we:           Signal,
                  mem_wb_addr:        Signal,
                  mem_wb_we:          Signal,
@@ -82,7 +82,6 @@ class Ctrlpath:
         self.full_stall         = full_stall
         self.pipeline_kill      = pipeline_kill
         self.pc_select          = pc_select
-        self.id_br_type         = id_br_type
         self.id_op1_select      = id_op1_select
         self.id_op2_select      = id_op2_select
         self.id_sel_imm         = id_sel_imm
@@ -93,12 +92,16 @@ class Ctrlpath:
         self.id_csr_cmd         = id_csr_cmd
         self.id_mem_data_sel    = id_mem_data_sel
         self.id_wb_we           = id_wb_we
-        self.ex_fwd1_select     = ex_fwd1_select
-        self.ex_fwd2_select     = ex_fwd2_select
-        self.ex_rs1_addr        = ex_rs1_addr
-        self.ex_rs2_addr        = ex_rs2_addr
+        self.id_fwd1_select     = id_fwd1_select
+        self.id_fwd2_select     = id_fwd2_select
+        self.id_rs1_addr        = id_rs1_addr
+        self.id_rs2_addr        = id_rs2_addr
+        self.ex_wb_addr         = ex_wb_addr
+        self.ex_wb_we           = ex_wb_we
         self.mem_wb_addr        = mem_wb_addr
+        self.mem_wb_we          = mem_wb_we
         self.wb_wb_addr         = wb_wb_addr
+        self.wb_wb_we           = wb_wb_we
 
         self.csr_exception      = csr_exception
         self.csr_exception_code = csr_exception_code
@@ -128,8 +131,8 @@ class Ctrlpath:
             self.id_csr_cmd.next      = control[25:22]
             self.id_mem_data_sel.next = control[27:25]
             self.id_wb_we.next        = control[27]
-            self.ex_fwd1_select.next  = control[30:28]
-            self.ex_fwd2_select.next  = control[32:30]
+            self.id_fwd1_select.next  = control[30:28]
+            self.id_fwd2_select.next  = control[32:30]
 
         @always_comb
         def _ctrl_assignment():
@@ -137,8 +140,8 @@ class Ctrlpath:
 
         @always_comb
         def _fwd_ctrl():
-            self.ex_fwd1_select.next = Consts.FWD_X
-            self.ex_fwd2_select.next = Consts.FWD_X
+            self.id_fwd1_select.next = Consts.FWD_X
+            self.id_fwd2_select.next = Consts.FWD_X
 
         @always_comb
         def _ctrl_pipeline():
