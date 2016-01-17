@@ -41,6 +41,7 @@ from csr import CSRAddressMap
 from csr import CSRModes
 from imm_gen import IMMGen
 from common.mux import Mux4
+from common.mux import Mux2
 from pc_reg import PCreg
 from ifid_reg import IFIDReg
 from idex_reg import IDEXReg
@@ -182,6 +183,7 @@ class Datapath:
                              id_fwd2_select,
                              id_rs1_addr,
                              id_rs2_addr,
+                             ex_wb_addr,
                              ex_wb_we,
                              mem_wb_addr,
                              mem_wb_we,
@@ -272,17 +274,17 @@ class Datapath:
                          id_imm).GetRTL()
 
         op1_mux = Mux4(id_op1_select,
-                       0x00000000,
                        id_op1,
                        id_pc,
+                       0x00000000,
                        0x00000000,
                        id_op1_data).GetRTL()
 
         op2_mux = Mux4(id_op2_select,
-                       0x00000000,
                        id_op2,
                        id_imm,
                        0x00000004,
+                       0x00000000,
                        id_op2_data).GetRTL()
 
         @always_comb
@@ -387,15 +389,28 @@ class Datapath:
                          0,
                          mem_wb_wdata).GetRTL()
 
+        exc_pc_mux = Mux2(csr_eret,
+                          csr_exc_io.exception_handler,
+                          csr_exc_io.epc,
+                          exc_pc)
+
         @always_comb
         def _mem_assignments():
-            dmem_pipeline.req.addr       = mem_alu_out
-            dmem_pipeline.req.data.next  = mem_mem_wdata
-            dmem_pipeline.req.fcn.next   = mem_mem_funct
-            dmem_pipeline.req.typ.next   = mem_mem_type
-            dmem_pipeline.req.valid.next = mem_mem_valid
-            mem_mem_data.next            = dmem_pipeline.resp.data
-            mem_csr_data.next            = csr.rw.rdata
+            dmem_pipeline.req.addr              = mem_alu_out
+            dmem_pipeline.req.data.next         = mem_mem_wdata
+            dmem_pipeline.req.fcn.next          = mem_mem_funct
+            dmem_pipeline.req.typ.next          = mem_mem_type
+            dmem_pipeline.req.valid.next        = mem_mem_valid
+            mem_mem_data.next                   = dmem_pipeline.resp.data
+            csr_rw.addr.next                    = mem_csr_addr
+            csr_rw.cmd.next                     = mem_csr_cmd
+            csr_rw.wdata.next                   = mem_alu_out
+            mem_csr_data.next                   = csr_rw.rdata
+            csr_exc_io.exception.next           = csr_exception
+            csr_exc_io.exception_code.next      = csr_exception_code
+            csr_exc_io.eret.next                = csr_eret
+            csr_exc_io.exception_load_addr.next = mem_alu_out
+            csr_exc_io.exception_pc.next        = mem_pc
 
         # WB stage
         # ----------------------------------------------------------------------
@@ -421,7 +436,7 @@ class Datapath:
         return (pc_mux, pc_reg, _pc_next, ifid_reg, reg_file, op1_mux, op2_mux,
                 op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
                 _ex_assignments, exmem_reg, _mem_assignments, csr, mdata_mux, memwb_reg,
-                _wb_assignments, ctrl_unit, _ctrl_assignments)
+                _wb_assignments, ctrl_unit, _ctrl_assignments, exc_pc_mux)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
