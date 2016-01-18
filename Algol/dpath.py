@@ -183,6 +183,8 @@ class Datapath:
                              id_fwd2_select,
                              id_rs1_addr,
                              id_rs2_addr,
+                             id_op1,
+                             id_op2,
                              ex_wb_addr,
                              ex_wb_we,
                              mem_wb_addr,
