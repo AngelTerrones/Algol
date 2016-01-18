@@ -47,16 +47,16 @@ class Consts:
     # RS1 Operand Select Signal
     SZ_OP1     = 2
     OP1_X      = modbv(0)[SZ_OP1:]
-    OP1_ZERO   = modbv(0)[SZ_OP1:]
-    OP1_RS1    = modbv(1)[SZ_OP1:]
-    OP1_PC     = modbv(2)[SZ_OP1:]
+    OP1_RS1    = modbv(0)[SZ_OP1:]
+    OP1_PC     = modbv(1)[SZ_OP1:]
+    OP1_ZERO   = modbv(2)[SZ_OP1:]
     # RS2 Operand Select Signal
     SZ_OP2     = 2
     OP2_X      = modbv(0)[SZ_OP2:]
-    OP2_ZERO   = modbv(0)[SZ_OP2:]
-    OP2_RS2    = modbv(1)[SZ_OP2:]
-    OP2_IMM    = modbv(2)[SZ_OP2:]
-    OP2_FOUR   = modbv(3)[SZ_OP2:]
+    OP2_RS2    = modbv(0)[SZ_OP2:]
+    OP2_IMM    = modbv(1)[SZ_OP2:]
+    OP2_FOUR   = modbv(2)[SZ_OP2:]
+    OP2_ZERO   = modbv(3)[SZ_OP2:]
     # IMM
     SZ_IMM     = 3
     IMM_X      = 0
@@ -70,8 +70,9 @@ class Consts:
     SZ_FWD     = 2
     FWD_X      = 0
     FWD_N      = 0
-    FWD_MEM    = 1
-    FWD_WB     = 2
+    FWD_EX     = 1
+    FWD_MEM    = 2
+    FWD_WB     = 3
     # WB signals
     SZ_WB      = 2
     WB_X       = 0
