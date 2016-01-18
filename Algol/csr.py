@@ -81,7 +81,6 @@ class CSRExceptionCode:
     E_ECALL_FROM_H         = 10
     E_ECALL_FROM_M         = 11
     # Interrupt codes
-    SZ_ICODE               = 1
     I_SOFTWARE             = 0
     I_TIMER                = 1
 
