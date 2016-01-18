@@ -57,6 +57,7 @@ class MemResp:
     def __init__(self):
         self.data  = Signal(modbv(0)[32:])
         self.valid = Signal(False)
+        self.fault = Signal(False)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
