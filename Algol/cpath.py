@@ -65,13 +65,14 @@ class Ctrlpath:
                  mem_wb_we:          Signal,
                  wb_wb_addr:         Signal,
                  wb_wb_we:           Signal,
-                 csr_interrupt:      Signal,
-                 csr_exception:      Signal,
-                 csr_exception_code: Signal,
                  csr_eret:           Signal,
-                 csr_retire:         Signal,
                  csr_prv:            Signal,
                  csr_illegal_access: Signal,
+                 csr_interrupt:      Signal,
+                 csr_interrupt_code: Signal,
+                 csr_exception:      Signal,
+                 csr_exception_code: Signal,
+                 csr_retire:         Signal,
                  imem_pipeline:      MemPortIO,
                  dmem_pipeline:      MemPortIO,
                  imem:               MemPortIO,
@@ -105,13 +106,14 @@ class Ctrlpath:
         self.wb_wb_addr         = wb_wb_addr
         self.wb_wb_we           = wb_wb_we
 
-        self.csr_interrupt      = csr_interrupt
-        self.csr_exception      = csr_exception
-        self.csr_exception_code = csr_exception_code
         self.csr_eret           = csr_eret
-        self.csr_retire         = csr_retire
         self.csr_prv            = csr_prv
         self.csr_illegal_access = csr_illegal_access
+        self.csr_interrupt      = csr_interrupt
+        self.csr_interrupt_code = csr_interrupt_code
+        self.csr_exception      = csr_exception
+        self.csr_exception_code = csr_exception_code
+        self.csr_retire         = csr_retire
         self.imem_pipeline      = imem_pipeline
         self.dmem_pipeline      = dmem_pipeline
         self.imem               = imem
@@ -138,17 +140,11 @@ class Ctrlpath:
         self.mem_ld_fault       = Signal(False)
         self.mem_st_misalign    = Signal(False)
         self.mem_st_fault       = Signal(False)
-        self.id_softwate_int    = Signal(False)
-        self.id_timer_int       = Signal(False)
-
+        #  Auxiliary signals
         self.id_imem_misalign   = Signal(False)
         self.id_imem_fault      = Signal(False)
         self.ex_exception       = Signal(False)
-        self.ex_eret            = Signal(False)
-        self.ex_csr_cmd         = Signal(modbv(0)[CSRCommand.SZ_CMD])
         self.ex_exception_code  = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
-
-        self.mem_prev_exc       = Signal(False)
 
         self.mem_exception      = Signal(False)
         self.mem_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
@@ -159,7 +155,7 @@ class Ctrlpath:
                  (False)))
 
     def GetRTL(self):
-        control   = Signal(modbv(0)[28:])
+        control = Signal(modbv(0)[28:])
 
         @always_comb
         def _ctrl_assignment():
@@ -186,25 +182,25 @@ class Ctrlpath:
 
         @always_comb
         def _exc_assignments():
-            self.if_imem_misalign.next = self.CheckInvalidAddress(self.imem.req.addr,
-                                                                  self.imem.req.typ)
-            self.if_imem_fault.next   = self.imem.resp.fault
-            self.id_illegal_inst.next = control[27] or (self.csr_prv == CSRModes.PRV_U and self.id_eret)
-            self.id_breakpoint.next   = self.id_break
-            self.id_ecall_u.next = self.csr_prv == CSRModes.PRV_U and self.id_ecall
-            self.id_ecall_s.next = self.csr_prv == CSRModes.PRV_S and self.id_ecall
-            self.id_ecall_h.next = self.csr_prv == CSRModes.PRV_H and self.id_ecall
-            self.id_ecall_m.next = self.csr_prv == CSRModes.PRV_M and self.id_ecall
-            self.mem_ld_misalign.next = (self.dmem_pipeline.req.valid and
-                                         self.dmem_pipeline.req.fcn == MemoryOpConstant.M_RD and
-                                         self.CheckInvalidAddress(self.dmem.req.addr,
-                                                                  self.dmem.req.typ))
-            self.mem_ld_fault.next = self.dmem.rest.fault
-            self.mem_st_misalign.next = (self.dmem_pipeline.req.valid and
-                                         self.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR and
-                                         self.CheckInvalidAddress(self.dmem.req.addr,
-                                                                  self.dmem.req.typ))
-            self.mem_st_fault.next = self.dmem.rest.fault
+            self.if_imem_misalign.next = self.CheckInvalidAddress(self.imem_pipeline.req.addr,
+                                                                  self.imem_pipeline.req.typ)
+            self.if_imem_fault.next    = self.imem.resp.fault
+            self.id_illegal_inst.next  = control[27] or (self.csr_prv == CSRModes.PRV_U and self.id_eret)
+            self.id_breakpoint.next    = self.id_break
+            self.id_ecall_u.next       = self.csr_prv == CSRModes.PRV_U and self.id_ecall
+            self.id_ecall_s.next       = self.csr_prv == CSRModes.PRV_S and self.id_ecall
+            self.id_ecall_h.next       = self.csr_prv == CSRModes.PRV_H and self.id_ecall
+            self.id_ecall_m.next       = self.csr_prv == CSRModes.PRV_M and self.id_ecall
+            self.mem_ld_misalign.next  = (self.dmem_pipeline.req.valid and
+                                          self.dmem_pipeline.req.fcn == MemoryOpConstant.M_RD and
+                                          self.CheckInvalidAddress(self.dmem_pipeline.req.addr,
+                                                                   self.dmem_pipeline.req.typ))
+            self.mem_ld_fault.next     = self.dmem.rest.fault
+            self.mem_st_misalign.next  = (self.dmem_pipeline.req.valid and
+                                          self.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR and
+                                          self.CheckInvalidAddress(self.dmem_pipeline.req.addr,
+                                                                   self.dmem_pipeline.req.typ))
+            self.mem_st_fault.next     = self.dmem.rest.fault
 
         @always(self.clk.posedge)
         def _ifid_register():
@@ -222,46 +218,45 @@ class Ctrlpath:
         @always(self.clk.posedge)
         def _idex_register():
             if self.rst:
-                self.ex_eret.next           = False
-                self.ex_csr_cmd.next        = CSRCommand.CSR_IDLE
                 self.ex_exception.next      = False
                 self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
             else:
                 if self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall):
-                    self.ex_eret.next           = False
-                    self.ex_csr_cmd.next        = CSRCommand.CSR_IDLE
                     self.ex_exception.next      = False
                     self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
                 elif not self.id_stall and not self.full_stall:
-                    self.ex_eret.next           = self.id_eret
-                    self.ex_csr_cmd.next        = self.id_csr_cmd
-                    self.ex_exception.next      = (self.id_imem_misalign or
-                                                   self.id_imem_fault or
-                                                   self.id_illegal_inst or
-                                                   self.id_breakpoint or
-                                                   self.id_ecall_u or
-                                                   self.id_ecall_s or
-                                                   self.id_ecall_h or
-                                                   self.id_ecall_m)
-                    self.ex_exception_code.next = (CSRExceptionCode.E_INST_ADDR_MISALIGNED if self.id_imem_misalign else
-                                                   (CSRExceptionCode.E_INST_ACCESS_FAULT if self.id_imem_fault else
-                                                    (CSRExceptionCode.E_ILLEGAL_INST if self.id_illegal_inst else
-                                                     (CSRExceptionCode.E_BREAKPOINT if self.id_breakpoint else
-                                                      (CSRExceptionCode.E_ECALL_FROM_U if self.id_ecall_u else
-                                                       (CSRExceptionCode.E_ECALL_FROM_S if self.id_ecall_s else
-                                                        (CSRExceptionCode.E_ECALL_FROM_H if self.id_ecall_h else
-                                                         (CSRExceptionCode.E_ECALL_FROM_M if self.id_ecall_m else
-                                                          (CSRExceptionCode.E_ILLEGAL_INST)))))))))
+                    self.ex_exception.next      = (self.id_imem_misalign or self.id_imem_fault or self.id_illegal_inst or
+                                                   self.id_breakpoint or self.id_ecall_u or self.id_ecall_s or self.id_ecall_h or
+                                                   self.id_ecall_m or self.csr_interrupt)
+                    self.ex_exception_code.next = (self.csr_interrupt_code if self.csr_interrupt else
+                                                   (CSRExceptionCode.E_INST_ADDR_MISALIGNED if self.id_imem_misalign else
+                                                    (CSRExceptionCode.E_INST_ACCESS_FAULT if self.id_imem_fault else
+                                                     (CSRExceptionCode.E_ILLEGAL_INST if self.id_illegal_inst else
+                                                      (CSRExceptionCode.E_BREAKPOINT if self.id_breakpoint else
+                                                       (CSRExceptionCode.E_ECALL_FROM_U if self.id_ecall_u else
+                                                        (CSRExceptionCode.E_ECALL_FROM_S if self.id_ecall_s else
+                                                         (CSRExceptionCode.E_ECALL_FROM_H if self.id_ecall_h else
+                                                          (CSRExceptionCode.E_ECALL_FROM_M if self.id_ecall_m else
+                                                           (CSRExceptionCode.E_ILLEGAL_INST))))))))))
 
         @always(self.clk.posedge)
         def _exmem_register():
             if self.rst:
-                self.csr_eret.next = False
+                self.mem_exception.next      = False
+                self.mem_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
             else:
                 if self.pipeline_kill:
-                    self.csr_eret.next = False
+                    self.mem_exception.next      = False
+                    self.mem_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
                 elif not self.full_stall:
-                    self.csr_eret.next = self.ex_eret
+                    self.mem_exception.next      = (self.ex_exception or self.mem_ld_misalign or self.mem_ld_fault or
+                                                    self.mem_st_misalign or self.mem_st_fault)
+                    self.mem_exception_code.next = (self.ex_exception if self.ex_exception else
+                                                    (CSRExceptionCode.E_AMO_ADDR_MISALIGNED if self.mem_ld_misalign else
+                                                     (CSRExceptionCode.E_AMO_ACCESS_FAULT if self.mem_ld_fault else
+                                                      (CSRExceptionCode.E_LOAD_ADDR_MISALIGNED if self.mem_st_misalign else
+                                                       (CSRExceptionCode.E_LOAD_ACCESS_FAULT if self.mem_st_fault else
+                                                        (self.ex_exception))))))
 
         @always_comb
         def _branch_detect():
@@ -271,7 +266,7 @@ class Ctrlpath:
 
         @always_comb
         def _pc_select():
-            self.pc_select.next = (Consts.PC_EXC if self.csr_exception else
+            self.pc_select.next = (Consts.PC_EXC if self.csr_exception or self.csr_eret else
                                    (Consts.PC_BRJMP if ((self.id_br_type == Consts.BR_NE and not self.id_eq) or
                                                         (self.id_br_type == Consts.BR_EQ and self.id_eq) or
                                                         (self.id_br_type == Consts.BR_LT and self.id_lt) or
