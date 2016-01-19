@@ -171,21 +171,22 @@ class Ctrlpath:
             self.id_mem_type.next     = control[16:13]
             self.id_mem_funct.next    = control[16]
             self.id_mem_valid.next    = control[17]
-            self.id_csr_cmd.next      = control[21:18]
+            self.id_csr_cmd.next      = control[21:18] if self.id_rs1_addr != 0 else CSRCommand.CSR_READ
             self.id_mem_data_sel.next = control[23:21]
             self.id_wb_we.next        = control[23]
             self.id_eret.next         = control[24]
             self.id_ebreak.next       = control[25]
             self.id_ecall.next        = control[26]
 
-            self.retire.next = not self.full_stall and not self.csr_exception
+            self.csr_retire.next = not self.full_stall and not self.csr_exception
+            self.csr_eret.next = self.id_eret and self.csr_prv != CSRModes.PRV_U
 
         @always_comb
         def _exc_assignments():
             self.if_imem_misalign.next = self.CheckInvalidAddress(self.imem_pipeline.req.addr,
                                                                   self.imem_pipeline.req.typ)
             self.if_imem_fault.next    = self.imem.resp.fault
-            self.id_illegal_inst.next  = control[27] or (self.csr_prv == CSRModes.PRV_U and self.id_eret)
+            self.id_illegal_inst.next  = control[27] or (self.csr_prv == CSRModes.PRV_U and self.id_eret) or self.csr_illegal_access
             self.id_breakpoint.next    = self.id_break
             self.id_ecall_u.next       = self.csr_prv == CSRModes.PRV_U and self.id_ecall
             self.id_ecall_s.next       = self.csr_prv == CSRModes.PRV_S and self.id_ecall
@@ -290,15 +291,14 @@ class Ctrlpath:
         @always_comb
         def _ctrl_pipeline():
             self.if_kill.next       = self.pc_select != Consts.PC_4
-            self.id_stall.next      = self.id_fwd1_select == Consts.FWD_EX and (self.ex_csr_cmd != CSRCommand.CSR_IDLE or
-                                                                                self.ex_mem_funct == MemoryOpConstant.M_WR)
+            self.id_stall.next      = self.id_fwd1_select == Consts.FWD_EX and self.ex_mem_funct == MemoryOpConstant.M_WR
             self.id_kill.next       = False
             self.full_stall.next    = (not self.imem.resp.valid and self.imem.req.valid) or (not self.dmem.resp.valid and self.dmem.req.valid)
             self.pipeline_kill.next = self.csr_exception
 
         @always_comb
         def _exc_detect():
-            self.csr_exception.next = self.mem_exception or self.illegal_access
+            self.csr_exception.next      = self.mem_exception
             self.csr_exception_code.next = self.mem_exception_code
 
         @always_comb
