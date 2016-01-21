@@ -74,11 +74,10 @@ class Consts:
     FWD_MEM    = 2
     FWD_WB     = 3
     # WB signals
-    SZ_WB      = 2
-    WB_X       = 0
-    WB_ALU     = 0
-    WB_MEM     = 1
-    WB_CSR     = 2
+    SZ_WB      = 1
+    WB_X       = False
+    WB_ALU     = False
+    WB_MEM     = True
     # PRIV
     MTVEC      = 0x100
     START_ADDR = MTVEC + 0x100

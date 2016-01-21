@@ -24,7 +24,6 @@ from myhdl import always
 from consts import Consts
 from alu import ALUFunction
 from memIO import MemoryOpConstant
-from csr import CSRCommand
 
 
 class IDEXReg:
@@ -43,8 +42,6 @@ class IDEXReg:
                  id_mem_funct:    Signal,
                  id_mem_valid:    Signal,
                  id_mem_wdata:    Signal,
-                 id_csr_addr:     Signal,
-                 id_csr_cmd:      Signal,
                  id_mem_data_sel: Signal,
                  id_wb_addr:      Signal,
                  id_wb_we:        Signal,
@@ -56,8 +53,6 @@ class IDEXReg:
                  ex_mem_funct:    Signal,
                  ex_mem_valid:    Signal,
                  ex_mem_wdata:    Signal,
-                 ex_csr_addr:     Signal,
-                 ex_csr_cmd:      Signal,
                  ex_mem_data_sel: Signal,
                  ex_wb_addr:      Signal,
                  ex_wb_we:        Signal):
@@ -76,8 +71,6 @@ class IDEXReg:
         self.id_mem_funct    = id_mem_funct
         self.id_mem_valid    = id_mem_valid
         self.id_mem_wdata    = id_mem_wdata
-        self.id_csr_addr     = id_csr_addr
-        self.id_csr_cmd      = id_csr_cmd
         self.id_mem_data_sel = id_mem_data_sel
         self.id_wb_addr      = id_wb_addr
         self.id_wb_we        = id_wb_we
@@ -90,8 +83,6 @@ class IDEXReg:
         self.ex_mem_funct    = ex_mem_funct
         self.ex_mem_valid    = ex_mem_valid
         self.ex_mem_wdata    = ex_mem_wdata
-        self.ex_csr_addr     = ex_csr_addr
-        self.ex_csr_cmd      = ex_csr_cmd
         self.ex_mem_data_sel = ex_mem_data_sel
         self.ex_wb_addr      = ex_wb_addr
         self.ex_wb_we        = ex_wb_we
@@ -109,8 +100,6 @@ class IDEXReg:
                 self.ex_mem_funct.next    = MemoryOpConstant.M_X
                 self.ex_mem_valid.next    = False
                 self.ex_mem_wdata.next    = 0
-                self.ex_csr_addr.next     = 0
-                self.ex_csr_cmd.next      = CSRCommand.CSR_IDLE
                 self.ex_mem_data_sel.next = Consts.WB_X
                 self.ex_wb_addr.next      = 0
                 self.ex_wb_we.next        = False
@@ -119,7 +108,6 @@ class IDEXReg:
                 if self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall):
                     self.ex_mem_valid.next   = False
                     self.ex_mem_funct.next   = MemoryOpConstant.M_X
-                    self.ex_csr_cmd.next     = CSRCommand.CSR_IDLE
                     self.ex_wb_we.next       = False
                 elif (not self.id_stall and not self.full_stall):
                     self.ex_pc.next           = self.id_pc
@@ -130,8 +118,6 @@ class IDEXReg:
                     self.ex_mem_funct.next    = self.id_mem_funct
                     self.ex_mem_valid.next    = self.id_mem_valid
                     self.ex_mem_wdata.next    = self.id_mem_wdata
-                    self.ex_csr_addr.next     = self.id_csr_addr
-                    self.ex_csr_cmd.next      = self.id_csr_cmd
                     self.ex_mem_data_sel.next = self.id_mem_data_sel
                     self.ex_wb_addr.next      = self.id_wb_addr
                     self.ex_wb_we.next        = self.id_wb_we
