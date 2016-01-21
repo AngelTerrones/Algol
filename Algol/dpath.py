@@ -107,6 +107,7 @@ class Datapath:
         id_wb_we           = Signal(False)
         id_pc_brjmp        = Signal(modbv(0)[32:])
         id_pc_jalr         = Signal(modbv(0)[32:])
+        id_csr_data        = Signal(modbv(0)[32:])
         # EX stage
         ex_pc              = Signal(modbv(0)[32:])
         ex_alu_out         = Signal(modbv(0)[32:])
@@ -115,8 +116,6 @@ class Datapath:
         ex_mem_type        = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
         ex_mem_funct       = Signal(False)
         ex_mem_valid       = Signal(False)
-        ex_csr_addr        = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
-        ex_csr_cmd         = Signal(modbv(0)[CSRCommand.SZ_CMD:])
         ex_mem_data_sel    = Signal(modbv(0)[Consts.SZ_WB:])
         ex_wb_addr         = Signal(modbv(0)[5:])
         ex_wb_we           = Signal(False)
@@ -132,8 +131,6 @@ class Datapath:
         mem_mem_type       = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
         mem_mem_funct      = Signal(False)
         mem_mem_valid      = Signal(False)
-        mem_csr_addr       = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
-        mem_csr_cmd        = Signal(modbv(0)[CSRCommand.SZ_CMD:])
         mem_mem_data_sel   = Signal(modbv(0)[Consts.SZ_WB:])
         mem_wb_addr        = Signal(modbv(0)[5:])
         mem_wb_wdata       = Signal(modbv(0)[32:])
@@ -144,12 +141,13 @@ class Datapath:
         retire             = Signal(False)
         prv                = Signal(modbv(0)[CSRModes.SZ_MODE:])
         illegal_access     = Signal(False)
+        csr_interrupt      = Signal(False)
+        csr_interrupt_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
         csr_exception      = Signal(False)
         csr_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
         csr_eret           = Signal(False)
 
         mem_mem_data       = Signal(modbv(0)[32:])
-        mem_csr_data       = Signal(modbv(0)[32:])
 
         # WB stage
         wb_pc              = Signal(modbv(0)[32:])
@@ -163,6 +161,7 @@ class Datapath:
         # ----------------------------------------------------------------------
         ctrl_unit = Ctrlpath(self.clk,
                              self.rst,
+                             id_instruction,
                              if_kill,
                              id_stall,
                              id_kill,
@@ -191,22 +190,18 @@ class Datapath:
                              mem_wb_we,
                              wb_wb_addr,
                              wb_wb_we,
-                             csr_exception,
-                             csr_exception_code,
                              csr_eret,
-                             retire,
                              prv,
                              illegal_access,
+                             csr_interrupt,
+                             csr_interrupt_code,
+                             csr_exception,
+                             csr_exception_code,
+                             retire,
                              imem_pipeline,
                              dmem_pipeline,
                              self.imem,
                              self.dmem).GetRTL()
-
-        @always_comb
-        def _ctrl_assignments():
-            csr_exc_io.exception.next      = csr_exception
-            csr_exc_io.exception_code.next = csr_exception_code
-            csr_exc_io.eret.next           = csr_eret
 
         # A stage
         # ----------------------------------------------------------------------
@@ -289,16 +284,31 @@ class Datapath:
                        0x00000000,
                        id_op2_data).GetRTL()
 
+        csr = CSR(self.clk,
+                  self.rst,
+                  csr_rw,
+                  csr_exc_io,
+                  retire,
+                  prv,
+                  illegal_access).GetRTL()
+
         @always_comb
         def _id_assignment():
-            id_rf_portA.ra.next = id_instruction[20:15]
-            id_rf_portB.ra.next = id_instruction[25:20]
-            id_rs1_data.next    = id_rf_portA.rd
-            id_rs2_data.next    = id_rf_portB.rd
-            id_csr_addr.next    = id_instruction[32:20]
-            id_mem_wdata.next   = id_op2
-            id_pc_brjmp.next    = id_pc + id_imm
-            id_pc_jalr.next     = id_op1
+            id_rf_portA.ra.next            = id_instruction[20:15]
+            id_rf_portB.ra.next            = id_instruction[25:20]
+            id_rs1_data.next               = id_rf_portA.rd
+            id_rs2_data.next               = id_rf_portB.rd
+            id_csr_addr.next               = id_instruction[32:20]
+            id_mem_wdata.next              = id_op2
+            id_pc_brjmp.next               = id_pc + id_imm
+            id_pc_jalr.next                = id_op1
+            # CSR assignments
+            csr_rw.addr.next               = id_csr_addr
+            csr_rw.cmd.next                = id_csr_cmd
+            csr_rw.wdata.next              = id_rs1_addr if id_instruction[14] else id_op1
+            id_csr_data.next               = csr_rw.rdata
+            csr_exc_io.interrupt.next      = csr_interrupt
+            csr_exc_io.interrupt_code.next = csr_interrupt_code
 
         # EX stage
         # ----------------------------------------------------------------------
@@ -316,8 +326,6 @@ class Datapath:
                            id_mem_funct,
                            id_mem_valid,
                            id_mem_wdata,
-                           id_csr_addr,
-                           id_csr_cmd,
                            id_mem_data_sel,
                            id_wb_addr,
                            id_wb_we,
@@ -330,8 +338,6 @@ class Datapath:
                            ex_mem_funct,
                            ex_mem_valid,
                            ex_mem_wdata,
-                           ex_csr_addr,
-                           ex_csr_cmd,
                            ex_mem_data_sel,
                            ex_wb_addr,
                            ex_wb_we).GetRTL()
@@ -358,8 +364,6 @@ class Datapath:
                              ex_mem_type,
                              ex_mem_funct,
                              ex_mem_valid,
-                             ex_csr_addr,
-                             ex_csr_cmd,
                              ex_mem_data_sel,
                              ex_wb_addr,
                              ex_wb_we,
@@ -370,25 +374,13 @@ class Datapath:
                              mem_mem_type,
                              mem_mem_funct,
                              mem_mem_valid,
-                             mem_csr_addr,
-                             mem_csr_cmd,
                              mem_mem_data_sel,
                              mem_wb_addr,
                              mem_wb_we).GetRTL()
 
-        csr = CSR(self.clk,
-                  self.rst,
-                  csr_rw,
-                  csr_exc_io,
-                  retire,
-                  prv,
-                  illegal_access).GetRTL()
-
-        mdata_mux = Mux4(mem_mem_data_sel,
+        mdata_mux = Mux2(mem_mem_data_sel,
                          mem_alu_out,
                          mem_mem_data,
-                         mem_csr_data,
-                         0,
                          mem_wb_wdata).GetRTL()
 
         exc_pc_mux = Mux2(csr_eret,
@@ -404,10 +396,6 @@ class Datapath:
             dmem_pipeline.req.typ.next          = mem_mem_type
             dmem_pipeline.req.valid.next        = mem_mem_valid
             mem_mem_data.next                   = dmem_pipeline.resp.data
-            csr_rw.addr.next                    = mem_csr_addr
-            csr_rw.cmd.next                     = mem_csr_cmd
-            csr_rw.wdata.next                   = mem_alu_out
-            mem_csr_data.next                   = csr_rw.rdata
             csr_exc_io.exception.next           = csr_exception
             csr_exc_io.exception_code.next      = csr_exception_code
             csr_exc_io.eret.next                = csr_eret
@@ -438,7 +426,7 @@ class Datapath:
         return (pc_mux, pc_reg, _pc_next, ifid_reg, reg_file, op1_mux, op2_mux,
                 op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
                 _ex_assignments, exmem_reg, _mem_assignments, csr, mdata_mux, memwb_reg,
-                _wb_assignments, ctrl_unit, _ctrl_assignments, exc_pc_mux)
+                _wb_assignments, ctrl_unit, exc_pc_mux)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
