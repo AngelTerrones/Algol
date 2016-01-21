@@ -97,7 +97,7 @@ class Ctrlpath:
         self.id_eret            = Signal(False)
         self.id_ebreak          = Signal(False)
         self.id_ecall           = Signal(False)
-
+        # Exception sources
         self.if_imem_misalign   = Signal(False)
         self.if_imem_fault      = Signal(False)
         self.id_illegal_inst    = Signal(False)
@@ -116,7 +116,6 @@ class Ctrlpath:
         self.ex_exception       = Signal(False)
         self.ex_exception_code  = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
         self.ex_mem_funct       = Signal(modbv(0)[MemoryOpConstant.SZ_M])
-
         self.mem_exception      = Signal(False)
         self.mem_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
         self.control            = Signal(modbv(0)[28:])
@@ -127,7 +126,6 @@ class Ctrlpath:
                  (False)))
 
     def GetRTL(self):
-
         @always_comb
         def _ctrl_assignment():
             self.control.next = self.io.id_instruction[29:]
@@ -279,10 +277,10 @@ class Ctrlpath:
 
         @always_comb
         def _imem_assignment():
-            self.imem.req.addr.next           = self.io.imem_pipeline.req.addr
-            self.imem.req.data.next           = self.io.imem_pipeline.req.data
-            self.imem.req.fcn.next            = self.io.imem_pipeline.req.fcn
-            self.imem.req.typ.next            = self.io.imem_pipeline.req.typ
+            self.imem.req.addr.next              = self.io.imem_pipeline.req.addr & ~0x03
+            self.imem.req.data.next              = self.io.imem_pipeline.req.data
+            self.imem.req.fcn.next               = self.io.imem_pipeline.req.fcn
+            self.imem.req.typ.next               = self.io.imem_pipeline.req.typ
             self.io.imem_pipeline.resp.data.next = self.imem.resp.data
 
         @always_comb
@@ -291,10 +289,10 @@ class Ctrlpath:
 
         @always_comb
         def _dmem_assignment():
-            self.dmem.req.addr.next           = self.io.dmem_pipeline.req.addr
-            self.dmem.req.data.next           = self.io.dmem_pipeline.req.data
-            self.dmem.req.fcn.next            = self.io.dmem_pipeline.req.fcn
-            self.dmem.req.typ.next            = self.io.dmem_pipeline.req.typ
+            self.dmem.req.addr.next              = self.io.dmem_pipeline.req.addr
+            self.dmem.req.data.next              = self.io.dmem_pipeline.req.data
+            self.dmem.req.fcn.next               = self.io.dmem_pipeline.req.fcn
+            self.dmem.req.typ.next               = self.io.dmem_pipeline.req.typ
             self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data
 
         @always_comb
