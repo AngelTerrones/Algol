@@ -37,6 +37,7 @@ class Ctrlpath:
     def __init__(self,
                  clk:                Signal,
                  rst:                Signal,
+                 id_instruction:     Signal,
                  if_kill:            Signal,
                  id_stall:           Signal,
                  id_kill:            Signal,
@@ -79,6 +80,7 @@ class Ctrlpath:
                  dmem:               MemPortIO):
         self.clk                = clk
         self.rst                = rst
+        self.id_instruction     = id_instruction
         self.if_kill            = if_kill
         self.id_stall           = id_stall
         self.id_kill            = id_kill
