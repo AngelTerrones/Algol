@@ -208,16 +208,11 @@ class CSR:
 
             self.exc_io.interrupt.next         = mint
             self.exc_io.interrupt_code.next    = mecode
-            self.exc_io.exception_handler.next = mtvec + (self.mode << 6)
-            self.prv.next                      = priv_stack[3:1]
+            self.exc_io.exception_handler.next = mtvec + (self.prv << 6)
             self.illegal_access.next           = illegal_region | (system_en & (not defined))
             self.exc_io.epc.next               = mepc
             ie.next                            = priv_stack[0]
-            system_en.next                     = self.rw.cmd[3]
-            system_wen.next                    = self.rw.cmd[0] | self.rw.cmd[1]
             wen_internal.next                  = system_wen
-            illegal_region.next                = ((system_wen & (self.rw.addr[12:10])) |
-                                                  (system_en & (self.rw.add[11:8] > self.prv)))
             uinterrupt.next                    = 0
             minterrupt.next                    = mtie & mtimer_expired
             mcpuid.next                        = (1 << 20) | (1 << 8)  # RV32I, support for U mode
@@ -225,12 +220,23 @@ class CSR:
             mhartid.next                       = 0
             mstatus.next                       = concat(modbv(0)[26:], priv_stack)
             mtdeleg.next                       = 0
-            mtimer_expired.next                = mtimecmp == mtime
             mip.next                           = concat(mtip, modbv(0)[3:], msip, modbv(0)[3:])
             mie.next                           = concat(mtie, modbv(0)[3:], msie, modbv(0)[3:])
             mcause.next                        = concat(mint, modbv(0)[27:], mecode)
             code_imem.next                     = (self.exc_io.exception_code == CSRExceptionCode.E_INST_ADDR_MISALIGNED |
                                                   self.exc_io.exception_code == CSRExceptionCode.E_INST_ACCESS_FAULT)
+
+        @always_comb
+        def assigments2():
+            self.prv.next                      = priv_stack[3:1]
+            mtimer_expired.next                = mtimecmp == mtime
+            system_en.next                     = self.rw.cmd[3]
+            system_wen.next                    = self.rw.cmd[0] | self.rw.cmd[1]
+
+        @always_comb
+        def assigments3():
+            illegal_region.next                = ((system_wen & (self.rw.addr[12:10])) |
+                                                  (system_en & (self.rw.addr[11:8] > self.prv)))
 
         @always_comb
         def _wdata_aux():

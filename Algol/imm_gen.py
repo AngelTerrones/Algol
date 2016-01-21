@@ -45,8 +45,11 @@ class IMMGen:
         b0     = Signal(False)
 
         @always_comb
-        def rtl():
+        def sign():
             sign.next     = False if self.sel == Consts.IMM_Z else self.instruction[31]
+
+        @always_comb
+        def rtl():
             b30_20.next   = self.instruction[31:20] if self.sel == Consts.IMM_U else sign
             b19_12.next   = self.instruction[20:12] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_UJ) else sign
             b11.next      = (False if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else
@@ -59,6 +62,9 @@ class IMMGen:
             b0.next       = (self.instruction[7] if self.sel == Consts.IMM_S else
                              (self.instruction[20] if self.sel == Consts.IMM_I else
                               (self.instruction[15] if self.sel == Consts.IMM_Z else False)))
+
+        @always_comb
+        def imm_concat():
             self.imm.next = concat(sign, b30_20, b19_12, b11, b10_5, b4_1, b0)
 
         return rtl
