@@ -39,7 +39,8 @@ class RFWritePort:
 
 
 class RegisterFile:
-    def __init__(self, clk: Signal,
+    def __init__(self,
+                 clk: Signal,
                  portA: RFReadPort,
                  portB: RFReadPort,
                  writePort: RFWritePort):
