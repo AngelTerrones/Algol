@@ -112,6 +112,8 @@ class CSRFileRWIO:
 
 class CSRExceptionIO:
     def __init__(self):
+        self.interrupt           = Signal(False)  # O
+        self.interrupt_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])  # O
         self.exception           = Signal(False)          # I: from Control Unit.
         self.exception_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])   # I: from Control Unit.
         self.eret                = Signal(False)          # I: the current instruction (@MEM) is ERET.
@@ -204,6 +206,8 @@ class CSR:
             mtime.next                         = mtime_full[32:0]
             mtimeh.next                        = mtime_full[64:32]
 
+            self.exc_io.interrupt.next         = mint
+            self.exc_io.interrupt_code.next    = mecode
             self.exc_io.exception_handler.next = mtvec + (self.mode << 6)
             self.prv.next                      = priv_stack[3:1]
             self.illegal_access.next           = illegal_region | (system_en & (not defined))
