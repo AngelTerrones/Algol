@@ -23,9 +23,8 @@ from myhdl import Signal
 from myhdl import always_comb
 from myhdl import modbv
 from consts import Consts
-from memIO import MemPortIO
 from memIO import MemoryOpConstant
-from cpath import Ctrlpath
+from cpath import CtrlIO
 from regfile import RegisterFile
 from regfile import RFReadPort
 from regfile import RFWritePort
@@ -35,10 +34,7 @@ from alu import ALUPortIO
 from csr import CSR
 from csr import CSRFileRWIO
 from csr import CSRExceptionIO
-from csr import CSRCommand
-from csr import CSRExceptionCode
 from csr import CSRAddressMap
-from csr import CSRModes
 from imm_gen import IMMGen
 from common.mux import Mux4
 from common.mux import Mux2
@@ -51,161 +47,83 @@ from memwb_reg import MEMWBReg
 
 class Datapath:
     def __init__(self,
-                 clk:  Signal(False),
-                 rst:  Signal(False),
-                 imem: MemPortIO,
-                 dmem: MemPortIO):
-        self.clk  = clk
-        self.rst  = rst
-        self.imem = imem
-        self.dmem = dmem
+                 clk:           Signal(False),
+                 rst:           Signal(False),
+                 ctrlIO:        CtrlIO):
+        self.clk    = clk
+        self.rst    = rst
+        self.ctrlIO = ctrlIO
 
     def GetRTL(self):
-        imem_pipeline      = MemPortIO()
-        dmem_pipeline      = MemPortIO()
         # Signals
-        id_stall           = Signal(False)
-        if_kill            = Signal(False)
-        id_kill            = Signal(False)
-        full_stall         = Signal(False)
-        pipeline_kill      = Signal(False)
         # A stage
-        pc_select          = Signal(modbv(0)[2:])
-        a_pc               = Signal(modbv(0)[32:])
+        a_pc             = Signal(modbv(0)[32:])
         # IF stage
-        if_pc              = Signal(modbv(0)[32:])
-        if_instruction     = Signal(modbv(0)[32:])
-        if_pc_next         = Signal(modbv(0 [32:]))
+        if_pc            = Signal(modbv(0)[32:])
+        if_instruction   = Signal(modbv(0)[32:])
+        if_pc_next       = Signal(modbv(0)[32:])
         # ID stage
-        id_pc              = Signal(modbv(0)[32:])
-        id_instruction     = Signal(modbv(0)[32:])
-        id_rf_portA        = RFReadPort()
-        id_rf_portB        = RFReadPort()
-        id_rs1_addr        = Signal(modbv(0)[5:])
-        id_rs2_addr        = Signal(modbv(0)[5:])
-        id_wb_addr         = Signal(modbv(0)[5:])
-        id_imm             = Signal(modbv(0)[32:])
-        id_sel_imm         = Signal(modbv(0)[Consts.SZ_IMM:])
-        id_rs1_data        = Signal(modbv(0)[32:])
-        id_rs2_data        = Signal(modbv(0)[32:])
-        id_fwd1_select     = Signal(modbv(0)[Consts.SZ_FWD:])
-        id_fwd2_select     = Signal(modbv(0)[Consts.SZ_FWD:])
-        id_op1             = Signal(modbv(0)[32:])
-        id_op2             = Signal(modbv(0)[32:])
-        id_op1_data        = Signal(modbv(0)[32:])
-        id_op2_data        = Signal(modbv(0)[32:])
-        id_op1_select      = Signal(modbv(0)[Consts.SZ_OP1])
-        id_op2_select      = Signal(modbv(0)[Consts.SZ_OP2])
-        id_alu_funct       = Signal(modbv(0)[ALUFunction.SZ_OP:])
-        id_mem_type        = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
-        id_mem_funct       = Signal(False)
-        id_mem_valid       = Signal(False)
-        id_mem_wdata       = Signal(modbv(0)[32:])
-        id_csr_addr        = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
-        id_csr_cmd         = Signal(modbv(0)[CSRCommand.SZ_CMD:])
-        id_mem_data_sel    = Signal(modbv(0)[Consts.SZ_WB:])
-        id_wb_we           = Signal(False)
-        id_pc_brjmp        = Signal(modbv(0)[32:])
-        id_pc_jalr         = Signal(modbv(0)[32:])
-        id_csr_data        = Signal(modbv(0)[32:])
+        id_pc            = Signal(modbv(0)[32:])
+        id_instruction   = Signal(modbv(0)[32:])
+        id_rf_portA      = RFReadPort()
+        id_rf_portB      = RFReadPort()
+        id_imm           = Signal(modbv(0)[32:])
+        id_rs1_data      = Signal(modbv(0)[32:])
+        id_rs2_data      = Signal(modbv(0)[32:])
+        id_op1           = Signal(modbv(0)[32:])
+        id_op2           = Signal(modbv(0)[32:])
+        id_op1_data      = Signal(modbv(0)[32:])
+        id_op2_data      = Signal(modbv(0)[32:])
+        id_mem_wdata     = Signal(modbv(0)[32:])
+        id_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
+        id_pc_brjmp      = Signal(modbv(0)[32:])
+        id_pc_jalr       = Signal(modbv(0)[32:])
+        id_csr_data      = Signal(modbv(0)[32:])
+        id_wb_addr       = Signal(modbv(0)[5:])
         # EX stage
-        ex_pc              = Signal(modbv(0)[32:])
-        ex_alu_out         = Signal(modbv(0)[32:])
-        ex_alu_funct       = Signal(modbv(0)[ALUFunction.SZ_OP:])
-        ex_mem_wdata       = Signal(modbv(0)[32:])
-        ex_mem_type        = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
-        ex_mem_funct       = Signal(False)
-        ex_mem_valid       = Signal(False)
-        ex_mem_data_sel    = Signal(modbv(0)[Consts.SZ_WB:])
-        ex_wb_addr         = Signal(modbv(0)[5:])
-        ex_wb_we           = Signal(False)
-        ex_op1_data        = Signal(modbv(0)[32:])
-        ex_op2_data        = Signal(modbv(0)[32:])
-        aluIO              = ALUPortIO()
+        ex_pc            = Signal(modbv(0)[32:])
+        ex_alu_out       = Signal(modbv(0)[32:])
+        ex_alu_funct     = Signal(modbv(0)[ALUFunction.SZ_OP:])
+        ex_mem_wdata     = Signal(modbv(0)[32:])
+        ex_mem_type      = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
+        ex_mem_funct     = Signal(False)
+        ex_mem_valid     = Signal(False)
+        ex_mem_data_sel  = Signal(modbv(0)[Consts.SZ_WB:])
+        ex_wb_addr       = Signal(modbv(0)[5:])
+        ex_wb_we         = Signal(False)
+        ex_op1_data      = Signal(modbv(0)[32:])
+        ex_op2_data      = Signal(modbv(0)[32:])
+        aluIO            = ALUPortIO()
 
         # MEM stage
-        exc_pc             = Signal(modbv(0)[32:])
-        mem_pc             = Signal(modbv(0)[32:])
-        mem_alu_out        = Signal(modbv(0)[32:])
-        mem_mem_wdata      = Signal(modbv(0)[32:])
-        mem_mem_type       = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
-        mem_mem_funct      = Signal(False)
-        mem_mem_valid      = Signal(False)
-        mem_mem_data_sel   = Signal(modbv(0)[Consts.SZ_WB:])
-        mem_wb_addr        = Signal(modbv(0)[5:])
-        mem_wb_wdata       = Signal(modbv(0)[32:])
-        mem_wb_we          = Signal(False)
-
-        csr_rw             = CSRFileRWIO()
-        csr_exc_io         = CSRExceptionIO()
-        retire             = Signal(False)
-        prv                = Signal(modbv(0)[CSRModes.SZ_MODE:])
-        illegal_access     = Signal(False)
-        csr_interrupt      = Signal(False)
-        csr_interrupt_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
-        csr_exception      = Signal(False)
-        csr_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
-        csr_eret           = Signal(False)
-
-        mem_mem_data       = Signal(modbv(0)[32:])
+        exc_pc           = Signal(modbv(0)[32:])
+        mem_pc           = Signal(modbv(0)[32:])
+        mem_alu_out      = Signal(modbv(0)[32:])
+        mem_mem_wdata    = Signal(modbv(0)[32:])
+        mem_mem_type     = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
+        mem_mem_funct    = Signal(False)
+        mem_mem_valid    = Signal(False)
+        mem_mem_data_sel = Signal(modbv(0)[Consts.SZ_WB:])
+        mem_wb_addr      = Signal(modbv(0)[5:])
+        mem_wb_wdata     = Signal(modbv(0)[32:])
+        mem_wb_we        = Signal(False)
+        csr_rw           = CSRFileRWIO()
+        csr_exc_io       = CSRExceptionIO()
+        mem_mem_data     = Signal(modbv(0)[32:])
 
         # WB stage
-        wb_pc              = Signal(modbv(0)[32:])
-        wb_wb_addr         = Signal(modbv(0)[5:])
-        wb_wb_wdata        = Signal(modbv(0)[32:])
-        wb_wb_we           = Signal(False)
-        wb_rf_writePort    = RFWritePort()
+        wb_pc            = Signal(modbv(0)[32:])
+        wb_wb_addr       = Signal(modbv(0)[5:])
+        wb_wb_wdata      = Signal(modbv(0)[32:])
+        wb_wb_we         = Signal(False)
+        wb_rf_writePort  = RFWritePort()
 
         # ----------------------------------------------------------------------
         # Build the pipeline.
         # ----------------------------------------------------------------------
-        ctrl_unit = Ctrlpath(self.clk,
-                             self.rst,
-                             id_instruction,
-                             if_kill,
-                             id_stall,
-                             id_kill,
-                             full_stall,
-                             pipeline_kill,
-                             pc_select,
-                             id_op1_select,
-                             id_op2_select,
-                             id_sel_imm,
-                             id_alu_funct,
-                             id_mem_type,
-                             id_mem_funct,
-                             id_mem_valid,
-                             id_csr_cmd,
-                             id_mem_data_sel,
-                             id_wb_we,
-                             id_fwd1_select,
-                             id_fwd2_select,
-                             id_rs1_addr,
-                             id_rs2_addr,
-                             id_op1,
-                             id_op2,
-                             ex_wb_addr,
-                             ex_wb_we,
-                             mem_wb_addr,
-                             mem_wb_we,
-                             wb_wb_addr,
-                             wb_wb_we,
-                             csr_eret,
-                             prv,
-                             illegal_access,
-                             csr_interrupt,
-                             csr_interrupt_code,
-                             csr_exception,
-                             csr_exception_code,
-                             retire,
-                             imem_pipeline,
-                             dmem_pipeline,
-                             self.imem,
-                             self.dmem).GetRTL()
-
         # A stage
         # ----------------------------------------------------------------------
-        pc_mux = Mux4(pc_select,
+        pc_mux = Mux4(self.ctrlIO.pc_select,
                       if_pc_next,
                       id_pc_brjmp,
                       id_pc_jalr,
@@ -215,31 +133,31 @@ class Datapath:
         # ----------------------------------------------------------------------
         pc_reg = PCreg(self.clk,
                        self.rst,
-                       id_stall,
-                       full_stall,
-                       pipeline_kill,
+                       self.ctrlIO.id_stall,
+                       self.ctrlIO.full_stall,
+                       self.ctrlIO.pipeline_kill,
                        a_pc,
                        if_pc).GetRTL()
 
         @always_comb
         def _pc_next():
-            imem_pipeline.req.addr.next  = if_pc
-            if_pc_next.next              = if_pc + 4
-            if_instruction.next          = imem_pipeline.resp.data
+            self.ctrlIO.imem_pipeline.req.addr.next  = if_pc
+            if_pc_next.next                          = if_pc + 4
+            if_instruction.next                      = self.ctrlIO.imem_pipeline.resp.data
             # --
-            imem_pipeline.req.data.next  = 0xDEADC0DE
-            imem_pipeline.req.fcn.next   = MemoryOpConstant.MT_W
-            imem_pipeline.req.typ.next   = MemoryOpConstant.M_RD
-            imem_pipeline.req.valid.next = True
+            self.ctrlIO.imem_pipeline.req.data.next  = 0xDEADC0DE
+            self.ctrlIO.imem_pipeline.req.fcn.next   = MemoryOpConstant.MT_W
+            self.ctrlIO.imem_pipeline.req.typ.next   = MemoryOpConstant.M_RD
+            self.ctrlIO.imem_pipeline.req.valid.next = True
 
         # ID stage
         # ----------------------------------------------------------------------
         ifid_reg = IFIDReg(self.clk,
                            self.rst,
-                           id_stall,
-                           full_stall,
-                           if_kill,
-                           pipeline_kill,
+                           self.ctrlIO.id_stall,
+                           self.ctrlIO.full_stall,
+                           self.ctrlIO.if_kill,
+                           self.ctrlIO.pipeline_kill,
                            if_pc,
                            if_instruction,
                            # ----------
@@ -247,37 +165,36 @@ class Datapath:
                            id_instruction).GetRTL()
 
         reg_file = RegisterFile(self.clk,
-                                self.rst,
                                 id_rf_portA,
                                 id_rf_portB,
                                 wb_rf_writePort).GetRTL()
 
-        op1_data_fwd = Mux4(id_fwd1_select,
+        op1_data_fwd = Mux4(self.ctrlIO.id_fwd1_select,
                             id_rs1_data,
                             ex_alu_out,
                             mem_wb_wdata,
                             wb_wb_wdata,
                             id_op1).GetRTL()
 
-        op2_data_fwd = Mux4(id_fwd2_select,
+        op2_data_fwd = Mux4(self.ctrlIO.id_fwd2_select,
                             id_rs2_data,
                             ex_alu_out,
                             mem_wb_wdata,
                             wb_wb_wdata,
                             id_op2).GetRTL()
 
-        imm_gen = IMMGen(id_sel_imm,
+        imm_gen = IMMGen(self.ctrlIO.id_sel_imm,
                          id_instruction,
                          id_imm).GetRTL()
 
-        op1_mux = Mux4(id_op1_select,
+        op1_mux = Mux4(self.ctrlIO.id_op1_select,
                        id_op1,
                        id_pc,
                        0x00000000,
                        0x00000000,
                        id_op1_data).GetRTL()
 
-        op2_mux = Mux4(id_op2_select,
+        op2_mux = Mux4(self.ctrlIO.id_op2_select,
                        id_op2,
                        id_imm,
                        0x00000004,
@@ -288,47 +205,51 @@ class Datapath:
                   self.rst,
                   csr_rw,
                   csr_exc_io,
-                  retire,
-                  prv,
-                  illegal_access).GetRTL()
+                  self.ctrlIO.csr_retire,
+                  self.ctrlIO.csr_prv,
+                  self.ctrlIO.csr_illegal_access).GetRTL()
 
         @always_comb
         def _id_assignment():
-            id_rf_portA.ra.next            = id_instruction[20:15]
-            id_rf_portB.ra.next            = id_instruction[25:20]
-            id_rs1_data.next               = id_rf_portA.rd
-            id_rs2_data.next               = id_rf_portB.rd
-            id_csr_addr.next               = id_instruction[32:20]
-            id_mem_wdata.next              = id_op2
-            id_pc_brjmp.next               = id_pc + id_imm
-            id_pc_jalr.next                = id_op1
+            self.ctrlIO.id_instruction.next     = id_instruction
+            id_rf_portA.ra.next                 = id_instruction[20:15]
+            id_rf_portB.ra.next                 = id_instruction[25:20]
+            self.ctrlIO.id_rs1_addr.next        = id_instruction[20:15]
+            self.ctrlIO.id_rs2_addr.next        = id_instruction[25:20]
+            id_rs1_data.next                    = id_rf_portA.rd
+            id_rs2_data.next                    = id_rf_portB.rd
+            id_wb_addr.next                     = id_instruction[12:7]
+            id_csr_addr.next                    = id_instruction[32:20]
+            id_mem_wdata.next                   = id_op2
+            id_pc_brjmp.next                    = id_pc + id_imm
+            id_pc_jalr.next                     = id_op1
             # CSR assignments
-            csr_rw.addr.next               = id_csr_addr
-            csr_rw.cmd.next                = id_csr_cmd
-            csr_rw.wdata.next              = id_rs1_addr if id_instruction[14] else id_op1
-            id_csr_data.next               = csr_rw.rdata
-            csr_exc_io.interrupt.next      = csr_interrupt
-            csr_exc_io.interrupt_code.next = csr_interrupt_code
+            csr_rw.addr.next                    = id_instruction[32:20]
+            csr_rw.cmd.next                     = self.ctrlIO.id_csr_cmd
+            csr_rw.wdata.next                   = id_instruction[20:15] if id_instruction[14] else id_op1
+            id_csr_data.next                    = csr_rw.rdata
+            self.ctrlIO.csr_interrupt.next      = csr_exc_io.interrupt
+            self.ctrlIO.csr_interrupt_code.next = csr_exc_io.interrupt_code
 
         # EX stage
         # ----------------------------------------------------------------------
         idex_reg = IDEXReg(self.clk,
                            self.rst,
-                           id_stall,
-                           full_stall,
-                           id_kill,
-                           pipeline_kill,
+                           self.ctrlIO.id_stall,
+                           self.ctrlIO.full_stall,
+                           self.ctrlIO.id_kill,
+                           self.ctrlIO.pipeline_kill,
                            id_pc,
                            id_op1_data,
                            id_op2_data,
-                           id_alu_funct,
-                           id_mem_type,
-                           id_mem_funct,
-                           id_mem_valid,
+                           self.ctrlIO.id_alu_funct,
+                           self.ctrlIO.id_mem_type,
+                           self.ctrlIO.id_mem_funct,
+                           self.ctrlIO.id_mem_valid,
                            id_mem_wdata,
-                           id_mem_data_sel,
+                           self.ctrlIO.id_mem_data_sel,
                            id_wb_addr,
-                           id_wb_we,
+                           self.ctrlIO.id_wb_we,
                            # ----------
                            ex_pc,
                            ex_op1_data,
@@ -349,15 +270,14 @@ class Datapath:
             aluIO.function.next = ex_alu_funct
             aluIO.input1.next   = ex_op1_data
             aluIO.input2.next   = ex_op2_data
-            aluIO.output.next   = ex_alu_out
             ex_alu_out.next     = aluIO.output
 
         # MEM stage
         # ----------------------------------------------------------------------
         exmem_reg = EXMEMReg(self.clk,
                              self.rst,
-                             full_stall,
-                             pipeline_kill,
+                             self.ctrlIO.full_stall,
+                             self.ctrlIO.pipeline_kill,
                              ex_pc,
                              ex_alu_out,
                              ex_mem_wdata,
@@ -383,22 +303,22 @@ class Datapath:
                          mem_mem_data,
                          mem_wb_wdata).GetRTL()
 
-        exc_pc_mux = Mux2(csr_eret,
+        exc_pc_mux = Mux2(self.ctrlIO.csr_eret,
                           csr_exc_io.exception_handler,
                           csr_exc_io.epc,
                           exc_pc)
 
         @always_comb
         def _mem_assignments():
-            dmem_pipeline.req.addr              = mem_alu_out
-            dmem_pipeline.req.data.next         = mem_mem_wdata
-            dmem_pipeline.req.fcn.next          = mem_mem_funct
-            dmem_pipeline.req.typ.next          = mem_mem_type
-            dmem_pipeline.req.valid.next        = mem_mem_valid
-            mem_mem_data.next                   = dmem_pipeline.resp.data
-            csr_exc_io.exception.next           = csr_exception
-            csr_exc_io.exception_code.next      = csr_exception_code
-            csr_exc_io.eret.next                = csr_eret
+            self.ctrlIO.dmem_pipeline.req.addr              = mem_alu_out
+            self.ctrlIO.dmem_pipeline.req.data.next         = mem_mem_wdata
+            self.ctrlIO.dmem_pipeline.req.fcn.next          = mem_mem_funct
+            self.ctrlIO.dmem_pipeline.req.typ.next          = mem_mem_type
+            self.ctrlIO.dmem_pipeline.req.valid.next        = mem_mem_valid
+            mem_mem_data.next                   = self.ctrlIO.dmem_pipeline.resp.data
+            csr_exc_io.exception.next           = self.ctrlIO.csr_exception
+            csr_exc_io.exception_code.next      = self.ctrlIO.csr_exception_code
+            csr_exc_io.eret.next                = self.ctrlIO.csr_eret
             csr_exc_io.exception_load_addr.next = mem_alu_out
             csr_exc_io.exception_pc.next        = mem_pc
 
@@ -406,8 +326,8 @@ class Datapath:
         # ----------------------------------------------------------------------
         memwb_reg = MEMWBReg(self.clk,
                              self.rst,
-                             full_stall,
-                             pipeline_kill,
+                             self.ctrlIO.full_stall,
+                             self.ctrlIO.pipeline_kill,
                              mem_pc,
                              mem_wb_addr,
                              mem_wb_wdata,
@@ -426,7 +346,7 @@ class Datapath:
         return (pc_mux, pc_reg, _pc_next, ifid_reg, reg_file, op1_mux, op2_mux,
                 op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
                 _ex_assignments, exmem_reg, _mem_assignments, csr, mdata_mux, memwb_reg,
-                _wb_assignments, ctrl_unit, exc_pc_mux)
+                _wb_assignments, exc_pc_mux)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
