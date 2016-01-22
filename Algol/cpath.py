@@ -285,7 +285,8 @@ class Ctrlpath:
 
         @always_comb
         def _imem_control():
-            self.imem.req.valid.next = self.io.imem_pipeline.req.valid and (not self.imem.resp.valid)
+            self.imem.req.valid.next = (self.io.imem_pipeline.req.valid and (not self.imem.resp.valid) and
+                                        not self.csr_exception)
 
         @always_comb
         def _dmem_assignment():
@@ -297,7 +298,8 @@ class Ctrlpath:
 
         @always_comb
         def _dmem_control():
-            self.dmem.req.valid.next = self.io.dmem_pipeline.req.valid and (not self.dmem.resp.valid)
+            self.dmem.req.valid.next = (self.io.dmem_pipeline.req.valid and (not self.dmem.resp.valid) and
+                                        not self.csr_exception)
 
         return instances()
 
