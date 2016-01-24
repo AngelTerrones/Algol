@@ -190,7 +190,7 @@ class Datapath:
         op1_mux = Mux4(self.ctrlIO.id_op1_select,
                        id_op1,
                        id_pc,
-                       0x00000000,
+                       csr_rw.rdata,
                        0x00000000,
                        id_op1_data).GetRTL()
 
