@@ -32,6 +32,14 @@ from memIO import MemoryOpConstant
 from csr import CSRCommand
 from csr import CSRExceptionCode
 from csr import CSRModes
+from instructions import Opcodes
+from instructions import BranchFunct3
+from instructions import LoadFunct3
+from instructions import StoreFunct3
+from instructions import ArithmeticFunct3
+from instructions import FenceFunct3
+from instructions import SystemFunct3
+from instructions import PrivFunct12
 
 
 class CtrlSignals:
@@ -199,6 +207,9 @@ class Ctrlpath:
         self.mem_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
         self.control            = Signal(modbv(0)[28:])
 
+        self.opcode             = Signal(modbv(0)[7:])
+        self.funct3             = Signal(modbv(0)[3:])
+
     def CheckInvalidAddress(addr, mem_type):
         return (addr[0] if mem_type == MemoryOpConstant.MT_H or mem_type == MemoryOpConstant.MT_HU else
                 (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
@@ -207,7 +218,134 @@ class Ctrlpath:
     def GetRTL(self):
         @always_comb
         def _ctrl_assignment():
-            self.control.next = self.io.id_instruction[29:]
+            self.opcode.next = self.io.id_instruction[7:0]
+            self.funct3.next = self.io.id_instruction[15:12]
+
+        @always_comb
+        def _ctrl_signal_assignment():
+            if self.opcode == Opcodes.RV32_LUI:
+                self.control.next = CtrlSignals.LUI
+            elif self.opcode == Opcodes.RV32_AUIPC:
+                self.control.next = CtrlSignals.AUIPC
+            elif self.opcode == Opcodes.RV32_JAL:
+                self.control.next = CtrlSignals.JAL
+            elif self.opcode == Opcodes.RV32_JALR:
+                self.control.next = CtrlSignals.JALR
+            elif self.opcode == Opcodes.RV32_BRANCH:
+                if self.funct3 == BranchFunct3.RV32_F3_BEQ:
+                    self.control.next = CtrlSignals.BEQ
+                elif self.funct3 == BranchFunct3.RV32_F3_BNE:
+                    self.control.next = CtrlSignals.BNE
+                elif self.funct3 == BranchFunct3.RV32_F3_BLT:
+                    self.control.next = CtrlSignals.BLT
+                elif self.funct3 == BranchFunct3.RV32_F3_BGE:
+                    self.control.next = CtrlSignals.BGE
+                elif self.funct3 == BranchFunct3.RV32_F3_BLTU:
+                    self.control.next = CtrlSignals.BLTU
+                elif self.funct3 == BranchFunct3.RV32_F3_BGEU:
+                    self.control.next = CtrlSignals.BGEU
+                else:
+                    self.control.next = CtrlSignals.INVALID
+            elif self.opcode == Opcodes.RV32_LOAD:
+                if self.funct3 == LoadFunct3.RV32_F3_LB:
+                    self.control.next = CtrlSignals.LB
+                elif self.funct3 == LoadFunct3.RV32_F3_LH:
+                    self.control.next = CtrlSignals.LH
+                elif self.funct3 == LoadFunct3.RV32_F3_LW:
+                    self.control.next = CtrlSignals.LW
+                elif self.funct3 == LoadFunct3.RV32_F3_LBU:
+                    self.control.next = CtrlSignals.LBU
+                elif self.funct3 == LoadFunct3.RV32_F3_LHU:
+                    self.control.next = CtrlSignals.LHU
+                else:
+                    self.control.next = CtrlSignals.INVALID
+            elif self.opcode == Opcodes.RV32_STORE:
+                if self.funct3 == StoreFunct3.RV32_F3_SB:
+                    self.control.next = CtrlSignals.SB
+                elif self.funct3 == StoreFunct3.RV32_F3_SH:
+                    self.control.next = CtrlSignals.SH
+                elif self.funct3 == StoreFunct3.RV32_F3_SW:
+                    self.control.next = CtrlSignals.SW
+                else:
+                    self.control.next = CtrlSignals.INVALID
+            elif self.opcode == Opcodes.RV32_IMM:
+                if self.funct3 == ArithmeticFunct3.RV32_F3_ADD_SUB:
+                    self.control.next = CtrlSignals.ADDI
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SLT:
+                    self.control.next = CtrlSignals.SLTI
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SLTU:
+                    self.control.next = CtrlSignals.SLTIU
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_XOR:
+                    self.control.next = CtrlSignals.XORI
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_OR:
+                    self.control.next = CtrlSignals.ORI
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_AND:
+                    self.control.next = CtrlSignals.ANDI
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SLL:
+                    self.control.next = CtrlSignals.SLLI
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SRL_SRA:
+                    if self.id_instruction[30]:
+                        self.control.next = CtrlSignals.SRAI
+                    else:
+                        self.control.next = CtrlSignals.SRLI
+                else:
+                    self.control.next = CtrlSignals.INVALID
+            elif self.opcode == Opcodes.RV32_OP:
+                if self.funct3 == ArithmeticFunct3.RV32_F3_ADD_SUB:
+                    if self.id_instruction[30]:
+                        self.control.next = CtrlSignals.SUB
+                    else:
+                        self.control.next = CtrlSignals.ADD
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SLT:
+                    self.control.next = CtrlSignals.SLT
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SLTU:
+                    self.control.next = CtrlSignals.SLTU
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_XOR:
+                    self.control.next = CtrlSignals.XOR
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_OR:
+                    self.control.next = CtrlSignals.OR
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_AND:
+                    self.control.next = CtrlSignals.AND
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SLL:
+                    self.control.next = CtrlSignals.SLL
+                elif self.funct3 == ArithmeticFunct3.RV32_F3_SRL_SRA:
+                    if self.id_instruction[30]:
+                        self.control.next = CtrlSignals.SRA
+                    else:
+                        self.control.next = CtrlSignals.SRL
+                else:
+                    self.control.next = CtrlSignals.INVALID
+            elif self.opcode == Opcodes.RV32_FENCE:
+                if self.funct3 == FenceFunct3.RV32_F3_FENCE:
+                    self.control.next = CtrlSignals.FENCE
+                elif self.funct3 == FenceFunct3.RV32_F3_FENCE_I:
+                    self.control.next = CtrlSignals.FENCE_I
+                else:
+                    self.control.next = CtrlSignals.INVALID
+            elif self.opcode == Opcodes.RV32_SYSTEM:
+                if self.funct3 == SystemFunct3.RV32_F3_PRIV:
+                    if self.id_instruction[32:20] == PrivFunct12.RV32_F12_ECALL:
+                        self.control.next = CtrlSignals.ECALL
+                    elif self.id_instruction[32:0] == PrivFunct12.RV32_F12_EBREAK:
+                        self.control.next = CtrlSignals.EBREAK
+                    elif self.id_instruction[32:0] == PrivFunct12.RV32_F12_ERET:
+                        self.control.next = CtrlSignals.ERET
+                    else:
+                        self.control.next = CtrlSignals.INVALID
+                elif self.funct3 == SystemFunct3.RV32_F3_CSRRW:
+                    self.control.next = CtrlSignals.CSRRW
+                elif self.funct3 == SystemFunct3.RV32_F3_CSRRS:
+                    self.control.next = CtrlSignals.CSRRS
+                elif self.funct3 == SystemFunct3.RV32_F3_CSRRC:
+                    self.control.next = CtrlSignals.CSRRC
+                elif self.funct3 == SystemFunct3.RV32_F3_CSRRWI:
+                    self.control.next = CtrlSignals.CSRRWI
+                elif self.funct3 == SystemFunct3.RV32_F3_CSRRSI:
+                    self.control.next = CtrlSignals.CSRRSI
+                elif self.funct3 == SystemFunct3.RV32_F3_CSRRCI:
+                    self.control.next = CtrlSignals.CSRRCI
+            else:
+                self.control.next = CtrlSignals.INVALID
 
         @always_comb
         def _assignments():
