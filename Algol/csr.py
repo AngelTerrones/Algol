@@ -87,11 +87,11 @@ class CSRExceptionCode:
 
 class CSRCommand:
     SZ_CMD    = 3
-    CSR_IDLE  = 0
-    CSR_READ  = 4
-    CSR_WRITE = 5
-    CSR_SET   = 6
-    CSR_CLEAR = 7
+    CSR_IDLE  = modbv(0)[SZ_CMD:]
+    CSR_READ  = modbv(4)[SZ_CMD:]
+    CSR_WRITE = modbv(5)[SZ_CMD:]
+    CSR_SET   = modbv(6)[SZ_CMD:]
+    CSR_CLEAR = modbv(7)[SZ_CMD:]
 
 
 class CSRModes:

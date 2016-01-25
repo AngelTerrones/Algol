@@ -35,7 +35,7 @@ class Consts:
     PC_EXC     = modbv(3)[SZ_PC_SEL:]
     # Branch type
     SZ_BR      = 4
-    BR_X       = 0
+    BR_X       = modbv(0)[SZ_BR:]
     BR_N       = modbv(0)[SZ_BR:]
     BR_NE      = modbv(1)[SZ_BR:]
     BR_EQ      = modbv(2)[SZ_BR:]
@@ -60,20 +60,20 @@ class Consts:
     OP2_ZERO   = modbv(3)[SZ_OP2:]
     # IMM
     SZ_IMM     = 3
-    IMM_X      = 0
-    IMM_S      = 0
-    IMM_SB     = 1
-    IMM_U      = 2
-    IMM_UJ     = 3
-    IMM_I      = 4
-    IMM_Z      = 5
+    IMM_X      = modbv(0)[SZ_IMM:]
+    IMM_S      = modbv(0)[SZ_IMM:]
+    IMM_SB     = modbv(1)[SZ_IMM:]
+    IMM_U      = modbv(2)[SZ_IMM:]
+    IMM_UJ     = modbv(3)[SZ_IMM:]
+    IMM_I      = modbv(4)[SZ_IMM:]
+    IMM_Z      = modbv(5)[SZ_IMM:]
     # Forwarding
     SZ_FWD     = 2
-    FWD_X      = 0
-    FWD_N      = 0
-    FWD_EX     = 1
-    FWD_MEM    = 2
-    FWD_WB     = 3
+    FWD_X      = modbv(0)[SZ_FWD:]
+    FWD_N      = modbv(0)[SZ_FWD:]
+    FWD_EX     = modbv(1)[SZ_FWD:]
+    FWD_MEM    = modbv(2)[SZ_FWD:]
+    FWD_WB     = modbv(3)[SZ_FWD:]
     # WB signals
     SZ_WB      = 1
     WB_X       = False

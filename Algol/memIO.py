@@ -25,17 +25,17 @@ from myhdl import modbv
 
 class MemoryOpConstant:
     SZ_MT = 3
-    MT_X  = 0
-    MT_B  = 1
-    MT_H  = 2
-    MT_W  = 3
-    MT_BU = 4
-    MT_HU = 5
+    MT_X  = modbv(0)[SZ_MT:]
+    MT_B  = modbv(1)[SZ_MT:]
+    MT_H  = modbv(2)[SZ_MT:]
+    MT_W  = modbv(3)[SZ_MT:]
+    MT_BU = modbv(4)[SZ_MT:]
+    MT_HU = modbv(5)[SZ_MT:]
 
     SZ_M = 1
-    M_X  = 0
-    M_RD = 0
-    M_WR = 1
+    M_X  = False
+    M_RD = False
+    M_WR = True
 
 
 class MemPortIO:

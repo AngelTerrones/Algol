@@ -27,20 +27,20 @@ from myhdl import modbv
 
 class ALUFunction:
     SZ_OP   = 4
-    OP_ADD  = 0
-    OP_SLL  = 1
-    OP_XOR  = 4
-    OP_SRL  = 5
-    OP_OR   = 6
-    OP_AND  = 7
-    OP_SEQ  = 8
-    OP_SNE  = 9
-    OP_SUB  = 10
-    OP_SRA  = 11
-    OP_SLT  = 12
-    OP_SGE  = 13
-    OP_SLTU = 14
-    OP_SGEU = 15
+    OP_ADD  = modbv(0)[SZ_OP:]
+    OP_SLL  = modbv(1)[SZ_OP:]
+    OP_XOR  = modbv(4)[SZ_OP:]
+    OP_SRL  = modbv(5)[SZ_OP:]
+    OP_OR   = modbv(6)[SZ_OP:]
+    OP_AND  = modbv(7)[SZ_OP:]
+    OP_SEQ  = modbv(8)[SZ_OP:]
+    OP_SNE  = modbv(9)[SZ_OP:]
+    OP_SUB  = modbv(10)[SZ_OP:]
+    OP_SRA  = modbv(11)[SZ_OP:]
+    OP_SLT  = modbv(12)[SZ_OP:]
+    OP_SGE  = modbv(13)[SZ_OP:]
+    OP_SLTU = modbv(14)[SZ_OP:]
+    OP_SGEU = modbv(15)[SZ_OP:]
 
 
 class ALUPortIO:
