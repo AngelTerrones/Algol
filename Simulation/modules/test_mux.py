@@ -66,7 +66,7 @@ def _testbench():
 
 def test_mux():
     """
-    Test behavioral
+    Mux: Test behavioral.
     """
     sim = Simulation(_testbench())
     sim.run()
@@ -74,7 +74,7 @@ def test_mux():
 
 def test_valid_settings():
     """
-    Test if the module checks for valid settings.
+    Mux: Test for valid settings.
     """
     width = 8
     n_inputs = 1

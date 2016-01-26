@@ -89,6 +89,9 @@ def _testbench():
 
 
 def test_regfile():
+    """
+    Regfile: Test behavioral.
+    """
     sim = Simulation(_testbench())
     sim.run()
 

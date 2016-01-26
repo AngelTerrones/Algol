@@ -65,7 +65,10 @@ def _testbench():
     return reg.GetRTL(), clock, stimulus
 
 
-def test_regfile():
+def test_register():
+    """
+    Register: Test behavioral.
+    """
     sim = Simulation(_testbench())
     sim.run()
 

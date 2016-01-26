@@ -92,6 +92,9 @@ def _testbench():
 
 
 def test_alu():
+    """
+    ALU: Test behavioral.
+    """
     sim = Simulation(_testbench())
     sim.run()
 
