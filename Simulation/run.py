@@ -22,7 +22,7 @@ import argparse
 import pytest
 import os
 import glob
-
+import Simulation.core.memory
 
 def run_module(all=False, file=None, list=False):
     if list:
@@ -49,11 +49,10 @@ def run_cosimulation(all=False, file=None, list=False):
 
 def list_module_test():
     print("List of unit tests:")
-    # pytest.main('-v')
     cwd = os.getcwd()
-    tests = glob.glob(cwd + "/modules/test*.py")
+    tests = glob.glob(cwd + "/Simulation/modules/test*.py")
     if len(tests) == 0:
-        print("No available tests.")
+        print("No available tests: {0}".format(cwd))
     else:
         print("------------------------------------------------------------")
         for test in tests:
@@ -64,7 +63,7 @@ def list_module_test():
 def list_core_test():
     print("List of core tests (ASM/C):")
     cwd = os.getcwd()
-    tests = glob.glob(cwd + "/tests/*")
+    tests = glob.glob(cwd + "/Simulation/tests/*")
     if len(tests) == 0:
         print("No available tests.")
     else:
@@ -92,9 +91,6 @@ def main():
     args = parser.parse_args()
 
     functions[choices.index(args.mode)](args.all, args.file, args.list)
-
-if __name__ == '__main__':
-    main()
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
