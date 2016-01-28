@@ -159,8 +159,28 @@ class CtrlIO:
         self.csr_exception      = Signal(False)
         self.csr_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
         self.csr_retire         = Signal(False)
-        self.imem_pipeline      = MemPortIO()
-        self.dmem_pipeline      = MemPortIO()
+        self.imem_pipeline      = MemDpathIO()
+        self.dmem_pipeline      = MemDpathIO()
+
+
+class MemDpathIO:
+    def __init__(self):
+        self.req  = MemDpathReq()
+        self.resp = MemCtrlResp()
+
+
+class MemDpathReq:
+    def __init__(self):
+        self.addr  = Signal(modbv(0)[32:])
+        self.data  = Signal(modbv(0)[32:])
+        self.typ   = Signal(modbv(0)[3:])
+        self.fcn   = Signal(False)
+        self.valid = Signal(False)
+
+
+class MemCtrlResp:
+    def __init__(self):
+        self.data  = Signal(modbv(0)[32:])
 
 
 class Ctrlpath:
