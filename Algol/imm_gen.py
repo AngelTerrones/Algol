@@ -23,6 +23,7 @@ from myhdl import Signal
 from myhdl import modbv
 from myhdl import always_comb
 from myhdl import concat
+from myhdl import instances
 from consts import Consts
 
 
@@ -67,7 +68,7 @@ class IMMGen:
         def imm_concat():
             self.imm.next = concat(sign, b30_20, b19_12, b11, b10_5, b4_1, b0)
 
-        return rtl
+        return instances()
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
