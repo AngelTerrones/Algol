@@ -146,8 +146,8 @@ class Datapath:
             if_instruction.next                      = self.ctrlIO.imem_pipeline.resp.data
             # --
             self.ctrlIO.imem_pipeline.req.data.next  = 0xDEADC0DE
-            self.ctrlIO.imem_pipeline.req.fcn.next   = MemoryOpConstant.MT_W
-            self.ctrlIO.imem_pipeline.req.typ.next   = MemoryOpConstant.M_RD
+            self.ctrlIO.imem_pipeline.req.typ.next   = MemoryOpConstant.MT_W
+            self.ctrlIO.imem_pipeline.req.fcn.next   = MemoryOpConstant.M_RD
             self.ctrlIO.imem_pipeline.req.valid.next = True
 
         # ID stage

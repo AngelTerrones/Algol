@@ -48,8 +48,8 @@ class MemReq:
     def __init__(self):
         self.addr  = Signal(modbv(0)[32:])
         self.data  = Signal(modbv(0)[32:])
-        self.fcn   = Signal(modbv(0)[3:])
-        self.typ   = Signal(False)
+        self.typ   = Signal(modbv(0)[3:])
+        self.fcn   = Signal(False)
         self.valid = Signal(False)
 
 
