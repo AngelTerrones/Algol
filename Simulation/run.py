@@ -22,7 +22,7 @@ import argparse
 import pytest
 import os
 import glob
-import Simulation.core.memory
+
 
 def run_module(all=False, file=None, list=False):
     if list:
