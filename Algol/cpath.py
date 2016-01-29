@@ -514,10 +514,10 @@ class Ctrlpath:
 
         @always_comb
         def _imem_assignment():
-            self.imem.req.addr.next              = self.io.imem_pipeline.req.addr & ~0x03
+            self.imem.req.addr.next              = self.io.imem_pipeline.req.addr
             self.imem.req.data.next              = self.io.imem_pipeline.req.data
             self.imem.req.fcn.next               = self.io.imem_pipeline.req.fcn
-            self.imem.req.typ.next               = self.io.imem_pipeline.req.typ
+            self.imem.req.wr.next                = 0b0000  # always read
             self.io.imem_pipeline.resp.data.next = self.imem.resp.data
 
         @always_comb
@@ -528,10 +528,48 @@ class Ctrlpath:
         @always_comb
         def _dmem_assignment():
             self.dmem.req.addr.next              = self.io.dmem_pipeline.req.addr
-            self.dmem.req.data.next              = self.io.dmem_pipeline.req.data
             self.dmem.req.fcn.next               = self.io.dmem_pipeline.req.fcn
-            self.dmem.req.typ.next               = self.io.dmem_pipeline.req.typ
-            self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data
+
+        @always_comb
+        def _dmem_read_data():
+            dmtype     = self.io.dmem_pipeline.req.typ[2:0]
+            sgn_extend = self.io.dmem_pipeline.req.typ[2]
+
+            if dmtype == MemoryOpConstant.MT_B:
+                if self.io.dmem_pipeline.req.addr[2:0] == 0:
+                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[8:0].signed() if sgn_extend else self.dmem.resp.data[8:0]
+                elif self.io.dmem_pipeline.req.addr[2:0] == 1:
+                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[16:8].signed() if sgn_extend else self.dmem.resp.data[16:8]
+                elif self.io.dmem_pipeline.req.addr[2:0] == 2:
+                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[24:16].signed() if sgn_extend else self.dmem.resp.data[24:16]
+                else:
+                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[32:24].signed() if sgn_extend else self.dmem.resp.data[32:24]
+            elif dmtype == MemoryOpConstant.MT_H:
+                if not self.io.dmem_pipeline.req.addr[1]:
+                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[16:0].signed() if sgn_extend else self.dmem.resp.data[16:0]
+                else:
+                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[32:16].signed() if sgn_extend else self.dmem.resp.data[32:16]
+            else:
+                self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data
+
+        @always_comb
+        def _dmem_write_data():
+            dmtype = self.io.dmem_pipeline.req.typ[2:0]
+            addr = self.io.dmem_pipeline.req.addr[2:0]
+
+            # set WR
+            if self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR:
+                self.io.dmem.req.wr.next = (concat(addr == 3, addr == 2, addr == 1, addr == 0) if dmtype == MemoryOpConstant.MT_B else
+                                            (concat(addr == 2, addr == 2, addr == 0, addr == 0) if dmtype == MemoryOpConstant.MT_H else
+                                             (0b1111)))
+            else:
+                self.io.dmem.req.wr.next = 0b0000
+
+            # Data to memory
+            data_o = self.io.dmem_pipeline.req.data
+            self.io.dmem.req.data.next = (concat(data_o[8:0], data_o[8:0], data_o[8:0], data_o[8:0]) if dmtype == MemoryOpConstant.MT_B else
+                                          (concat(data_o[16:0], data_o[16:0]) if dmtype == MemoryOpConstant.MT_H else
+                                           (data_o)))
 
         @always_comb
         def _dmem_control():
