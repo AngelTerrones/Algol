@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from Algol.regfile import RegisterFile
-from Algol.regfile import RFReadPort
-from Algol.regfile import RFWritePort
+from Core.regfile import RegisterFile
+from Core.regfile import RFReadPort
+from Core.regfile import RFWritePort
 import random
 from myhdl import instance
 from myhdl import Signal

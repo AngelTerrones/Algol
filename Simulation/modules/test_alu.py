@@ -19,9 +19,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from Algol.alu import ALU
-from Algol.alu import ALUFunction
-from Algol.alu import ALUPortIO
+from Core.alu import ALU
+from Core.alu import ALUFunction
+from Core.alu import ALUPortIO
 import random
 from myhdl import modbv
 from myhdl import instance

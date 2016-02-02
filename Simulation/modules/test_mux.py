@@ -19,7 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from Algol.common.mux import Mux
+from Core.mux import Mux
 from math import ceil
 from math import log2
 import random
