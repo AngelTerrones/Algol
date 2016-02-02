@@ -1,0 +1,3 @@
+[submodule "Simulation/tests"]
+	path = Simulation/tests
+	url = https://github.com/riscv/riscv-tests
