@@ -26,6 +26,7 @@ from myhdl import modbv
 from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
+from myhdl import concat
 from Core.memIO import MemoryOpConstant
 from Core.memIO import MemPortIO
 
@@ -96,23 +97,23 @@ class Memory:
                 we                = self.imem.req.wr
                 data              = self.imem.req.data
                 self.i_data_o.next = self.imem.req.data
-                self._memory[self._imem_addr][8:0].next   = data if we[0] and self.imem.req.valid else self._memory[self._imem_addr][8:0]
-                self._memory[self._imem_addr][16:8].next  = data if we[1] and self.imem.req.valid else self._memory[self._imem_addr][16:8]
-                self._memory[self._imem_addr][24:16].next = data if we[2] and self.imem.req.valid else self._memory[self._imem_addr][24:16]
-                self._memory[self._imem_addr][32:24].next = data if we[3] and self.imem.req.valid else self._memory[self._imem_addr][32:24]
+                self._memory[self._imem_addr].next = concat(data[8:0] if we[0] and self.imem.req.valid else self._memory[self._imem_addr][8:0],
+                                                            data[16:8] if we[1] and self.imem.req.valid else self._memory[self._imem_addr][16:8],
+                                                            data[24:16] if we[2] and self.imem.req.valid else self._memory[self._imem_addr][24:16],
+                                                            data[32:24] if we[3] and self.imem.req.valid else self._memory[self._imem_addr][32:24])
 
         @always(self.clk.posedge)
         def dmem_rtl():
             self.d_data_o.next = self._memory[self._dmem_addr]
 
             if self.dmem.req.fcn == MemoryOpConstant.M_WR:
-                we                = self.dmem.req.wr
-                data              = self.dmem.req.data
+                we                 = self.dmem.req.wr
+                data               = self.dmem.req.data
                 self.d_data_o.next = self.dmem.req.data
-                self._memory[self._dmem_addr][8:0].next   = data if we[0] and self.dmem.req.valid else self._memory[self._dmem_addr][8:0]
-                self._memory[self._dmem_addr][16:8].next  = data if we[1] and self.dmem.req.valid else self._memory[self._dmem_addr][16:8]
-                self._memory[self._dmem_addr][24:16].next = data if we[2] and self.dmem.req.valid else self._memory[self._dmem_addr][24:16]
-                self._memory[self._dmem_addr][32:24].next = data if we[3] and self.dmem.req.valid else self._memory[self._dmem_addr][32:24]
+                self._memory[self._dmem_addr].next = concat(data[8:0] if we[0] and self.dmem.req.valid else self._memory[self._dmem_addr][8:0],
+                                                            data[16:8] if we[1] and self.dmem.req.valid else self._memory[self._dmem_addr][16:8],
+                                                            data[24:16] if we[2] and self.dmem.req.valid else self._memory[self._dmem_addr][24:16],
+                                                            data[32:24] if we[3] and self.dmem.req.valid else self._memory[self._dmem_addr][32:24])
 
         return instances()
 
