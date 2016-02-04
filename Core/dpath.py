@@ -306,7 +306,7 @@ class Datapath:
         exc_pc_mux = Mux2(self.ctrlIO.csr_eret,
                           csr_exc_io.exception_handler,
                           csr_exc_io.epc,
-                          exc_pc)
+                          exc_pc).GetRTL()
 
         @always_comb
         def _mem_assignments():

@@ -38,13 +38,13 @@ def _testbench(mem_size, hex_file):
     dut_core = Core(clk=clk,
                     rst=rst,
                     imem=imem,
-                    dmem=dmem)
+                    dmem=dmem).GetRTL()
     memory = Memory(clk=clk,
                     rst=rst,
                     imem=imem,
                     dmem=dmem,
                     SIZE=mem_size,
-                    HEX=hex_file)
+                    HEX=hex_file).GetRTL()
 
     @instance
     def gen_clock():

@@ -42,12 +42,12 @@ class Core:
 
         dpath = Datapath(self.clk,
                          self.rst,
-                         ctrl_dpath)
+                         ctrl_dpath).GetRTL()
         cpath = Ctrlpath(self.clk,
                          self.rst,
                          ctrl_dpath,
                          self.imem,
-                         self.dmem)
+                         self.dmem).GetRTL()
 
         return dpath, cpath
 
