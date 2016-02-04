@@ -58,7 +58,7 @@ class Memory:
 
     def LoadMemory(self, size: int, bin_file: str):
         n_lines = int(os.path.getsize(bin_file) / 9)  # Calculate the size in words
-        assert size == n_lines, "Size mismatch: {0} != {1}".format(size, n_lines)
+        assert size >= n_lines, "Size mismatch: {0}, {1}".format(size, n_lines)
 
         with open(bin_file) as f:
             lines = [line.strip() for line in f]
