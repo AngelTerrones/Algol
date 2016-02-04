@@ -230,6 +230,7 @@ class Ctrlpath:
         self.opcode             = Signal(modbv(0)[7:])
         self.funct3             = Signal(modbv(0)[3:])
 
+    @staticmethod
     def CheckInvalidAddress(addr, mem_type):
         return (addr[0] if mem_type == MemoryOpConstant.MT_H or mem_type == MemoryOpConstant.MT_HU else
                 (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
@@ -304,7 +305,7 @@ class Ctrlpath:
                 elif self.funct3 == ArithmeticFunct3.RV32_F3_SLL:
                     self.control.next = CtrlSignals.SLLI
                 elif self.funct3 == ArithmeticFunct3.RV32_F3_SRL_SRA:
-                    if self.id_instruction[30]:
+                    if self.io.id_instruction[30]:
                         self.control.next = CtrlSignals.SRAI
                     else:
                         self.control.next = CtrlSignals.SRLI
@@ -312,7 +313,7 @@ class Ctrlpath:
                     self.control.next = CtrlSignals.INVALID
             elif self.opcode == Opcodes.RV32_OP:
                 if self.funct3 == ArithmeticFunct3.RV32_F3_ADD_SUB:
-                    if self.id_instruction[30]:
+                    if self.io.id_instruction[30]:
                         self.control.next = CtrlSignals.SUB
                     else:
                         self.control.next = CtrlSignals.ADD
@@ -329,7 +330,7 @@ class Ctrlpath:
                 elif self.funct3 == ArithmeticFunct3.RV32_F3_SLL:
                     self.control.next = CtrlSignals.SLL
                 elif self.funct3 == ArithmeticFunct3.RV32_F3_SRL_SRA:
-                    if self.id_instruction[30]:
+                    if self.io.id_instruction[30]:
                         self.control.next = CtrlSignals.SRA
                     else:
                         self.control.next = CtrlSignals.SRL
@@ -344,11 +345,11 @@ class Ctrlpath:
                     self.control.next = CtrlSignals.INVALID
             elif self.opcode == Opcodes.RV32_SYSTEM:
                 if self.funct3 == SystemFunct3.RV32_F3_PRIV:
-                    if self.id_instruction[32:20] == PrivFunct12.RV32_F12_ECALL:
+                    if self.io.id_instruction[32:20] == PrivFunct12.RV32_F12_ECALL:
                         self.control.next = CtrlSignals.ECALL
-                    elif self.id_instruction[32:0] == PrivFunct12.RV32_F12_EBREAK:
+                    elif self.io.id_instruction[32:0] == PrivFunct12.RV32_F12_EBREAK:
                         self.control.next = CtrlSignals.EBREAK
-                    elif self.id_instruction[32:0] == PrivFunct12.RV32_F12_ERET:
+                    elif self.io.id_instruction[32:0] == PrivFunct12.RV32_F12_ERET:
                         self.control.next = CtrlSignals.ERET
                     else:
                         self.control.next = CtrlSignals.INVALID
@@ -523,7 +524,7 @@ class Ctrlpath:
         @always_comb
         def _imem_control():
             self.imem.req.valid.next = (self.io.imem_pipeline.req.valid and (not self.imem.resp.valid) and
-                                        not self.csr_exception)
+                                        not self.io.csr_exception)
 
         @always_comb
         def _dmem_assignment():
@@ -559,22 +560,22 @@ class Ctrlpath:
 
             # set WR
             if self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR:
-                self.io.dmem.req.wr.next = (concat(addr == 3, addr == 2, addr == 1, addr == 0) if dmtype == MemoryOpConstant.MT_B else
-                                            (concat(addr == 2, addr == 2, addr == 0, addr == 0) if dmtype == MemoryOpConstant.MT_H else
-                                             (0b1111)))
+                self.dmem.req.wr.next = (concat(addr == 3, addr == 2, addr == 1, addr == 0) if dmtype == MemoryOpConstant.MT_B else
+                                         (concat(addr == 2, addr == 2, addr == 0, addr == 0) if dmtype == MemoryOpConstant.MT_H else
+                                          (0b1111)))
             else:
-                self.io.dmem.req.wr.next = 0b0000
+                self.dmem.req.wr.next = 0b0000
 
             # Data to memory
             data_o = self.io.dmem_pipeline.req.data
-            self.io.dmem.req.data.next = (concat(data_o[8:0], data_o[8:0], data_o[8:0], data_o[8:0]) if dmtype == MemoryOpConstant.MT_B else
-                                          (concat(data_o[16:0], data_o[16:0]) if dmtype == MemoryOpConstant.MT_H else
-                                           (data_o)))
+            self.dmem.req.data.next = (concat(data_o[8:0], data_o[8:0], data_o[8:0], data_o[8:0]) if dmtype == MemoryOpConstant.MT_B else
+                                       (concat(data_o[16:0], data_o[16:0]) if dmtype == MemoryOpConstant.MT_H else
+                                        (data_o)))
 
         @always_comb
         def _dmem_control():
             self.dmem.req.valid.next = (self.io.dmem_pipeline.req.valid and (not self.dmem.resp.valid) and
-                                        not self.csr_exception)
+                                        not self.io.csr_exception)
 
         return instances()
 
