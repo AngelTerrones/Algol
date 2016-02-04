@@ -25,7 +25,7 @@ from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
 from myhdl import concat
-from consts import Consts
+from Core.consts import Consts
 
 
 class CSRAddressMap:

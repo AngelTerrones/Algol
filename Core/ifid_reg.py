@@ -22,7 +22,7 @@
 from myhdl import Signal
 from myhdl import modbv
 from myhdl import always
-from consts import Consts
+from Core.consts import Consts
 
 
 class IFIDReg:

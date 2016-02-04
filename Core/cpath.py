@@ -25,21 +25,21 @@ from myhdl import always_comb
 from myhdl import modbv
 from myhdl import instances
 from myhdl import concat
-from consts import Consts
-from alu import ALUFunction
-from memIO import MemPortIO
-from memIO import MemoryOpConstant
-from csr import CSRCommand
-from csr import CSRExceptionCode
-from csr import CSRModes
-from instructions import Opcodes
-from instructions import BranchFunct3
-from instructions import LoadFunct3
-from instructions import StoreFunct3
-from instructions import ArithmeticFunct3
-from instructions import FenceFunct3
-from instructions import SystemFunct3
-from instructions import PrivFunct12
+from Core.consts import Consts
+from Core.alu import ALUFunction
+from Core.memIO import MemPortIO
+from Core.memIO import MemoryOpConstant
+from Core.csr import CSRCommand
+from Core.csr import CSRExceptionCode
+from Core.csr import CSRModes
+from Core.instructions import Opcodes
+from Core.instructions import BranchFunct3
+from Core.instructions import LoadFunct3
+from Core.instructions import StoreFunct3
+from Core.instructions import ArithmeticFunct3
+from Core.instructions import FenceFunct3
+from Core.instructions import SystemFunct3
+from Core.instructions import PrivFunct12
 
 
 class CtrlSignals:

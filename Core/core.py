@@ -20,10 +20,10 @@
 # THE SOFTWARE.
 
 from myhdl import Signal
-from memIO import MemPortIO
-from dpath import Datapath
-from cpath import Ctrlpath
-from cpath import CtrlIO
+from Core.memIO import MemPortIO
+from Core.dpath import Datapath
+from Core.cpath import Ctrlpath
+from Core.cpath import CtrlIO
 
 
 class Core:

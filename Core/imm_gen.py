@@ -24,7 +24,7 @@ from myhdl import modbv
 from myhdl import always_comb
 from myhdl import concat
 from myhdl import instances
-from consts import Consts
+from Core.consts import Consts
 
 
 class IMMGen:

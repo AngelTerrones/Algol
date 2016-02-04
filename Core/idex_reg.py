@@ -21,9 +21,9 @@
 
 from myhdl import Signal
 from myhdl import always
-from consts import Consts
-from alu import ALUFunction
-from memIO import MemoryOpConstant
+from Core.consts import Consts
+from Core.alu import ALUFunction
+from Core.memIO import MemoryOpConstant
 
 
 class IDEXReg:

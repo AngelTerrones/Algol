@@ -19,10 +19,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from consts import Consts
 from myhdl import Signal
 from myhdl import modbv
 from myhdl import always
+from Core.consts import Consts
 
 
 class PCreg:

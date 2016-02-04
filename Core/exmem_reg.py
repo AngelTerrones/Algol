@@ -21,8 +21,8 @@
 
 from myhdl import Signal
 from myhdl import always
-from memIO import MemoryOpConstant
-from consts import Consts
+from Core.memIO import MemoryOpConstant
+from Core.consts import Consts
 
 
 class EXMEMReg:
