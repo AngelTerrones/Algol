@@ -46,7 +46,7 @@ class IMMGen:
         b0     = Signal(False)
 
         @always_comb
-        def sign():
+        def _sign():
             sign.next     = False if self.sel == Consts.IMM_Z else self.instruction[31]
 
         @always_comb
