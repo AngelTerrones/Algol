@@ -33,14 +33,16 @@ def run_module(all=False, file=None, list=False):
         pytest.main(['-v', file])
 
 
-def run_simulation(all=False, file=None, list=False):
+def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file='asd'):
     if list:
         list_core_test()
-    else:
+    elif all:
         pass
+    else:
+        pytest.main(['-v', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file])
 
 
-def run_cosimulation(all=False, file=None, list=False):
+def run_cosimulation(all=False, file=None, list=False, mem_size=None, hex_file=None):
     if list:
         list_core_test()
     else:
@@ -88,9 +90,16 @@ def main():
     group.add_argument('-l', '--list', help='List tests', action='store_true')
     group.add_argument('-f', '--file', help='Indicate a specific test')
 
+    parser.add_argument('--mem_size', help='Memory size in bytes')
+    parser.add_argument('--hex_file', help='Memory image in HEX format')
+
     args = parser.parse_args()
 
-    functions[choices.index(args.mode)](args.all, args.file, args.list)
+    if args.mode == choices[1] or args.mode == choices[2]:
+        assert args.mem_size, "Memory size is needed"
+        assert args.hex_file, "Memory image is needed"
+
+    functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
