@@ -22,9 +22,11 @@ import argparse
 import pytest
 import os
 import glob
+import subprocess
 
 
 def run_module(all=False, file=None, list=False):
+    assert all or file or list, "Please, indicate flags: --all, --file or --list"
     if list:
         list_module_test()
     elif all:
@@ -37,8 +39,11 @@ def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file='as
     if list:
         list_core_test()
     elif all:
-        pass
+        assert mem_size, "Memory size is needed"
+        assert hex_file, "Memory image is needed"
     else:
+        assert mem_size, "Memory size is needed"
+        assert hex_file, "Memory image is needed"
         pytest.main(['-v', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file])
 
 
@@ -50,7 +55,7 @@ def run_cosimulation(all=False, file=None, list=False, mem_size=None, hex_file=N
 
 
 def list_module_test():
-    print("List of unit tests:")
+    print("List of unit tests for algol:")
     cwd = os.getcwd()
     tests = glob.glob(cwd + "/Simulation/modules/test*.py")
     if len(tests) == 0:
@@ -63,9 +68,9 @@ def list_module_test():
 
 
 def list_core_test():
-    print("List of core tests (ASM/C):")
+    print("List of ISA tests (from riscv-test repo):")
     cwd = os.getcwd()
-    tests = glob.glob(cwd + "/Simulation/tests/*")
+    tests = glob.glob(cwd + "/Simulation/tests/rv32*.hex")
     if len(tests) == 0:
         print("No available tests.")
     else:
@@ -75,17 +80,29 @@ def list_core_test():
         print("------------------------------------------------------------")
 
 
+def compile_tests():
+    make_process = subprocess.Popen("autoconf; ./configure; make", stderr=subprocess.STDOUT,
+                                    cwd='Simulation/tests', shell=True)
+    assert make_process.wait() == 0, 'Unable to compile tests.'
+
+
+def clean_tests():
+    make_process = subprocess.Popen("make clean", stderr=subprocess.STDOUT,
+                                    cwd='Simulation/tests', shell=True)
+    assert make_process.wait() == 0, 'Unable to clean test folder.'
+
+
 def main():
     """
     Set arguments, parse, and call the required function
     """
-    choices = ['module', 'sim', 'cosim']
-    functions = [run_module, run_simulation, run_cosimulation]
+    choices = ['module', 'sim', 'cosim', 'compile_tests', 'clean_tests']
+    functions = [run_module, run_simulation, run_cosimulation, compile_tests, clean_tests]
 
-    parser = argparse.ArgumentParser(description='Simulation script.')
-    parser.add_argument('mode', help='Type of simulation', choices=choices)
+    parser = argparse.ArgumentParser(description='Algol (RISC-V processor). Main simulation script.')
+    parser.add_argument('mode', help='Available commands', choices=choices)
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group()
     group.add_argument('-a', '--all', help='Execute all tests', action='store_true')
     group.add_argument('-l', '--list', help='List tests', action='store_true')
     group.add_argument('-f', '--file', help='Indicate a specific test')
@@ -95,11 +112,14 @@ def main():
 
     args = parser.parse_args()
 
-    if args.mode == choices[1] or args.mode == choices[2]:
-        assert args.mem_size, "Memory size is needed"
-        assert args.hex_file, "Memory image is needed"
-
-    functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file)
+    if args.mode == choices[0]:
+        functions[choices.index(args.mode)](args.all, args.file, args.list)
+    elif args.mode == choices[3]:
+        functions[choices.index(args.mode)]()
+    elif args.mode == choices[4]:
+        functions[choices.index(args.mode)]()
+    else:
+        functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
