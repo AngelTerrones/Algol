@@ -30,10 +30,12 @@ from myhdl import delay
 from myhdl import Simulation
 from myhdl import StopSimulation
 import pytest
+import os
 
 
 MEM_SIZE      = 2**15  # Bytes
 MEM_TEST_FILE = 'Simulation/modules/mem.hex'
+BYTES_X_LINE  = 16
 
 
 class RamBus:
@@ -84,12 +86,15 @@ def _testbench():
                  imem=rb.imem,
                  dmem=rb.dmem,
                  SIZE=MEM_SIZE,
-                 HEX=MEM_TEST_FILE).GetRTL()
+                 HEX=MEM_TEST_FILE,
+                 BYTES_X_LINE=BYTES_X_LINE).GetRTL()
 
     tb_clk = rb.gen_clocks()
 
     with open(MEM_TEST_FILE) as f:
-        lines = [line.strip() for line in f]
+        words_x_line = BYTES_X_LINE >> 2
+        lines_f = [line.strip() for line in f]
+        lines = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(words_x_line - 1, -1, -1)]
 
     @instance
     def stimulus():
@@ -97,7 +102,9 @@ def _testbench():
         for addr in range(rb.depth):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
             data = int(lines[addr], 16)
-            assert rb.dmem.resp.data == data, "Data loading: Data mismatch! Addr = {0:#x}".format(addr << 2)
+            assert rb.dmem.resp.data == data, "Data loading: Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
+                                                                                                                 hex(rb.dmem.resp.data),
+                                                                                                                 data)
 
         # Testing R/W
         for addr in range(rb.depth):
@@ -118,8 +125,10 @@ def gen_test_file():
     Generate a HEX file, with random values.
     """
     with open(MEM_TEST_FILE, 'w') as f:
-        for _ in range(MEM_SIZE >> 2):
-            f.write(format(random.randint(0, 2**32), 'x').zfill(8))
+        depth = int(MEM_SIZE / BYTES_X_LINE)
+        for _ in range(depth):
+            for _ in range(BYTES_X_LINE >> 2):
+                f.write(format(random.randint(0, 2**32), 'x').zfill(8))
             f.write('\n')
 
 
@@ -148,7 +157,8 @@ def test_memory_assertions():
                imem=imem,
                dmem=dmem,
                SIZE=20,
-               HEX=MEM_TEST_FILE).GetRTL()
+               HEX=MEM_TEST_FILE,
+               BYTES_X_LINE=BYTES_X_LINE).GetRTL()
 
     # test valid filename
     with pytest.raises(AssertionError):
@@ -157,9 +167,10 @@ def test_memory_assertions():
                imem=imem,
                dmem=dmem,
                SIZE=MEM_SIZE,
-               HEX='ERROR').GetRTL()
+               HEX='ERROR',
+               BYTES_X_LINE=BYTES_X_LINE).GetRTL()
 1
 # Local Variables:
-# flycheck-flake8-maximum-line-length: 120
+# flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
 # End:

@@ -33,37 +33,47 @@ from Core.memIO import MemPortIO
 
 class Memory:
     def __init__(self,
-                 clk:  Signal,
-                 rst:  Signal,
-                 imem: MemPortIO,
-                 dmem: MemPortIO,
-                 SIZE: int,
-                 HEX:  str):
-        assert SIZE >= 2**12, "Memory size must be a positive number. Min value= 4 KB."
+                 clk:          Signal,
+                 rst:          Signal,
+                 imem:         MemPortIO,
+                 dmem:         MemPortIO,
+                 SIZE:         int,
+                 HEX:          str,
+                 BYTES_X_LINE: int):
+        assert SIZE >= 2**12, "Memory depth must be a positive number. Min value= 4 KB."
         assert type(HEX) == str and len(HEX) != 0, "Please, indicate a valid name for the bin file."
         assert os.path.isfile(HEX), "HEX file does not exist. Please, indicate a valid name"
+        assert type(BYTES_X_LINE) == int and BYTES_X_LINE > 0, "Number of bytes por line must be a positive number"
+        assert not (BYTES_X_LINE & (BYTES_X_LINE - 1)), "Number of bytes por line must be a power of 2"
 
-        aw              = int(ceil(log(SIZE, 2)))
-        self.clk        = clk
-        self.rst        = rst
-        self.imem       = imem
-        self.dmem       = dmem
-        self.i_data_o   = Signal(modbv(0)[32:])
-        self.d_data_o   = Signal(modbv(0)[32:])
-        self._memory    = [None for ii in range(0, 2**(aw - 2))]  # WORDS, no bytes
-        self._imem_addr = Signal(modbv(0)[30:])
-        self._dmem_addr = Signal(modbv(0)[30:])
+        aw                = int(ceil(log(SIZE, 2)))
+        self.bytes_x_line = BYTES_X_LINE
+        self.clk          = clk
+        self.rst          = rst
+        self.imem         = imem
+        self.dmem         = dmem
+        self.i_data_o     = Signal(modbv(0)[32:])
+        self.d_data_o     = Signal(modbv(0)[32:])
+        self._memory      = [None for ii in range(0, 2**(aw - 2))]  # WORDS, no bytes
+        self._imem_addr   = Signal(modbv(0)[30:])
+        self._dmem_addr   = Signal(modbv(0)[30:])
 
-        self.LoadMemory(2**(aw - 2), HEX)
+        depth = 2 ** (aw - 2)  # depth in words. Different from file
+        self.LoadMemory(depth, HEX)
 
-    def LoadMemory(self, size: int, bin_file: str):
-        n_lines = int(os.path.getsize(bin_file) / 9)  # Calculate the size in words
-        assert size >= n_lines, "Size mismatch: {0}, {1}".format(size, n_lines)
+    def LoadMemory(self, depth: int, bin_file: str):
+        """
+        Load a HEX file. The file have (2 * NBYTES + 1) por line.
+        """
+        n_lines = int(os.path.getsize(bin_file) / (2 * self.bytes_x_line + 1))  # calculate the depth in words
+        word_x_line = self.bytes_x_line >> 2
+        assert depth >= n_lines * 4, "Depth mismatch: {0} < {1}".format(depth, n_lines)
 
         with open(bin_file) as f:
-            lines = [line.strip() for line in f]
+            lines_f = [line.strip() for line in f]
+            lines = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(word_x_line - 1, -1, -1)]
 
-        for addr in range(size):
+        for addr in range(depth):
             data = int(lines[addr], 16)
             self._memory[addr] = Signal(modbv(data)[32:])
 
