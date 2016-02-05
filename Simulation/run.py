@@ -81,7 +81,7 @@ def list_core_test():
 
 
 def compile_tests():
-    make_process = subprocess.Popen("autoconf; ./configure; make", stderr=subprocess.STDOUT,
+    make_process = subprocess.Popen("autoconf; ./configure; make -j$(nproc)", stderr=subprocess.STDOUT,
                                     cwd='Simulation/tests', shell=True)
     assert make_process.wait() == 0, 'Unable to compile tests.'
 
