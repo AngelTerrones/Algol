@@ -72,7 +72,7 @@ def list_core_test():
     cwd = os.getcwd()
     tests = glob.glob(cwd + "/Simulation/tests/rv32*.hex")
     if len(tests) == 0:
-        print("No available tests.")
+        print("No available tests. Please, compile test first.")
     else:
         print("------------------------------------------------------------")
         for test in tests:
