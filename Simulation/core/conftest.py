@@ -20,11 +20,17 @@
 # THE SOFTWARE.
 
 
+def auto_int(value):
+    return int(value, 0)
+
+
 def pytest_addoption(parser):
-    parser.addoption('--mem_size', type=int, action='append', default=[],
+    parser.addoption('--mem_size', type=auto_int, action='append', default=[],
                      help='Memory size in bytes')
     parser.addoption('--hex_file', type=str, action='append', default=[],
                      help='Memory image in HEX format')
+    parser.addoption('--bytes_line', type=auto_int, action='append', default=[],
+                     help='Number of bytes por line in the HEX file')
 
 
 def pytest_generate_tests(metafunc):
