@@ -63,3 +63,7 @@ target/
 
 # Hex files
 *.hex
+
+# VCD files
+*.vcd*
+*.gtkw
