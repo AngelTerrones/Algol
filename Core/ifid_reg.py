@@ -57,12 +57,11 @@ class IFIDReg:
                 self.id_pc.next = 0
                 self.id_instruction.next = Consts.BUBBLE
             else:
-                if self.pipeline_kill or self.if_kill:
-                    self.id_instruction.next = Consts.BUBBLE
-                elif not self.id_stall and not self.full_stall:
-                    self.id_pc.next = self.if_pc
-                    self.id_instruction.next = self.if_instruction
-
+                self.id_pc.next          = (self.id_pc if self.id_stall or self.full_stall else
+                                            (self.if_pc))
+                self.id_instruction.next = (self.id_instruction if self.id_stall or self.full_stall else
+                                            (Consts.BUBBLE if self.pipeline_kill or self.if_kill else
+                                             (self.if_instruction)))
         return rtl
 
 # Local Variables:
