@@ -56,18 +56,18 @@ class MEMWBReg:
         @always(self.clk.posedge)
         def rtl():
             if self.rst == 1:
-                self.wb_pc       = 0
-                self.wb_wb_addr  = 0
-                self.wb_wb_wdata = 0
-                self.wb_wb_we    = False
+                self.wb_pc.next       = 0
+                self.wb_wb_addr.next  = 0
+                self.wb_wb_wdata.next = 0
+                self.wb_wb_we.next    = False
             else:
                 if self.pipeline_kill:
-                    self.wb_wb_we    = False
+                    self.wb_wb_we.next    = False
                 elif not self.full_stall:
-                    self.wb_pc       = self.mem_pc
-                    self.wb_wb_addr  = self.wb_wb_addr
-                    self.wb_wb_wdata = self.wb_wb_wdata
-                    self.wb_wb_we    = self.wb_wb_we
+                    self.wb_pc.next       = self.mem_pc
+                    self.wb_wb_addr.next  = self.mem_wb_addr
+                    self.wb_wb_wdata.next = self.mem_wb_wdata
+                    self.wb_wb_we.next    = self.mem_wb_we
 
         return rtl
 
