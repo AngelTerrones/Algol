@@ -29,7 +29,7 @@ from myhdl import Simulation
 from myhdl import StopSimulation
 
 
-def _testbench(mem_size, hex_file):
+def _testbench(mem_size, hex_file, bytes_line):
     clk = Signal(False)
     rst = Signal(False)
     imem = MemPortIO()
@@ -44,7 +44,8 @@ def _testbench(mem_size, hex_file):
                     imem=imem,
                     dmem=dmem,
                     SIZE=mem_size,
-                    HEX=hex_file).GetRTL()
+                    HEX=hex_file,
+                    BYTES_X_LINE=bytes_line).GetRTL()
 
     @instance
     def gen_clock():
@@ -59,11 +60,11 @@ def _testbench(mem_size, hex_file):
     return dut_core, memory, stimulus
 
 
-def test_core(mem_size, hex_file):
+def test_core(mem_size, hex_file, bytes_line):
     """
     Core: Behavioral test for the RISCV core.
     """
-    sim = Simulation(_testbench(mem_size, hex_file))
+    sim = Simulation(_testbench(mem_size, hex_file, bytes_line))
     sim.run()
 
 # Local Variables:

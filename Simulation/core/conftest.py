@@ -32,6 +32,8 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('mem_size', metafunc.config.option.mem_size)
     if 'hex_file' in metafunc.fixturenames:
         metafunc.parametrize('hex_file', metafunc.config.option.hex_file)
+    if 'bytes_line' in metafunc.fixturenames:
+        metafunc.parametrize('bytes_line', metafunc.config.option.bytes_line)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120

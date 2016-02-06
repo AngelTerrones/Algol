@@ -35,16 +35,20 @@ def run_module(all=False, file=None, list=False):
         pytest.main(['-v', file])
 
 
-def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file='asd'):
+def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file=None, bytes_line=0):
     if list:
         list_core_test()
     elif all:
         assert mem_size, "Memory size is needed"
         assert hex_file, "Memory image is needed"
+        assert bytes_line, "Number of bytes por line is needed"
+        assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
     else:
         assert mem_size, "Memory size is needed"
         assert hex_file, "Memory image is needed"
-        pytest.main(['-v', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file])
+        assert bytes_line, "Number of bytes por line is needed"
+        assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
+        pytest.main(['-v', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line])
 
 
 def run_cosimulation(all=False, file=None, list=False, mem_size=None, hex_file=None):
@@ -109,19 +113,20 @@ def main():
 
     parser.add_argument('--mem_size', help='Memory size in bytes')
     parser.add_argument('--hex_file', help='Memory image in HEX format')
+    parser.add_argument('--bytes_line', help='Number of bytes por line in the HEX file')
 
     args = parser.parse_args()
 
     if args.mode == choices[0]:
-        functions[choices.index(args.mode)](args.all, args.file, args.list)
+        functions[choices.index(args.mode)](args.all, args.file, args.list)  # Module
     elif args.mode == choices[3]:
-        functions[choices.index(args.mode)]()
+        functions[choices.index(args.mode)]()  # Compile
     elif args.mode == choices[4]:
-        functions[choices.index(args.mode)]()
+        functions[choices.index(args.mode)]()  # clean
     else:
-        functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file)
+        functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file, args.bytes_line)
 
 # Local Variables:
-# flycheck-flake8-maximum-line-length: 120
+# flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
 # End:
