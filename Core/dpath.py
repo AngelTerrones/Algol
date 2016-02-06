@@ -221,7 +221,7 @@ class Datapath:
             id_wb_addr.next                     = id_instruction[12:7]
             id_csr_addr.next                    = id_instruction[32:20]
             id_mem_wdata.next                   = id_op2
-            id_pc_brjmp.next                    = id_pc + id_imm
+            id_pc_brjmp.next                    = id_pc + id_imm.signed()
             id_pc_jalr.next                     = id_op1
             # CSR assignments
             csr_rw.addr.next                    = id_instruction[32:20]
