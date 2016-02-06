@@ -273,7 +273,7 @@ class CSR:
                 # All exceptions to machine mode
                 priv_stack.next = concat(priv_stack[3:0], modbv(0b11)[2:], False)
             elif self.exc_io.eret:
-                priv_stack.next = concat(modbv(0)[2:], True, priv_stack[3:0])
+                priv_stack.next = concat(modbv(0)[2:], True, priv_stack[6:3])
 
         @always(self.clk.posedge)
         def _mtip_msip():
