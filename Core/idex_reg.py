@@ -90,7 +90,6 @@ class IDEXReg:
     def GetRTL(self):
         @always(self.clk.posedge)
         def rtl():
-            global self
             if self.rst == 1:
                 self.ex_pc.next           = 0
                 self.ex_op1_data.next     = 0
