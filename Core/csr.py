@@ -264,7 +264,7 @@ class CSR:
                 priv_stack.next = 0b000110
             elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS):
                 priv_stack.next = wdata_aux[6:0]
-            elif self.exception:
+            elif self.exc_io.exception:
                 # All exceptions to machine mode
                 priv_stack.next = concat(priv_stack[3:0], modbv(0b11)[2:], False)
             elif self.exc_io.eret:
