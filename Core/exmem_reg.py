@@ -80,7 +80,6 @@ class EXMEMReg:
             if self.rst == 1:
                 self.mem_pc.next           = 0
                 self.mem_mem_valid.next    = False
-                self.mem_csr_addr.next     = 0
                 self.mem_alu_out.next      = 0
                 self.mem_mem_wdata.next    = 0
                 self.mem_mem_type.next     = MemoryOpConstant.MT_X
