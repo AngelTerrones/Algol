@@ -30,9 +30,9 @@ def run_module(all=False, file=None, list=False):
     if list:
         list_module_test()
     elif all:
-        pytest.main('-v')
+        pytest.main(['-s', '-v'])
     else:
-        pytest.main(['-v', file])
+        pytest.main(['-s', '-v', file])
 
 
 def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file=None, bytes_line=0):
@@ -48,7 +48,7 @@ def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file=Non
         assert hex_file, "Memory image is needed"
         assert bytes_line, "Number of bytes por line is needed"
         assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
-        pytest.main(['-v', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line])
+        pytest.main(['-v', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line])
 
 
 def run_cosimulation(all=False, file=None, list=False, mem_size=None, hex_file=None):
