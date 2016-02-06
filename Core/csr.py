@@ -240,7 +240,7 @@ class CSR:
 
         @always_comb
         def assigments3():
-            illegal_region.next                = ((system_wen & (self.rw.addr[12:10])) |
+            illegal_region.next                = ((system_wen & (self.rw.addr[12:10] == 0b11)) |
                                                   (system_en & (self.rw.addr[11:8] > self.prv)))
 
         @always_comb
