@@ -57,7 +57,7 @@ def _testbench(mem_size, hex_file, bytes_line):
         yield delay(1000)
         raise StopSimulation
 
-    return dut_core, memory, stimulus
+    return dut_core, memory, gen_clock, stimulus
 
 
 def test_core(mem_size, hex_file, bytes_line):
