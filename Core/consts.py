@@ -44,6 +44,7 @@ class Consts:
     BR_LT      = modbv(5)[SZ_BR:]
     BR_LTU     = modbv(6)[SZ_BR:]
     BR_J       = modbv(7)[SZ_BR:]
+    BR_JR      = modbv(8)[SZ_BR:]
     # RS1 Operand Select Signal
     SZ_OP1     = 2
     OP1_X      = modbv(0)[SZ_OP1:]
