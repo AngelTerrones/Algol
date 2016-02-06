@@ -51,8 +51,8 @@ class IMMGen:
 
         @always_comb
         def rtl():
-            b30_20.next   = self.instruction[31:20] if self.sel == Consts.IMM_U else sign
-            b19_12.next   = self.instruction[20:12] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_UJ) else sign
+            b30_20.next   = self.instruction[31:20] if self.sel == Consts.IMM_U else concat(*[sign for _ in range(11)])
+            b19_12.next   = self.instruction[20:12] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_UJ) else concat(*[sign for _ in range(8)])
             b11.next      = (False if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else
                              (self.instruction[20] if self.sel == Consts.IMM_UJ else
                               (self.instruction[7] if self.sel == Consts.IMM_SB else sign)))
