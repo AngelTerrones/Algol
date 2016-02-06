@@ -23,10 +23,12 @@ from Core.core import Core
 from Simulation.core.memory import Memory
 from Core.memIO import MemPortIO
 from myhdl import instance
+from myhdl import always
 from myhdl import Signal
 from myhdl import delay
 from myhdl import Simulation
 from myhdl import StopSimulation
+TICK_PERIOD = 10
 
 
 def _testbench(mem_size, hex_file, bytes_line):
@@ -47,14 +49,16 @@ def _testbench(mem_size, hex_file, bytes_line):
                     HEX=hex_file,
                     BYTES_X_LINE=bytes_line).GetRTL()
 
-    @instance
+    @always(delay(int(TICK_PERIOD / 2)))
     def gen_clock():
         clk.next = not clk
-        yield delay(5)
 
     @instance
     def stimulus():
-        yield delay(1000)
+        rst.next = True
+        yield delay(5 * TICK_PERIOD)
+        rst.next = False
+        yield delay(50 * TICK_PERIOD)
         raise StopSimulation
 
     return dut_core, memory, gen_clock, stimulus
