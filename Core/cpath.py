@@ -60,8 +60,8 @@ class CtrlSignals:
     LUI       = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_U,  Consts.OP1_ZERO, Consts.OP2_ZERO, Consts.BR_N)
     AUIPC     = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_U,  Consts.OP1_PC,   Consts.OP2_IMM,  Consts.BR_N)
 
-    JAL       = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_UJ, Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_N)
-    JALR      = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_N)
+    JAL       = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_UJ, Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_J)
+    JALR      = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_J)
     BEQ       = concat(False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_EQ)
     BNE       = concat(False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_NE)
     BLT       = concat(False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_LT)
