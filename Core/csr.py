@@ -63,6 +63,8 @@ class CSRAddressMap:
     CSR_ADDR_CYCLEHW   = 0x980
     CSR_ADDR_TIMEHW    = 0x981
     CSR_ADDR_INSTRETHW = 0x982
+    CSR_ADDR_TO_HOST   = 0x780
+    CSR_ADDR_FROM_HOST = 0x781
 
 
 class CSRExceptionCode:
@@ -172,6 +174,9 @@ class CSR:
         mcause          = Signal(modbv(0)[32:])
         mbadaddr        = Signal(modbv(0)[32:])
         mip             = Signal(modbv(0)[32:])
+
+        mtohost         = Signal(modbv(0)[32:])
+        mfromhost       = Signal(modbv(0)[32:])
 
         # aux
         wdata_aux       = Signal(modbv(0)[32:])
@@ -406,6 +411,12 @@ class CSR:
             elif addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
                 self.rw.rdata.next = instreth
                 defined.next = 1
+            elif addr == CSRAddressMap.CSR_ADDR_TO_HOST:
+                self.rw.rdata.next = mtohost
+                defined.next = 1
+            elif addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
+                self.rw.rdata.next = mfromhost
+                defined.next = 1
             else:
                 self.rw.rdata.next = 0
                 defined.next = 0
@@ -414,14 +425,16 @@ class CSR:
         def _write():
             addr = self.rw.addr
             if self.rst:
-                cycle_full.next = 0
-                time_full.next = 0
+                cycle_full.next   = 0
+                time_full.next    = 0
                 instret_full.next = 0
-                mtime_full.next = 0
-                mtvec.next = Consts.MTVEC
+                mtime_full.next   = 0
+                mtvec.next        = Consts.MTVEC
+                mtohost.next      = 0
+                mfromhost.next    = 0
             else:
                 cycle_full.next = cycle_full + 1
-                time_full.next = time_full + 1
+                time_full.next  = time_full + 1
                 mtime_full.next = mtime_full + 1
                 if self.retire:
                     instret_full.next = instret_full + 1
@@ -460,6 +473,10 @@ class CSR:
                         time_full[64:32] = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
                         instret_full[64:32] = wdata_aux
+                    elif addr == CSRAddressMap.CSR_ADDR_TO_HOST:
+                        mtohost.next = wdata_aux
+                    elif addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
+                        mfromhost.next = wdata_aux
 
         return instances()
 
