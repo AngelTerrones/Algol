@@ -347,9 +347,9 @@ class Ctrlpath:
                 if self.funct3 == SystemFunct3.RV32_F3_PRIV:
                     if self.io.id_instruction[32:20] == PrivFunct12.RV32_F12_ECALL:
                         self.control.next = CtrlSignals.ECALL
-                    elif self.io.id_instruction[32:0] == PrivFunct12.RV32_F12_EBREAK:
+                    elif self.io.id_instruction[32:20] == PrivFunct12.RV32_F12_EBREAK:
                         self.control.next = CtrlSignals.EBREAK
-                    elif self.io.id_instruction[32:0] == PrivFunct12.RV32_F12_ERET:
+                    elif self.io.id_instruction[32:20] == PrivFunct12.RV32_F12_ERET:
                         self.control.next = CtrlSignals.ERET
                     else:
                         self.control.next = CtrlSignals.INVALID
