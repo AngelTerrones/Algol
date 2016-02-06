@@ -67,7 +67,7 @@ class Memory:
         """
         n_lines = int(os.path.getsize(bin_file) / (2 * self.bytes_x_line + 1))  # calculate the depth in words
         word_x_line = self.bytes_x_line >> 2
-        assert depth >= n_lines * 4, "Depth mismatch: {0} < {1}".format(depth, n_lines)
+        assert depth >= n_lines * 4, "Depth mismatch (1 word x line): {0} < {1}".format(depth, n_lines *4)
 
         with open(bin_file) as f:
             lines_f = [line.strip() for line in f]
