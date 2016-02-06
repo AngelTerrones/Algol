@@ -61,7 +61,7 @@ class CtrlSignals:
     AUIPC     = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_U,  Consts.OP1_PC,   Consts.OP2_IMM,  Consts.BR_N)
 
     JAL       = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_UJ, Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_J)
-    JALR      = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_J)
+    JALR      = concat(False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_JR)
     BEQ       = concat(False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_EQ)
     BNE       = concat(False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_NE)
     BLT       = concat(False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_LT)
@@ -480,13 +480,14 @@ class Ctrlpath:
         @always_comb
         def _pc_select():
             self.io.pc_select.next = (Consts.PC_EXC if self.io.csr_exception or self.io.csr_eret else
-                                      (Consts.PC_BRJMP if ((self.id_br_type == Consts.BR_NE and not self.id_eq) or
+                                      (Consts.PC_BRJMP if ((self.id_br_type == Consts.BR_J) or
+                                                           (self.id_br_type == Consts.BR_NE and not self.id_eq) or
                                                            (self.id_br_type == Consts.BR_EQ and self.id_eq) or
                                                            (self.id_br_type == Consts.BR_LT and self.id_lt) or
                                                            (self.id_br_type == Consts.BR_LTU and self.id_ltu) or
                                                            (self.id_br_type == Consts.BR_GE and not self.id_lt) or
                                                            (self.id_br_type == Consts.BR_GEU and not self.id_ltu)) else
-                                       (Consts.PC_JALR if self.id_br_type == Consts.BR_J else
+                                       (Consts.PC_JALR if self.id_br_type == Consts.BR_JR else
                                         (Consts.PC_4))))
 
         @always_comb
