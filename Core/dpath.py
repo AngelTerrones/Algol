@@ -230,6 +230,8 @@ class Datapath:
             id_csr_data.next                    = csr_rw.rdata
             self.ctrlIO.csr_interrupt.next      = csr_exc_io.interrupt
             self.ctrlIO.csr_interrupt_code.next = csr_exc_io.interrupt_code
+            self.ctrlIO.id_op1.next             = id_op1
+            self.ctrlIO.id_op2.next             = id_op2
 
         # EX stage
         # ----------------------------------------------------------------------
@@ -267,10 +269,12 @@ class Datapath:
 
         @always_comb
         def _ex_assignments():
-            aluIO.function.next = ex_alu_funct
-            aluIO.input1.next   = ex_op1_data
-            aluIO.input2.next   = ex_op2_data
-            ex_alu_out.next     = aluIO.output
+            aluIO.function.next         = ex_alu_funct
+            aluIO.input1.next           = ex_op1_data
+            aluIO.input2.next           = ex_op2_data
+            ex_alu_out.next             = aluIO.output
+            self.ctrlIO.ex_wb_we.next   = ex_wb_we
+            self.ctrlIO.ex_wb_addr.next = ex_wb_addr
 
         # MEM stage
         # ----------------------------------------------------------------------
@@ -310,17 +314,19 @@ class Datapath:
 
         @always_comb
         def _mem_assignments():
-            self.ctrlIO.dmem_pipeline.req.addr              = mem_alu_out
-            self.ctrlIO.dmem_pipeline.req.data.next         = mem_mem_wdata
-            self.ctrlIO.dmem_pipeline.req.fcn.next          = mem_mem_funct
-            self.ctrlIO.dmem_pipeline.req.typ.next          = mem_mem_type
-            self.ctrlIO.dmem_pipeline.req.valid.next        = mem_mem_valid
-            mem_mem_data.next                   = self.ctrlIO.dmem_pipeline.resp.data
-            csr_exc_io.exception.next           = self.ctrlIO.csr_exception
-            csr_exc_io.exception_code.next      = self.ctrlIO.csr_exception_code
-            csr_exc_io.eret.next                = self.ctrlIO.csr_eret
-            csr_exc_io.exception_load_addr.next = mem_alu_out
-            csr_exc_io.exception_pc.next        = mem_pc
+            self.ctrlIO.dmem_pipeline.req.addr       = mem_alu_out
+            self.ctrlIO.dmem_pipeline.req.data.next  = mem_mem_wdata
+            self.ctrlIO.dmem_pipeline.req.fcn.next   = mem_mem_funct
+            self.ctrlIO.dmem_pipeline.req.typ.next   = mem_mem_type
+            self.ctrlIO.dmem_pipeline.req.valid.next = mem_mem_valid
+            mem_mem_data.next                        = self.ctrlIO.dmem_pipeline.resp.data
+            csr_exc_io.exception.next                = self.ctrlIO.csr_exception
+            csr_exc_io.exception_code.next           = self.ctrlIO.csr_exception_code
+            csr_exc_io.eret.next                     = self.ctrlIO.csr_eret
+            csr_exc_io.exception_load_addr.next      = mem_alu_out
+            csr_exc_io.exception_pc.next             = mem_pc
+            self.ctrlIO.mem_wb_we.next               = mem_wb_we
+            self.ctrlIO.mem_wb_addr.next             = mem_wb_addr
 
         # WB stage
         # ----------------------------------------------------------------------
@@ -339,9 +345,11 @@ class Datapath:
 
         @always_comb
         def _wb_assignments():
-            wb_rf_writePort.wa.next = wb_wb_addr
-            wb_rf_writePort.wd.next = wb_wb_wdata
-            wb_rf_writePort.we.next = wb_wb_we
+            wb_rf_writePort.wa.next     = wb_wb_addr
+            wb_rf_writePort.wd.next     = wb_wb_wdata
+            wb_rf_writePort.we.next     = wb_wb_we
+            self.ctrlIO.wb_wb_we.next   = wb_wb_we
+            self.ctrlIO.wb_wb_addr.next = wb_wb_addr
 
         return (pc_mux, pc_reg, _pc_next, ifid_reg, reg_file, op1_mux, op2_mux,
                 op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
