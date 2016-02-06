@@ -196,7 +196,7 @@ class Ctrlpath:
         self.imem               = imem
         self.dmem               = dmem
 
-        self.id_br_type         = Signal(modbv(0)[Consts.SZ_BR])
+        self.id_br_type         = Signal(modbv(0)[Consts.SZ_BR:])
         self.id_eq              = Signal(False)
         self.id_lt              = Signal(False)
         self.id_ltu             = Signal(False)
@@ -221,10 +221,10 @@ class Ctrlpath:
         self.id_imem_misalign   = Signal(False)
         self.id_imem_fault      = Signal(False)
         self.ex_exception       = Signal(False)
-        self.ex_exception_code  = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
-        self.ex_mem_funct       = Signal(modbv(0)[MemoryOpConstant.SZ_M])
+        self.ex_exception_code  = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
+        self.ex_mem_funct       = Signal(modbv(0)[MemoryOpConstant.SZ_M:])
         self.mem_exception      = Signal(False)
-        self.mem_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE])
+        self.mem_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
         self.control            = Signal(modbv(0)[28:])
 
         self.opcode             = Signal(modbv(0)[7:])
@@ -439,8 +439,8 @@ class Ctrlpath:
                 elif not self.io.id_stall and not self.io.full_stall:
                     self.ex_exception.next      = (self.id_imem_misalign or self.id_imem_fault or self.id_illegal_inst or
                                                    self.id_breakpoint or self.id_ecall_u or self.id_ecall_s or self.id_ecall_h or
-                                                   self.id_ecall_m or self.csr_interrupt)
-                    self.ex_exception_code.next = (self.csr_interrupt_code if self.csr_interrupt else
+                                                   self.id_ecall_m or self.io.csr_interrupt)
+                    self.ex_exception_code.next = (self.io.csr_interrupt_code if self.io.csr_interrupt else
                                                    (CSRExceptionCode.E_INST_ADDR_MISALIGNED if self.id_imem_misalign else
                                                     (CSRExceptionCode.E_INST_ACCESS_FAULT if self.id_imem_fault else
                                                      (CSRExceptionCode.E_ILLEGAL_INST if self.id_illegal_inst else
