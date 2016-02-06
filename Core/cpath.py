@@ -225,7 +225,7 @@ class Ctrlpath:
         self.ex_mem_funct       = Signal(modbv(0)[MemoryOpConstant.SZ_M:])
         self.mem_exception      = Signal(False)
         self.mem_exception_code = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
-        self.control            = Signal(modbv(0)[28:])
+        self.control            = Signal(modbv(0)[29:])
 
         self.opcode             = Signal(modbv(0)[7:])
         self.funct3             = Signal(modbv(0)[3:])
@@ -370,20 +370,20 @@ class Ctrlpath:
 
         @always_comb
         def _assignments():
-            self.id_br_type.next         = self.control[2:0]
-            self.io.id_op1_select.next   = self.control[4:2]
-            self.io.id_op2_select.next   = self.control[6:4]
-            self.io.id_sel_imm.next      = self.control[9:6]
-            self.io.id_alu_funct.next    = self.control[13:9]
-            self.io.id_mem_type.next     = self.control[16:13]
-            self.io.id_mem_funct.next    = self.control[16]
-            self.io.id_mem_valid.next    = self.control[17]
-            self.io.id_csr_cmd.next      = self.control[21:18] if self.io.id_rs1_addr != 0 else CSRCommand.CSR_READ
-            self.io.id_mem_data_sel.next = self.control[23:21]
-            self.io.id_wb_we.next        = self.control[23]
-            self.id_eret.next            = self.control[24]
-            self.id_ebreak.next          = self.control[25]
-            self.id_ecall.next           = self.control[26]
+            self.id_br_type.next         = self.control[4:0]
+            self.io.id_op1_select.next   = self.control[6:4]
+            self.io.id_op2_select.next   = self.control[8:6]
+            self.io.id_sel_imm.next      = self.control[11:8]
+            self.io.id_alu_funct.next    = self.control[15:11]
+            self.io.id_mem_type.next     = self.control[18:15]
+            self.io.id_mem_funct.next    = self.control[18]
+            self.io.id_mem_valid.next    = self.control[19]
+            self.io.id_csr_cmd.next      = self.control[23:20] if self.io.id_rs1_addr != 0 else CSRCommand.CSR_READ
+            self.io.id_mem_data_sel.next = self.control[23]
+            self.io.id_wb_we.next        = self.control[24]
+            self.id_eret.next            = self.control[25]
+            self.id_ebreak.next          = self.control[26]
+            self.id_ecall.next           = self.control[27]
 
         @always_comb
         def _assignments2():
@@ -395,7 +395,7 @@ class Ctrlpath:
             self.if_imem_misalign.next = self.CheckInvalidAddress(self.io.imem_pipeline.req.addr,
                                                                   self.io.imem_pipeline.req.typ)
             self.if_imem_fault.next    = self.imem.resp.fault
-            self.id_illegal_inst.next  = self.control[27] or (self.io.csr_prv == CSRModes.PRV_U and self.id_eret) or self.io.csr_illegal_access
+            self.id_illegal_inst.next  = self.control[28] or (self.io.csr_prv == CSRModes.PRV_U and self.id_eret) or self.io.csr_illegal_access
             self.id_breakpoint.next    = self.id_ebreak
             self.id_ecall_u.next       = self.io.csr_prv == CSRModes.PRV_U and self.id_ecall
             self.id_ecall_s.next       = self.io.csr_prv == CSRModes.PRV_S and self.id_ecall
