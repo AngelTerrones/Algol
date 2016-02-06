@@ -371,8 +371,8 @@ class Ctrlpath:
         @always_comb
         def _assignments():
             self.id_br_type.next         = self.control[4:0]
-            self.io.id_op1_select.next   = self.control[6:4]
-            self.io.id_op2_select.next   = self.control[8:6]
+            self.io.id_op2_select.next   = self.control[6:4]
+            self.io.id_op1_select.next   = self.control[8:6]
             self.io.id_sel_imm.next      = self.control[11:8]
             self.io.id_alu_funct.next    = self.control[15:11]
             self.io.id_mem_type.next     = self.control[18:15]
