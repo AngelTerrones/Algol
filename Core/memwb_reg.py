@@ -61,17 +61,13 @@ class MEMWBReg:
                 self.wb_wb_wdata.next = 0
                 self.wb_wb_we.next    = False
             else:
-                if self.pipeline_kill:
-                    self.wb_wb_we.next    = False
-                elif not self.full_stall:
-                    self.wb_pc.next       = self.mem_pc
-                    self.wb_wb_addr.next  = self.mem_wb_addr
-                    self.wb_wb_wdata.next = self.mem_wb_wdata
-                    self.wb_wb_we.next    = self.mem_wb_we
-
+                self.wb_pc.next       = (self.wb_pc if self.full_stall else self.mem_pc)
+                self.wb_wb_addr.next  = (self.wb_wb_addr if self.full_stall else self.mem_wb_addr)
+                self.wb_wb_wdata.next = (self.wb_wb_wdata if self.full_stall else self.mem_wb_wdata)
+                self.wb_wb_we.next    = (self.wb_wb_we if self.full_stall else (False if self.pipeline_kill else self.mem_pc))
         return rtl
 
 # Local Variables:
-# flycheck-flake8-maximum-line-length: 120
+# flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
 # End:
