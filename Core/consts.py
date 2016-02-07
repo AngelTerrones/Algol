@@ -50,8 +50,7 @@ class Consts:
     OP1_X      = modbv(0)[SZ_OP1:]
     OP1_RS1    = modbv(0)[SZ_OP1:]
     OP1_PC     = modbv(1)[SZ_OP1:]
-    OP1_CSR    = modbv(2)[SZ_OP1:]
-    OP1_ZERO   = modbv(3)[SZ_OP1:]
+    OP1_ZERO   = modbv(2)[SZ_OP1:]
     # RS2 Operand Select Signal
     SZ_OP2     = 2
     OP2_X      = modbv(0)[SZ_OP2:]
@@ -76,10 +75,11 @@ class Consts:
     FWD_MEM    = modbv(2)[SZ_FWD:]
     FWD_WB     = modbv(3)[SZ_FWD:]
     # WB signals
-    SZ_WB      = 1
-    WB_X       = False
-    WB_ALU     = False
-    WB_MEM     = True
+    SZ_WB      = 2
+    WB_X       = modbv(0)[SZ_WB:]
+    WB_ALU     = modbv(0)[SZ_WB:]
+    WB_MEM     = modbv(1)[SZ_WB:]
+    WB_CSR     = modbv(2)[SZ_WB:]
     # PRIV
     MTVEC      = 0x100
     START_ADDR = MTVEC + 0x100

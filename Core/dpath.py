@@ -33,6 +33,7 @@ from Core.alu import ALUFunction
 from Core.alu import ALUPortIO
 from Core.csr import CSR
 from Core.csr import CSRFileRWIO
+from Core.csr import CSRCommand
 from Core.csr import CSRExceptionIO
 from Core.csr import CSRAddressMap
 from Core.imm_gen import IMMGen
@@ -75,11 +76,13 @@ class Datapath:
         id_op1_data      = Signal(modbv(0)[32:])
         id_op2_data      = Signal(modbv(0)[32:])
         id_mem_wdata     = Signal(modbv(0)[32:])
-        id_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
         id_pc_brjmp      = Signal(modbv(0)[32:])
         id_pc_jalr       = Signal(modbv(0)[32:])
-        id_csr_data      = Signal(modbv(0)[32:])
         id_wb_addr       = Signal(modbv(0)[5:])
+        id_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
+        id_csr_wdata     = Signal(modbv(0)[32:])
+        id_csr_cmd       = Signal(modbv(0)[CSRCommand.SZ_CMD:])
+
         # EX stage
         ex_pc            = Signal(modbv(0)[32:])
         ex_alu_out       = Signal(modbv(0)[32:])
@@ -94,6 +97,9 @@ class Datapath:
         ex_op1_data      = Signal(modbv(0)[32:])
         ex_op2_data      = Signal(modbv(0)[32:])
         aluIO            = ALUPortIO()
+        ex_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
+        ex_csr_wdata     = Signal(modbv(0)[32:])
+        ex_csr_cmd       = Signal(modbv(0)[CSRCommand.SZ_CMD:])
 
         # MEM stage
         exc_pc           = Signal(modbv(0)[32:])
@@ -110,6 +116,10 @@ class Datapath:
         csr_rw           = CSRFileRWIO()
         csr_exc_io       = CSRExceptionIO()
         mem_mem_data     = Signal(modbv(0)[32:])
+        mem_csr_addr     = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
+        mem_csr_wdata    = Signal(modbv(0)[32:])
+        mem_csr_rdata    = Signal(modbv(0)[32:])
+        mem_csr_cmd      = Signal(modbv(0)[CSRCommand.SZ_CMD:])
 
         # WB stage
         wb_pc            = Signal(modbv(0)[32:])
@@ -190,8 +200,8 @@ class Datapath:
         op1_mux = Mux4(self.ctrlIO.id_op1_select,
                        id_op1,
                        id_pc,
-                       csr_rw.rdata,
                        0x00000000,
+                       0x00000BAD,
                        id_op1_data).GetRTL()
 
         op2_mux = Mux4(self.ctrlIO.id_op2_select,
@@ -200,14 +210,6 @@ class Datapath:
                        0x00000004,
                        0x00000000,
                        id_op2_data).GetRTL()
-
-        csr = CSR(self.clk,
-                  self.rst,
-                  csr_rw,
-                  csr_exc_io,
-                  self.ctrlIO.csr_retire,
-                  self.ctrlIO.csr_prv,
-                  self.ctrlIO.csr_illegal_access).GetRTL()
 
         @always_comb
         def _id_assignment():
@@ -223,11 +225,10 @@ class Datapath:
             id_mem_wdata.next                   = id_op2
             id_pc_brjmp.next                    = id_pc + id_imm.signed()
             id_pc_jalr.next                     = id_op1
+            id_csr_addr.next                    = id_instruction[32:20]
+            id_csr_cmd.next                     = self.ctrlIO.id_csr_cmd
+            id_csr_wdata.next                   = id_instruction[20:15] if id_instruction[14] else id_op1
             # CSR assignments
-            csr_rw.addr.next                    = id_instruction[32:20]
-            csr_rw.cmd.next                     = self.ctrlIO.id_csr_cmd
-            csr_rw.wdata.next                   = id_instruction[20:15] if id_instruction[14] else id_op1
-            id_csr_data.next                    = csr_rw.rdata
             self.ctrlIO.csr_interrupt.next      = csr_exc_io.interrupt
             self.ctrlIO.csr_interrupt_code.next = csr_exc_io.interrupt_code
             self.ctrlIO.id_op1.next             = id_op1
@@ -252,6 +253,9 @@ class Datapath:
                            self.ctrlIO.id_mem_data_sel,
                            id_wb_addr,
                            self.ctrlIO.id_wb_we,
+                           id_csr_addr,
+                           id_csr_wdata,
+                           id_csr_cmd,
                            # ----------
                            ex_pc,
                            ex_op1_data,
@@ -263,7 +267,10 @@ class Datapath:
                            ex_mem_wdata,
                            ex_mem_data_sel,
                            ex_wb_addr,
-                           ex_wb_we).GetRTL()
+                           ex_wb_we,
+                           ex_csr_addr,
+                           ex_csr_wdata,
+                           ex_csr_cmd).GetRTL()
 
         alu = ALU(aluIO).GetRTL()
 
@@ -291,6 +298,9 @@ class Datapath:
                              ex_mem_data_sel,
                              ex_wb_addr,
                              ex_wb_we,
+                             ex_csr_addr,
+                             ex_csr_wdata,
+                             ex_csr_cmd,
                              # -----
                              mem_pc,
                              mem_alu_out,
@@ -300,11 +310,24 @@ class Datapath:
                              mem_mem_valid,
                              mem_mem_data_sel,
                              mem_wb_addr,
-                             mem_wb_we).GetRTL()
+                             mem_wb_we,
+                             mem_csr_addr,
+                             mem_csr_wdata,
+                             mem_csr_cmd).GetRTL()
 
-        mdata_mux = Mux2(mem_mem_data_sel,
+        csr = CSR(self.clk,
+                  self.rst,
+                  csr_rw,
+                  csr_exc_io,
+                  self.ctrlIO.csr_retire,
+                  self.ctrlIO.csr_prv,
+                  self.ctrlIO.csr_illegal_access).GetRTL()
+
+        mdata_mux = Mux4(mem_mem_data_sel,
                          mem_alu_out,
                          mem_mem_data,
+                         mem_csr_rdata,
+                         0x0BADF00D,
                          mem_wb_wdata).GetRTL()
 
         exc_pc_mux = Mux2(self.ctrlIO.csr_eret,
@@ -325,6 +348,10 @@ class Datapath:
             csr_exc_io.eret.next                     = self.ctrlIO.csr_eret
             csr_exc_io.exception_load_addr.next      = mem_alu_out
             csr_exc_io.exception_pc.next             = mem_pc
+            csr_rw.addr.next                         = mem_csr_addr
+            csr_rw.cmd.next                          = mem_csr_cmd
+            csr_rw.wdata.next                        = mem_csr_wdata
+            mem_csr_rdata.next                       = csr_rw.rdata
             self.ctrlIO.mem_wb_we.next               = mem_wb_we
             self.ctrlIO.mem_wb_addr.next             = mem_wb_addr
 

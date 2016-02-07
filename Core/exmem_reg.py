@@ -23,6 +23,7 @@ from myhdl import Signal
 from myhdl import always
 from Core.memIO import MemoryOpConstant
 from Core.consts import Consts
+from Core.csr import CSRCommand
 
 
 class EXMEMReg:
@@ -40,6 +41,9 @@ class EXMEMReg:
                  ex_mem_data_sel:  Signal,
                  ex_wb_addr:       Signal,
                  ex_wb_we:         Signal,
+                 ex_csr_addr:      Signal,
+                 ex_csr_wdata:     Signal,
+                 ex_csr_cmd:       Signal,
                  mem_pc:           Signal,
                  mem_alu_out:      Signal,
                  mem_mem_wdata:    Signal,
@@ -48,7 +52,10 @@ class EXMEMReg:
                  mem_mem_valid:    Signal,
                  mem_mem_data_sel: Signal,
                  mem_wb_addr:      Signal,
-                 mem_wb_we:        Signal):
+                 mem_wb_we:        Signal,
+                 mem_csr_addr:     Signal,
+                 mem_csr_wdata:    Signal,
+                 mem_csr_cmd:      Signal):
         # inputs
         self.clk              = clk
         self.rst              = rst
@@ -63,6 +70,9 @@ class EXMEMReg:
         self.ex_mem_data_sel  = ex_mem_data_sel
         self.ex_wb_addr       = ex_wb_addr
         self.ex_wb_we         = ex_wb_we
+        self.ex_csr_addr      = ex_csr_addr
+        self.ex_csr_wdata     = ex_csr_wdata
+        self.ex_csr_cmd       = ex_csr_cmd
         # outputs
         self.mem_pc           = mem_pc
         self.mem_alu_out      = mem_alu_out
@@ -73,6 +83,9 @@ class EXMEMReg:
         self.mem_mem_data_sel = mem_mem_data_sel
         self.mem_wb_addr      = mem_wb_addr
         self.mem_wb_we        = mem_wb_we
+        self.mem_csr_addr     = mem_csr_addr
+        self.mem_csr_wdata    = mem_csr_wdata
+        self.mem_csr_cmd      = mem_csr_cmd
 
     def GetRTL(self):
         @always(self.clk.posedge)
@@ -87,24 +100,25 @@ class EXMEMReg:
                 self.mem_mem_data_sel.next = Consts.WB_X
                 self.mem_wb_addr.next      = 0
                 self.mem_wb_we.next        = False
+                self.mem_csr_addr.next     = 0
+                self.mem_csr_wdata.next    = 0
+                self.mem_csr_cmd.next      = CSRCommand.CSR_IDLE
             else:
-                if self.pipeline_kill:
-                    self.mem_mem_valid.next = False
-                    self.mem_wb_we.next     = False
-                elif not self.full_stall:
-                    self.mem_pc.next           = self.ex_pc
-                    self.mem_alu_out.next      = self.ex_alu_out
-                    self.mem_mem_wdata.next    = self.ex_mem_wdata
-                    self.mem_mem_type.next     = self.ex_mem_type
-                    self.mem_mem_funct.next    = self.ex_mem_funct
-                    self.mem_mem_valid.next    = self.ex_mem_valid
-                    self.mem_mem_data_sel.next = self.ex_mem_data_sel
-                    self.mem_wb_addr.next      = self.ex_wb_addr
-                    self.mem_wb_we.next        = self.ex_wb_we
-
+                self.mem_pc.next           = (self.mem_pc if self.full_stall else self.ex_pc)
+                self.mem_alu_out.next      = (self.mem_alu_out if self.full_stall else self.ex_alu_out)
+                self.mem_mem_wdata.next    = (self.mem_mem_wdata if self.full_stall else self.ex_mem_wdata)
+                self.mem_mem_type.next     = (self.mem_mem_type if self.full_stall else self.ex_mem_type)
+                self.mem_mem_funct.next    = (self.mem_mem_funct if self.full_stall else self.ex_mem_funct)
+                self.mem_mem_data_sel.next = (self.mem_mem_data_sel if self.full_stall else self.ex_mem_data_sel)
+                self.mem_wb_addr.next      = (self.mem_wb_addr if self.full_stall else self.ex_wb_addr)
+                self.mem_csr_addr.next     = (self.mem_csr_addr if self.full_stall else self.ex_csr_addr)
+                self.mem_csr_wdata.next    = (self.mem_csr_wdata if self.full_stall else self.ex_csr_wdata)
+                self.mem_mem_valid.next    = (self.mem_mem_valid if self.full_stall else (False if self.pipeline_kill else self.ex_mem_valid))
+                self.mem_wb_we.next        = (self.mem_wb_we if self.full_stall else (False if self.pipeline_kill else self.ex_wb_we))
+                self.mem_csr_cmd.next      = (self.mem_csr_cmd if (self.full_stall) else (CSRCommand.CSR_IDLE if self.pipeline_kill else self.ex_csr_cmd))
         return rtl
 
 # Local Variables:
-# flycheck-flake8-maximum-line-length: 120
+# flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
 # End:
