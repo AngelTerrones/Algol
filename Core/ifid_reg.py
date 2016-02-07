@@ -54,11 +54,10 @@ class IFIDReg:
         @always(self.clk.posedge)
         def rtl():
             if self.rst == 1:
-                self.id_pc.next = 0
+                self.id_pc.next          = 0
                 self.id_instruction.next = Consts.BUBBLE
             else:
-                self.id_pc.next          = (self.id_pc if self.id_stall or self.full_stall else
-                                            (self.if_pc))
+                self.id_pc.next          = (self.id_pc if self.id_stall or self.full_stall else (self.if_pc))
                 self.id_instruction.next = (self.id_instruction if self.id_stall or self.full_stall else
                                             (Consts.BUBBLE if self.pipeline_kill or self.if_kill else
                                              (self.if_instruction)))
