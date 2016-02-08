@@ -28,10 +28,12 @@ from myhdl import Signal
 from myhdl import delay
 from myhdl import Simulation
 from myhdl import StopSimulation
+from myhdl import traceSignals
+
 TICK_PERIOD = 10
 
 
-def _testbench(mem_size, hex_file, bytes_line):
+def core_testbench(mem_size, hex_file, bytes_line):
     clk = Signal(False)
     rst = Signal(False)
     imem = MemPortIO()
@@ -58,17 +60,22 @@ def _testbench(mem_size, hex_file, bytes_line):
         rst.next = True
         yield delay(5 * TICK_PERIOD)
         rst.next = False
-        yield delay(50 * TICK_PERIOD)
+        yield delay(1000 * TICK_PERIOD)
         raise StopSimulation
 
     return dut_core, memory, gen_clock, stimulus
 
 
-def test_core(mem_size, hex_file, bytes_line):
+def test_core(mem_size, hex_file, bytes_line, gen_vcd=True):
     """
     Core: Behavioral test for the RISCV core.
     """
-    sim = Simulation(_testbench(mem_size, hex_file, bytes_line))
+    if gen_vcd:
+        vcd = traceSignals(core_testbench, mem_size, hex_file, bytes_line)
+        sim = Simulation(vcd)
+    else:
+        sim = Simulation(core_testbench(mem_size, hex_file, bytes_line))
+
     sim.run()
 
 # Local Variables:
