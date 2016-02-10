@@ -46,7 +46,7 @@ class Memory:
         assert type(BYTES_X_LINE) == int and BYTES_X_LINE > 0, "Number of bytes por line must be a positive number"
         assert not (BYTES_X_LINE & (BYTES_X_LINE - 1)), "Number of bytes por line must be a power of 2"
 
-        aw                = int(ceil(log(SIZE, 2)))
+        self.aw           = int(ceil(log(SIZE, 2)))
         self.bytes_x_line = BYTES_X_LINE
         self.clk          = clk
         self.rst          = rst
@@ -54,11 +54,11 @@ class Memory:
         self.dmem         = dmem
         self.i_data_o     = Signal(modbv(0)[32:])
         self.d_data_o     = Signal(modbv(0)[32:])
-        self._memory      = [None for ii in range(0, 2**(aw - 2))]  # WORDS, no bytes
+        self._memory      = [None for ii in range(0, 2**(self.aw - 2))]  # WORDS, no bytes
         self._imem_addr   = Signal(modbv(0)[30:])
         self._dmem_addr   = Signal(modbv(0)[30:])
 
-        depth = 2 ** (aw - 2)  # depth in words. Different from file
+        depth = 2 ** (self.aw - 2)  # depth in words. Different from file
         self.LoadMemory(depth, HEX)
 
     def LoadMemory(self, depth: int, bin_file: str):
@@ -67,7 +67,7 @@ class Memory:
         """
         n_lines = int(os.path.getsize(bin_file) / (2 * self.bytes_x_line + 1))  # calculate the depth in words
         word_x_line = self.bytes_x_line >> 2
-        assert depth >= n_lines * 4, "Depth mismatch (1 word x line): {0} < {1}".format(depth, n_lines *4)
+        assert depth >= n_lines * 4, "Depth mismatch (1 word x line): {0} < {1}".format(depth, n_lines * 4)
 
         with open(bin_file) as f:
             lines_f = [line.strip() for line in f]
@@ -114,7 +114,10 @@ class Memory:
 
         @always(self.clk.posedge)
         def dmem_rtl():
-            self.d_data_o.next = self._memory[self._dmem_addr]
+            try:
+                self.d_data_o.next = self._memory[self._dmem_addr & (1 << (self.aw - 2) - 1)]
+            except:
+                assert 0, "Address is out of range: {0}, {1}".format(hex(self._dmem_addr), hex(self._dmem_addr & ((1 << (self.aw - 2)) - 1)))
 
             if self.dmem.req.fcn == MemoryOpConstant.M_WR:
                 we                 = self.dmem.req.wr
