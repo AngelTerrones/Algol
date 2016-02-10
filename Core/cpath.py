@@ -544,7 +544,7 @@ class Ctrlpath:
         @always_comb
         def _ctrl_pipeline():
             self.io.if_kill.next       = self.io.pc_select != Consts.PC_4
-            self.io.id_stall.next      = (self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and (self.ex_mem_funct == MemoryOpConstant.M_WR or self.ex_csr_cmd != CSRCommand.CSR_IDLE)
+            self.io.id_stall.next      = (self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and (self.ex_mem_funct == MemoryOpConstant.M_RD or self.ex_csr_cmd != CSRCommand.CSR_IDLE)
             self.io.id_kill.next       = False
             self.io.full_stall.next    = self.imem.req.valid or self.dmem.req.valid
             self.io.pipeline_kill.next = self.io.csr_exception
