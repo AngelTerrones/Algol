@@ -340,7 +340,7 @@ class Datapath:
 
         @always_comb
         def _mem_assignments():
-            self.ctrlIO.dmem_pipeline.req.addr       = mem_alu_out
+            self.ctrlIO.dmem_pipeline.req.addr.next  = mem_alu_out
             self.ctrlIO.dmem_pipeline.req.data.next  = mem_mem_wdata
             self.ctrlIO.dmem_pipeline.req.fcn.next   = mem_mem_funct
             self.ctrlIO.dmem_pipeline.req.typ.next   = mem_mem_type
