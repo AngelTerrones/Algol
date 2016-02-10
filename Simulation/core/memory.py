@@ -96,8 +96,8 @@ class Memory:
         @always_comb
         def assignment_addr():
             # This memory is addressed by word, not byte. Ignore the 2 LSB.
-            self._imem_addr.next = self.imem.req.addr[32:2]
-            self._dmem_addr.next = self.dmem.req.addr[32:2]
+            self._imem_addr.next = self.imem.req.addr[self.aw:2]
+            self._dmem_addr.next = self.dmem.req.addr[self.aw:2]
 
         @always(self.clk.posedge)
         def imem_rtl():
@@ -114,10 +114,7 @@ class Memory:
 
         @always(self.clk.posedge)
         def dmem_rtl():
-            try:
-                self.d_data_o.next = self._memory[self._dmem_addr & (1 << (self.aw - 2) - 1)]
-            except:
-                assert 0, "Address is out of range: {0}, {1}".format(hex(self._dmem_addr), hex(self._dmem_addr & ((1 << (self.aw - 2)) - 1)))
+            self.d_data_o.next = self._memory[self._dmem_addr]
 
             if self.dmem.req.fcn == MemoryOpConstant.M_WR:
                 we                 = self.dmem.req.wr
