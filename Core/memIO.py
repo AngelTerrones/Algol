@@ -29,8 +29,8 @@ class MemoryOpConstant:
     MT_B  = modbv(1)[SZ_MT:]
     MT_H  = modbv(2)[SZ_MT:]
     MT_W  = modbv(3)[SZ_MT:]
-    MT_BU = modbv(4)[SZ_MT:]
-    MT_HU = modbv(5)[SZ_MT:]
+    MT_BU = modbv(5)[SZ_MT:]
+    MT_HU = modbv(6)[SZ_MT:]
 
     SZ_M = 1
     M_X  = False
