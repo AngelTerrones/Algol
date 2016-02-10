@@ -63,7 +63,7 @@ def core_testbench(mem_size, hex_file, bytes_line):
     @always(toHost)
     def toHost_check():
         if toHost != 1:
-            assert 0, "Test {0} failed. Final time: {1}".format(hex_file, now())
+            assert 0, "Test {0} failed. MTOHOST = {1} Final time: {2}".format(hex_file, toHost, now())
 
         print("Final time: {0}".format(now()))
         raise StopSimulation

@@ -18,6 +18,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+import os
+import glob
 
 
 def auto_int(value):
@@ -31,13 +33,18 @@ def pytest_addoption(parser):
                      help='Memory image in HEX format')
     parser.addoption('--bytes_line', type=auto_int, action='append', default=[],
                      help='Number of bytes por line in the HEX file')
+    parser.addoption('--all', action='store_true', help='Run all RV32 tests')
 
 
 def pytest_generate_tests(metafunc):
     if 'mem_size' in metafunc.fixturenames:
         metafunc.parametrize('mem_size', metafunc.config.option.mem_size)
     if 'hex_file' in metafunc.fixturenames:
-        metafunc.parametrize('hex_file', metafunc.config.option.hex_file)
+        if metafunc.config.option.all:
+            list_hex = glob.glob(os.getcwd() + "/Simulation/tests/rv32ui-*.hex")
+            metafunc.parametrize('hex_file', list_hex)
+        else:
+            metafunc.parametrize('hex_file', metafunc.config.option.hex_file)
     if 'bytes_line' in metafunc.fixturenames:
         metafunc.parametrize('bytes_line', metafunc.config.option.bytes_line)
 

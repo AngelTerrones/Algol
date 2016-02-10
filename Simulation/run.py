@@ -40,9 +40,9 @@ def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file=Non
         list_core_test()
     elif all:
         assert mem_size, "Memory size is needed"
-        assert hex_file, "Memory image is needed"
         assert bytes_line, "Number of bytes por line is needed"
         assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
+        pytest.main(['-v', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--all', '--bytes_line', bytes_line])
     else:
         assert mem_size, "Memory size is needed"
         assert hex_file, "Memory image is needed"
@@ -113,7 +113,7 @@ def main():
 
     parser.add_argument('--mem_size', help='Memory size in bytes')
     parser.add_argument('--hex_file', help='Memory image in HEX format')
-    parser.add_argument('--bytes_line', help='Number of bytes por line in the HEX file')
+    parser.add_argument('--bytes_line', help='Number of bytes per line in the HEX file')
 
     args = parser.parse_args()
 
