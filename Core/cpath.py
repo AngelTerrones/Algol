@@ -575,7 +575,7 @@ class Ctrlpath:
         @always_comb
         def _dmem_read_data():
             dmtype     = self.io.dmem_pipeline.req.typ[2:0]
-            sgn_extend = self.io.dmem_pipeline.req.typ[2]
+            sgn_extend = not self.io.dmem_pipeline.req.typ[2]
 
             if dmtype == MemoryOpConstant.MT_B:
                 if self.io.dmem_pipeline.req.addr[2:0] == 0:
