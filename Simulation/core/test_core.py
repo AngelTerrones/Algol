@@ -26,11 +26,14 @@ from myhdl import instance
 from myhdl import always
 from myhdl import Signal
 from myhdl import delay
+from myhdl import modbv
 from myhdl import Simulation
 from myhdl import StopSimulation
 from myhdl import traceSignals
+from myhdl import now
 
 TICK_PERIOD = 10
+TIMEOUT = 10000
 
 
 def core_testbench(mem_size, hex_file, bytes_line):
@@ -38,11 +41,13 @@ def core_testbench(mem_size, hex_file, bytes_line):
     rst = Signal(False)
     imem = MemPortIO()
     dmem = MemPortIO()
+    toHost = Signal(modbv(0)[32:])
 
     dut_core = Core(clk=clk,
                     rst=rst,
                     imem=imem,
-                    dmem=dmem).GetRTL()
+                    dmem=dmem,
+                    toHost=toHost).GetRTL()
     memory = Memory(clk=clk,
                     rst=rst,
                     imem=imem,
@@ -55,15 +60,24 @@ def core_testbench(mem_size, hex_file, bytes_line):
     def gen_clock():
         clk.next = not clk
 
+    @always(toHost)
+    def toHost_check():
+        if toHost != 1:
+            assert 0, "Test {0} failed. Final time: {1}".format(hex_file, now())
+
+        print("Final time: {0}".format(now()))
+        raise StopSimulation
+
     @instance
-    def stimulus():
+    def timeout():
         rst.next = True
         yield delay(5 * TICK_PERIOD)
         rst.next = False
-        yield delay(1000 * TICK_PERIOD)
+        yield delay(TIMEOUT * TICK_PERIOD)
+        assert 0, "Timeout. Final time: {0}".format(now())
         raise StopSimulation
 
-    return dut_core, memory, gen_clock, stimulus
+    return dut_core, memory, gen_clock, timeout, toHost_check
 
 
 def test_core(mem_size, hex_file, bytes_line, gen_vcd=True):

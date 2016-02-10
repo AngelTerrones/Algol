@@ -48,12 +48,14 @@ from Core.memwb_reg import MEMWBReg
 
 class Datapath:
     def __init__(self,
-                 clk:           Signal(False),
-                 rst:           Signal(False),
-                 ctrlIO:        CtrlIO):
+                 clk:    Signal(False),
+                 rst:    Signal(False),
+                 ctrlIO: CtrlIO,
+                 toHost: Signal(False)):
         self.clk    = clk
         self.rst    = rst
         self.ctrlIO = ctrlIO
+        self.toHost = toHost
 
     def GetRTL(self):
         # Signals
@@ -321,7 +323,8 @@ class Datapath:
                   csr_exc_io,
                   self.ctrlIO.csr_retire,
                   self.ctrlIO.csr_prv,
-                  self.ctrlIO.csr_illegal_access).GetRTL()
+                  self.ctrlIO.csr_illegal_access,
+                  self.toHost).GetRTL()
 
         mdata_mux = Mux4(mem_mem_data_sel,
                          mem_alu_out,

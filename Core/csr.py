@@ -133,7 +133,8 @@ class CSR:
                  exc_io:         CSRExceptionIO(),
                  retire:         Signal(False),
                  prv:            Signal(modbv(0)[CSRModes.SZ_MODE:]),
-                 illegal_access: Signal(False)):
+                 illegal_access: Signal(False),
+                 toHost:         Signal(False)):
         self.clk            = clk
         self.rst            = rst
         self.rw             = rw
@@ -141,6 +142,7 @@ class CSR:
         self.retire         = retire
         self.prv            = prv
         self.illegal_access = illegal_access
+        self.toHost         = toHost
 
     def GetRTL(self):
         # registers
@@ -175,7 +177,9 @@ class CSR:
         mbadaddr        = Signal(modbv(0)[32:])
         mip             = Signal(modbv(0)[32:])
 
-        mtohost         = Signal(modbv(0)[32:])
+        # Connect this register to the IO for simulation purposes.
+        # TODO: Remove this and use a debug interface.
+        mtohost         = self.toHost  # Signal(modbv(0)[32:])
         mfromhost       = Signal(modbv(0)[32:])
 
         # aux

@@ -28,21 +28,24 @@ from Core.cpath import CtrlIO
 
 class Core:
     def __init__(self,
-                 clk: Signal,
-                 rst: Signal,
-                 imem: MemPortIO,
-                 dmem: MemPortIO):
-        self.clk = clk
-        self.rst = rst
-        self.imem = imem
-        self.dmem = dmem
+                 clk:    Signal,
+                 rst:    Signal,
+                 imem:   MemPortIO,
+                 dmem:   MemPortIO,
+                 toHost: Signal):
+        self.clk    = clk
+        self.rst    = rst
+        self.imem   = imem
+        self.dmem   = dmem
+        self.toHost = toHost
 
     def GetRTL(self):
         ctrl_dpath = CtrlIO()
 
         dpath = Datapath(self.clk,
                          self.rst,
-                         ctrl_dpath).GetRTL()
+                         ctrl_dpath,
+                         self.toHost).GetRTL()
         cpath = Ctrlpath(self.clk,
                          self.rst,
                          ctrl_dpath,
