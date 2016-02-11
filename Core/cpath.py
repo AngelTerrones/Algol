@@ -532,13 +532,13 @@ class Ctrlpath:
 
         @always_comb
         def _fwd_ctrl():
-            self.io.id_fwd1_select.next = (Consts.FWD_EX if self.io.id_rs1_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
-                                           (Consts.FWD_MEM if self.io.id_rs1_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
-                                            (Consts.FWD_WB if self.io.id_rs1_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
+            self.io.id_fwd1_select.next = (Consts.FWD_EX if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
+                                           (Consts.FWD_MEM if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
+                                            (Consts.FWD_WB if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
                                              Consts.FWD_N)))
-            self.io.id_fwd2_select.next = (Consts.FWD_EX if self.io.id_rs2_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
-                                           (Consts.FWD_MEM if self.io.id_rs2_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
-                                            (Consts.FWD_WB if self.io.id_rs2_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
+            self.io.id_fwd2_select.next = (Consts.FWD_EX if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
+                                           (Consts.FWD_MEM if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
+                                            (Consts.FWD_WB if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
                                              (Consts.FWD_N))))
 
         @always_comb
