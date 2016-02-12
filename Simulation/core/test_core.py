@@ -80,11 +80,11 @@ def core_testbench(mem_size, hex_file, bytes_line):
     return dut_core, memory, gen_clock, timeout, toHost_check
 
 
-def test_core(mem_size, hex_file, bytes_line, gen_vcd=True):
+def test_core(mem_size, hex_file, bytes_line, vcd):
     """
     Core: Behavioral test for the RISCV core.
     """
-    if gen_vcd:
+    if vcd:
         vcd = traceSignals(core_testbench, mem_size, hex_file, bytes_line)
         sim = Simulation(vcd)
     else:

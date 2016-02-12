@@ -34,6 +34,7 @@ def pytest_addoption(parser):
     parser.addoption('--bytes_line', type=auto_int, action='append', default=[],
                      help='Number of bytes por line in the HEX file')
     parser.addoption('--all', action='store_true', help='Run all RV32 tests')
+    parser.addoption('--vcd', action='store_true', help='Generate VCD files')
 
 
 def pytest_generate_tests(metafunc):
@@ -47,6 +48,8 @@ def pytest_generate_tests(metafunc):
             metafunc.parametrize('hex_file', metafunc.config.option.hex_file)
     if 'bytes_line' in metafunc.fixturenames:
         metafunc.parametrize('bytes_line', metafunc.config.option.bytes_line)
+    if 'vcd' in metafunc.fixturenames:
+        metafunc.parametrize('vcd', [metafunc.config.option.vcd])
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120

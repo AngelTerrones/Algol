@@ -35,20 +35,25 @@ def run_module(all=False, file=None, list=False):
         pytest.main(['-s', '-v', file])
 
 
-def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file=None, bytes_line=0):
+def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file=None, bytes_line=0, vcd=False):
     if list:
         list_core_test()
     elif all:
         assert mem_size, "Memory size is needed"
         assert bytes_line, "Number of bytes por line is needed"
         assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
+        if vcd:
+            print("Running all tests with --vcd flag: ignoring.")
         pytest.main(['-v', '--tb=line', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--all', '--bytes_line', bytes_line])
     else:
         assert mem_size, "Memory size is needed"
         assert hex_file, "Memory image is needed"
         assert bytes_line, "Number of bytes por line is needed"
         assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
-        pytest.main(['-v', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line])
+        if vcd:
+            pytest.main(['-v', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line, '--vcd'])
+        else:
+            pytest.main(['-v', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line])
 
 
 def run_cosimulation(all=False, file=None, list=False, mem_size=None, hex_file=None):
@@ -114,6 +119,7 @@ def main():
     parser.add_argument('--mem_size', help='Memory size in bytes')
     parser.add_argument('--hex_file', help='Memory image in HEX format')
     parser.add_argument('--bytes_line', help='Number of bytes per line in the HEX file')
+    parser.add_argument('--vcd', action='store_true', help='Generate VCD files')
 
     args = parser.parse_args()
 
@@ -124,7 +130,7 @@ def main():
     elif args.mode == choices[4]:
         functions[choices.index(args.mode)]()  # clean
     else:
-        functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file, args.bytes_line)
+        functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file, args.bytes_line, args.vcd)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200
