@@ -33,8 +33,8 @@ def pytest_addoption(parser):
                      help='Memory image in HEX format')
     parser.addoption('--bytes_line', type=auto_int, action='append', default=[],
                      help='Number of bytes por line in the HEX file')
-    parser.addoption('--all', action='store_true', help='Run all RV32 tests')
-    parser.addoption('--vcd', action='store_true', help='Generate VCD files')
+    parser.addoption('--all', action='store_true', default=False, help='Run all RV32 tests')
+    parser.addoption('--vcd', action='store_true', default=False, help='Generate VCD files')
 
 
 def pytest_generate_tests(metafunc):

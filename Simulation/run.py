@@ -30,7 +30,7 @@ def run_module(all=False, file=None, list=False):
     if list:
         list_module_test()
     elif all:
-        pytest.main(['-s', '-v'])
+        pytest.main(['-s', '-v', '-k', 'not test_core'])
     else:
         pytest.main(['-s', '-v', file])
 
