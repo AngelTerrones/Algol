@@ -39,13 +39,13 @@ def run_simulation(args):
         assert not int(args.bytes_line) & (int(args.bytes_line) - 1), "Number of bytes por line must be a power of 2"
         if args.vcd:
             print("Ignoring the vcd flag")
-        pytest.main(['-v', '--cov=Core', '--tb=line', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--all', '--bytes_line', args.bytes_line])
+        pytest.main(['-v', '--tb=line', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--all', '--bytes_line', args.bytes_line])
     else:
         assert not int(args.bytes_line) & (int(args.bytes_line) - 1), "Number of bytes por line must be a power of 2"
         if args.vcd:
-            pytest.main(['-v', '--cov=Core', '-s', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line, '--vcd'])
+            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line, '--vcd'])
         else:
-            pytest.main(['-v', '--cov=Core', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line])
+            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line])
 
 
 def list_module_test():
