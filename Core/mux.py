@@ -23,27 +23,6 @@ from myhdl import Signal
 from myhdl import always_comb
 
 
-class Mux:
-    def __init__(self,
-                 sel:    Signal,
-                 inputs: [Signal],
-                 out:    Signal):
-        # Check valid settings
-        assert len(inputs) >= 2, "Inputs must be >= 2"
-
-        self.sel = sel
-        self.inputs = inputs
-        self.out = out
-
-    def GetRTL(self):
-        @always_comb
-        def rtl():
-            assert self.sel <= len(self.inputs), "Select is out of bounds."
-            self.out.next = self.inputs[self.sel]
-
-        return rtl
-
-
 class Mux2:
     def __init__(self,
                  sel: Signal,
