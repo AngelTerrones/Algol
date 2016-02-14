@@ -25,42 +25,27 @@ import glob
 import subprocess
 
 
-def run_module(all=False, file=None, list=False):
-    assert all or file or list, "Please, indicate flags: --all, --file or --list"
-    if list:
+def run_module(args):
+    if args.list:
         list_module_test()
-    elif all:
+    elif args.all:
         pytest.main(['-s', '-v', '-k', 'not test_core'])
     else:
-        pytest.main(['-s', '-v', file])
+        pytest.main(['-s', '-v', args.file])
 
 
-def run_simulation(all=False, file=None, list=False, mem_size=4096, hex_file=None, bytes_line=0, vcd=False):
-    if list:
-        list_core_test()
-    elif all:
-        assert mem_size, "Memory size is needed"
-        assert bytes_line, "Number of bytes por line is needed"
-        assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
-        if vcd:
-            print("Running all tests with --vcd flag: ignoring.")
-        pytest.main(['-v', '--tb=line', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--all', '--bytes_line', bytes_line])
+def run_simulation(args):
+    if args.all:
+        assert not int(args.bytes_line) & (int(args.bytes_line) - 1), "Number of bytes por line must be a power of 2"
+        if args.vcd:
+            print("Ignoring the vcd flag")
+        pytest.main(['-v', '--cov=Core', '--tb=line', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--all', '--bytes_line', args.bytes_line])
     else:
-        assert mem_size, "Memory size is needed"
-        assert hex_file, "Memory image is needed"
-        assert bytes_line, "Number of bytes por line is needed"
-        assert not int(bytes_line) & (int(bytes_line) - 1), "Number of bytes por line must be a power of 2"
-        if vcd:
-            pytest.main(['-v', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line, '--vcd'])
+        assert not int(args.bytes_line) & (int(args.bytes_line) - 1), "Number of bytes por line must be a power of 2"
+        if args.vcd:
+            pytest.main(['-v', '--cov=Core', '-s', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line, '--vcd'])
         else:
-            pytest.main(['-v', '-s', 'Simulation/core/test_core.py', '--mem_size', mem_size, '--hex_file', hex_file, '--bytes_line', bytes_line])
-
-
-def run_cosimulation(all=False, file=None, list=False, mem_size=None, hex_file=None):
-    if list:
-        list_core_test()
-    else:
-        pass
+            pytest.main(['-v', '--cov=Core', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line])
 
 
 def list_module_test():
@@ -76,26 +61,13 @@ def list_module_test():
         print("------------------------------------------------------------")
 
 
-def list_core_test():
-    print("List of ISA tests (from riscv-test repo):")
-    cwd = os.getcwd()
-    tests = glob.glob(cwd + "/Simulation/tests/rv32*.hex")
-    if len(tests) == 0:
-        print("No available tests. Please, compile test first.")
-    else:
-        print("------------------------------------------------------------")
-        for test in tests:
-            print(test)
-        print("------------------------------------------------------------")
-
-
-def compile_tests():
+def compile_tests(args):
     make_process = subprocess.Popen("autoconf; ./configure; make -j$(nproc)", stderr=subprocess.STDOUT,
                                     cwd='Simulation/tests', shell=True)
     assert make_process.wait() == 0, 'Unable to compile tests.'
 
 
-def clean_tests():
+def clean_tests(args):
     make_process = subprocess.Popen("make clean", stderr=subprocess.STDOUT,
                                     cwd='Simulation/tests', shell=True)
     assert make_process.wait() == 0, 'Unable to clean test folder.'
@@ -105,32 +77,39 @@ def main():
     """
     Set arguments, parse, and call the required function
     """
-    choices = ['module', 'sim', 'cosim', 'compile_tests', 'clean_tests']
-    functions = [run_module, run_simulation, run_cosimulation, compile_tests, clean_tests]
-
     parser = argparse.ArgumentParser(description='Algol (RISC-V processor). Main simulation script.')
-    parser.add_argument('mode', help='Available commands', choices=choices)
+    subparsers = parser.add_subparsers(title='Sub-commands',
+                                       description='Available functions',
+                                       help='Description')
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-a', '--all', help='Execute all tests', action='store_true')
-    group.add_argument('-l', '--list', help='List tests', action='store_true')
-    group.add_argument('-f', '--file', help='Indicate a specific test')
+    # module simulation
+    parser_module = subparsers.add_parser('module', help='Run tests for modules')
+    group_module = parser_module.add_mutually_exclusive_group(required=True)
+    group_module.add_argument('-l', '--list', help='List tests', action='store_true')
+    group_module.add_argument('-f', '--file', help='Run a specific test')
+    group_module.add_argument('-a', '--all', help='Run all tests', action='store_true')
+    parser_module.set_defaults(func=run_module)
 
-    parser.add_argument('--mem_size', help='Memory size in bytes')
-    parser.add_argument('--hex_file', help='Memory image in HEX format')
-    parser.add_argument('--bytes_line', help='Number of bytes per line in the HEX file')
-    parser.add_argument('--vcd', action='store_true', help='Generate VCD files')
+    # Core simulation
+    parser_core = subparsers.add_parser('core', help='Run assembler tests in the RV32 processor')
+    group_core1 = parser_core.add_mutually_exclusive_group(required=True)
+    group_core1.add_argument('-f', '--file', help='Run a specific test')
+    group_core1.add_argument('-a', '--all', help='Run all tests', action='store_true')
+    parser_core.add_argument('mem_size', help='Memory size in bytes')
+    parser_core.add_argument('bytes_line', help='Number of bytes per line in the HEX file')
+    parser_core.add_argument('--vcd', action='store_true', help='Generate VCD files')
+    parser_core.set_defaults(func=run_simulation)
+
+    # Compile tests
+    parser_compile = subparsers.add_parser('compile_tests', help='Compile all the RISC-V tests')
+    parser_compile.set_defaults(func=compile_tests)
+
+    # Clean tests
+    parser_clean = subparsers.add_parser('clean_tests', help='Clean the RISC-V test folder')
+    parser_clean.set_defaults(func=clean_tests)
 
     args = parser.parse_args()
-
-    if args.mode == choices[0]:
-        functions[choices.index(args.mode)](args.all, args.file, args.list)  # Module
-    elif args.mode == choices[3]:
-        functions[choices.index(args.mode)]()  # Compile
-    elif args.mode == choices[4]:
-        functions[choices.index(args.mode)]()  # clean
-    else:
-        functions[choices.index(args.mode)](args.all, args.file, args.list, args.mem_size, args.hex_file, args.bytes_line, args.vcd)
+    args.func(args)
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200
