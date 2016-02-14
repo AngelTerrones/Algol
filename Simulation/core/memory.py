@@ -41,10 +41,11 @@ class Memory:
                  HEX:          str,
                  BYTES_X_LINE: int):
         assert SIZE >= 2**12, "Memory depth must be a positive number. Min value= 4 KB."
-        assert type(HEX) == str and len(HEX) != 0, "Please, indicate a valid name for the bin file."
-        assert os.path.isfile(HEX), "HEX file does not exist. Please, indicate a valid name"
+        assert not (SIZE & (SIZE - 1)), "Memory size must be a power of 2"
         assert type(BYTES_X_LINE) == int and BYTES_X_LINE > 0, "Number of bytes por line must be a positive number"
         assert not (BYTES_X_LINE & (BYTES_X_LINE - 1)), "Number of bytes por line must be a power of 2"
+        assert type(HEX) == str and len(HEX) != 0, "Please, indicate a valid name for the bin file."
+        assert os.path.isfile(HEX), "HEX file does not exist. Please, indicate a valid name"
 
         self.aw           = int(ceil(log(SIZE, 2)))
         self.bytes_x_line = BYTES_X_LINE
@@ -58,22 +59,22 @@ class Memory:
         self._imem_addr   = Signal(modbv(0)[30:])
         self._dmem_addr   = Signal(modbv(0)[30:])
 
-        depth = 2 ** (self.aw - 2)  # depth in words. Different from file
-        self.LoadMemory(depth, HEX)
+        self.LoadMemory(SIZE, HEX)
 
-    def LoadMemory(self, depth: int, bin_file: str):
+    def LoadMemory(self, size_mem: int, bin_file: str):
         """
         Load a HEX file. The file have (2 * NBYTES + 1) por line.
         """
-        n_lines = int(os.path.getsize(bin_file) / (2 * self.bytes_x_line + 1))  # calculate the depth in words
+        n_lines = int(os.path.getsize(bin_file) / (2 * self.bytes_x_line + 1))  # calculate number of lines in the file
+        bytes_file = n_lines * self.bytes_x_line
+        assert bytes_file <= size_mem, "Error, HEX file is to big: {0} < {1}".format(size_mem, bytes_file)
         word_x_line = self.bytes_x_line >> 2
-        assert depth >= n_lines * 4, "Depth mismatch (1 word x line): {0} < {1}".format(depth, n_lines * 4)
 
         with open(bin_file) as f:
             lines_f = [line.strip() for line in f]
             lines = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(word_x_line - 1, -1, -1)]
 
-        for addr in range(depth):
+        for addr in range(size_mem >> 2):
             data = int(lines[addr], 16)
             self._memory[addr] = Signal(modbv(data)[32:])
 
