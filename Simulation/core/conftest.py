@@ -42,7 +42,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('mem_size', metafunc.config.option.mem_size)
     if 'hex_file' in metafunc.fixturenames:
         if metafunc.config.option.all:
-            list_hex = glob.glob(os.getcwd() + "/Simulation/tests/rv32ui-*.hex")
+            list_hex = glob.glob("Simulation/tests/rv32ui-*.hex")
             metafunc.parametrize('hex_file', list_hex)
         else:
             metafunc.parametrize('hex_file', metafunc.config.option.hex_file)
