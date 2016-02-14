@@ -31,6 +31,7 @@ from myhdl import Simulation
 from myhdl import StopSimulation
 from myhdl import traceSignals
 from myhdl import now
+from myhdl import Error
 
 TICK_PERIOD = 10
 TIMEOUT = 10000
@@ -63,9 +64,7 @@ def core_testbench(mem_size, hex_file, bytes_line):
     @always(toHost)
     def toHost_check():
         if toHost != 1:
-            assert 0, "Test {0} failed. MTOHOST = {1} Final time: {2}".format(hex_file, toHost, now())
-
-        print("Final time: {0}".format(now()))
+            raise Error('Test failed. MTOHOST = {0}. Time = {1}'.format(toHost, now()))
         raise StopSimulation
 
     @instance
@@ -74,8 +73,7 @@ def core_testbench(mem_size, hex_file, bytes_line):
         yield delay(5 * TICK_PERIOD)
         rst.next = False
         yield delay(TIMEOUT * TICK_PERIOD)
-        assert 0, "Timeout. Final time: {0}".format(now())
-        raise StopSimulation
+        raise Error("Test failed: Timeout")
 
     return dut_core, memory, gen_clock, timeout, toHost_check
 
