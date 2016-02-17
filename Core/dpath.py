@@ -47,17 +47,31 @@ from Core.memwb_reg import MEMWBReg
 
 
 class Datapath:
+    """
+    A 5-stage data path with data forwarding.
+    """
     def __init__(self,
                  clk:    Signal(False),
                  rst:    Signal(False),
                  ctrlIO: CtrlIO,
                  toHost: Signal(False)):
+        """
+        Initializes the IO ports.
+
+        :param clk:    System clock
+        :param rst:    System reset
+        :param ctrlIO: IO bundle. Interface with the cpath module
+        :param toHost: Connected to the CSR's mtohost register. For simulation purposes.
+        """
         self.clk    = clk
         self.rst    = rst
         self.ctrlIO = ctrlIO
         self.toHost = toHost
 
     def GetRTL(self):
+        """
+        Defines module behavior
+        """
         # Signals
         # A stage
         a_pc             = Signal(modbv(0)[32:])

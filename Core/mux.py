@@ -24,17 +24,31 @@ from myhdl import always_comb
 
 
 class Mux2:
+    """
+    Defines a multiplexor 2 to 1.
+    """
     def __init__(self,
                  sel: Signal,
                  in1: Signal,
                  in2: Signal,
                  out: Signal):
+        """
+        Initializes the IO ports.
+
+        :param sel:  Data selector
+        :param int1: Data input
+        :param int2: Data input
+        :param out:  Data output
+        """
         self.sel = sel
         self.in1 = in1
         self.in2 = in2
         self.out = out
 
     def GetRTL(self):
+        """
+        Defines the module behavior.
+        """
         @always_comb
         def rtl():
             if self.sel == 0:
@@ -46,6 +60,9 @@ class Mux2:
 
 
 class Mux4:
+    """
+    Defines a multiplexor 4 to 1.
+    """
     def __init__(self,
                  sel: Signal,
                  in1: Signal,
@@ -53,6 +70,16 @@ class Mux4:
                  in3: Signal,
                  in4: Signal,
                  out: Signal):
+        """
+        Initializes the IO ports.
+
+        :param sel:  Data selector
+        :param int1: Data input
+        :param int2: Data input
+        :param int3: Data input
+        :param int4: Data input
+        :param out:  Data output
+        """
         self.sel = sel
         self.in1 = in1
         self.in2 = in2
@@ -61,6 +88,9 @@ class Mux4:
         self.out = out
 
     def GetRTL(self):
+        """
+        Defines the module behavior.
+        """
         @always_comb
         def rtl():
             if self.sel == 0:

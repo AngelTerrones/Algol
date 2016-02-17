@@ -28,15 +28,28 @@ from Core.consts import Consts
 
 
 class IMMGen:
+    """
+    Generate the immediate values.
+    """
     def __init__(self,
                  sel:         Signal,
                  instruction: Signal,
                  imm:         Signal):
+        """
+        Initializes the IO ports.
+
+        :param sel:         Select the type of instruction/immediate
+        :param instruction: Current instruction
+        :param imm:         A 32-bit immediate value
+        """
         self.sel         = sel
         self.instruction = instruction
         self.imm         = imm
 
     def GetRTL(self):
+        """
+        Defines module behavior
+        """
         sign   = Signal(False)
         b30_20 = Signal(modbv(0)[11:])
         b19_12 = Signal(modbv(0)[8:])
@@ -71,6 +84,6 @@ class IMMGen:
         return instances()
 
 # Local Variables:
-# flycheck-flake8-maximum-line-length: 120
+# flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
 # End:

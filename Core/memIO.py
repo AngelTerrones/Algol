@@ -24,6 +24,9 @@ from myhdl import modbv
 
 
 class MemoryOpConstant:
+    """
+    Defines data types and memory functions.
+    """
     SZ_MT = 3
     MT_X  = modbv(0)[SZ_MT:]
     MT_B  = modbv(1)[SZ_MT:]
@@ -39,13 +42,34 @@ class MemoryOpConstant:
 
 
 class MemPortIO:
+    """
+    Defines the memory IO interface.
+
+    :ivar req:  IO bundle for requests to memory
+    :ivar resp: IO bundle for response from memory
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.req  = MemReq()
         self.resp = MemResp()
 
 
 class MemReq:
+    """
+    Defines the IO interface for memory requests.
+
+    :ivar addr:  Memory address
+    :ivar data:  Write data
+    :ivar wr:    4-bit mask to indicate bytes to write. Do not care in case of read.
+    :ivar fcn:   Type of memory operation: read or write.
+    :ivar valid: The current operation is valid.
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.addr  = Signal(modbv(0)[32:])
         self.data  = Signal(modbv(0)[32:])
         self.wr    = Signal(modbv(0)[4:])
@@ -54,7 +78,17 @@ class MemReq:
 
 
 class MemResp:
+    """
+    Defines the IO interface for memory responses.
+
+    :ivar data:  Read data
+    :ivar valid: The transaction has ended and is valid
+    :ivar fault: Fault in bus transaction
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.data  = Signal(modbv(0)[32:])
         self.valid = Signal(False)
         self.fault = Signal(False)

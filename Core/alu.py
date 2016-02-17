@@ -26,6 +26,9 @@ from myhdl import modbv
 
 
 class ALUFunction:
+    """
+    List of ALU opcodes.
+    """
     SZ_OP   = 4
     OP_ADD  = modbv(0)[SZ_OP:]
     OP_SLL  = modbv(1)[SZ_OP:]
@@ -44,19 +47,41 @@ class ALUFunction:
 
 
 class ALUPortIO:
+    """
+    Defines the IO port.
+
+    :ivar function: ALU opcode
+    :ivar input1:   Data input
+    :ivar input2:   Data input
+    :ivar output:   Data output
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.function = Signal(modbv(0)[ALUFunction.SZ_OP:])
-        self.input1 = Signal(modbv(0)[32:])
-        self.input2 = Signal(modbv(0)[32:])
-        self.output = Signal(modbv(0)[32:])
+        self.input1   = Signal(modbv(0)[32:])
+        self.input2   = Signal(modbv(0)[32:])
+        self.output   = Signal(modbv(0)[32:])
 
 
 class ALU:
+    """
+    Defines an Arithmetic-Logic Unit (ALU)
+    """
     def __init__(self,
                  IO: ALUPortIO):
+        """
+        Initializes the IO ports.
+
+        :param IO: An IO bundle (Function, Input1, Input2, Output)
+        """
         self.IO = IO
 
     def GetRTL(self):
+        """
+        Defines the module behavior
+        """
         io = self.IO
 
         @always_comb

@@ -43,6 +43,11 @@ from Core.instructions import PrivFunct12
 
 
 class CtrlSignals:
+    """
+    Vectorizes the datapath control signal.
+
+    ISA: RV32I + priviledge instructions v1.7
+    """
     # Control signals
     #                  Illegal                                                                              Valid memory operation                                                                    OP1 select
     #                  |      Fence.I      ecall                                                            |      Memory Function (type)                                                             |                OP2 select
@@ -121,7 +126,53 @@ class CtrlSignals:
 
 
 class CtrlIO:
+    """
+    Defines a bundle for the IO interface between the cpath and the dpath.
+
+    : ivar id_instruction:     Intruction at ID stage
+    : ivar if_kill:            Kill the IF stage
+    : ivar id_stall:           Stall the ID stage
+    : ivar id_kill:            Kill the ID stage
+    : ivar full_stall:         Stall whole pipeline
+    : ivar pipeline_kill:      Kill the pipeline
+    : ivar pc_select:          Select next PC
+    : ivar id_op1_select:      Data select for OP1 at ID stage
+    : ivar id_op2_select:      Data select for OP2 at ID stage
+    : ivar id_sel_imm:         Select the Immediate
+    : ivar id_alu_funct:       ALU opcode
+    : ivar id_mem_type:        Data size for memory operations: byte, half-word, word
+    : ivar id_mem_funct:       Memory function: read (RD) or write (WR)
+    : ivar id_mem_valid:       Valid memory operation
+    : ivar id_csr_cmd:         CSR command
+    : ivar id_mem_data_sel:    Data source for mux at MEM stage: ALU, memory or CSR
+    : ivar id_wb_we:           Commit data to RF
+    : ivar id_fwd1_select:     Forwarding selector for OP1
+    : ivar id_fwd2_select:     Forwarding selector for OP2
+    : ivar id_rs1_addr:        OP1 address
+    : ivar id_rs2_addr:        OP2 address
+    : ivar id_op1:             OP1 data
+    : ivar id_op2:             OP2 data
+    : ivar ex_wb_addr:         RF write address at EX stage
+    : ivar ex_wb_we:           RF write enable at EX stage
+    : ivar mem_wb_addr:        RF write address at MEM stage
+    : ivar mem_wb_we:          RF write enable at MEM stage
+    : ivar wb_wb_addr:         RF write address at WB stage
+    : ivar wb_wb_we:           RF write enable at WB stage
+    : ivar csr_eret:           Instruction is ERET
+    : ivar csr_prv:            Priviledge level at MEM stage
+    : ivar csr_illegal_access: Illegal access to CSR: CSR at MEM
+    : ivar csr_interrupt:      External interrupt: CSR at ID
+    : ivar csr_interrupt_code: Interrupt code: CSR at ID
+    : ivar csr_exception:      Exception detected: CSR at MEM
+    : ivar csr_exception_code: Exception code: CSR at MEM
+    : ivar csr_retire:         Increment instruction count: CSR at MEM
+    : ivar imem_pipeline:      Instruction memory access request from dpath
+    : ivar dmem_pipeline:      Data memory access request from dpath
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.id_instruction     = Signal(modbv(0)[32:])
         self.if_kill            = Signal(False)
         self.id_stall           = Signal(False)
@@ -164,12 +215,27 @@ class CtrlIO:
 
 
 class MemDpathIO:
+    """
+    Defines the interface for memory accesses from dpath
+
+    :ivar req:  IO bundle for access requests
+    :ivar resp: IO bundle for access response
+    """
     def __init__(self):
         self.req  = MemDpathReq()
         self.resp = MemCtrlResp()
 
 
 class MemDpathReq:
+    """
+    Defines the interface for memory requests from dpath
+
+    :ivar addr:  Memory address
+    :ivar data:  Write data
+    :ivar typ:   Data ype: byte, half-word, word
+    :ivar fcn:   Access type: read or write
+    :ivar valid: The request is valid
+    """
     def __init__(self):
         self.addr  = Signal(modbv(0)[32:])
         self.data  = Signal(modbv(0)[32:])
@@ -179,17 +245,34 @@ class MemDpathReq:
 
 
 class MemCtrlResp:
+    """
+    Defines the interface for memory responses to dpath
+
+    :ivar data: Read data
+    """
     def __init__(self):
         self.data  = Signal(modbv(0)[32:])
 
 
 class Ctrlpath:
+    """
+    The decoder, exception, hazard detection, and control unit.
+    """
     def __init__(self,
                  clk:  Signal,
                  rst:  Signal,
                  io:   CtrlIO,
                  imem: MemPortIO,
                  dmem: MemPortIO):
+        """
+        Initializes the IO interface and internal signals
+
+        :param clk:  Main clock
+        :param rst:  Main reset
+        :param io:   Interface with dapath
+        :param imem: Interface with instruction memory
+        :param dmem: Interface with data memory
+        """
         self.clk                   = clk
         self.rst                   = rst
         self.io                    = io
@@ -246,18 +329,34 @@ class Ctrlpath:
 
     @staticmethod
     def CheckInvalidAddress(addr, mem_type):
+        """
+        Check address misalignment.
+
+        :param addr:     The address to check
+        :param mem_type: The data size: byte, half-word, word
+        :return:         True if the address is invalid given the data size. False is ok.
+        """
         return (addr[0] if mem_type == MemoryOpConstant.MT_H or mem_type == MemoryOpConstant.MT_HU else
                 (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
                  (False)))
 
     def GetRTL(self):
+        """
+        Defines the module behavior.
+        """
         @always_comb
         def _ctrl_assignment():
+            """
+            Get the opcode and funct3 fields from the instruction.
+            """
             self.opcode.next = self.io.id_instruction[7:0]
             self.funct3.next = self.io.id_instruction[15:12]
 
         @always_comb
         def _ctrl_signal_assignment():
+            """
+            Instruction decoding.
+            """
             if self.opcode == Opcodes.RV32_LUI:
                 self.control.next = CtrlSignals.LUI
             elif self.opcode == Opcodes.RV32_AUIPC:
@@ -384,6 +483,14 @@ class Ctrlpath:
 
         @always_comb
         def _assignments():
+            """
+            Individual assignment of control signals.
+
+            Each signal correspond to slice in the vectored control signal (check CtrlSignals class).
+            Except the 'id_csr_cmd' signal: This signal depends if the control is a CSR_IDLE command.
+            If it is an CSR_IDLE command, we need to check 'id_rs1_addr': in case of being equal to zero, the
+            command does not write to the CSR, becoming a CSR_READ command.
+            """
             self.id_br_type.next         = self.control[4:0]
             self.io.id_op2_select.next   = self.control[6:4]
             self.io.id_op1_select.next   = self.control[8:6]
@@ -403,16 +510,36 @@ class Ctrlpath:
 
         @always_comb
         def _assignments2():
-            self.io.csr_retire.next      = not self.io.full_stall and not self.io.csr_exception
-            self.io.csr_eret.next        = self.mem_eret and self.io.csr_prv != CSRModes.PRV_U and not self.io.full_stall
+            """
+            Assign to the 'retire', 'eret', 'id_illegal_inst' and 'id_breakpoint' signals.
+
+            Retire: Increment the executed instruction counter at MEM if the pipeline is not stalled, and
+            the instruction have not caused an exception.
+            Eret: Check the eret flag at MEM, no pipeline stall and priviledge mode other that 'USER'.
+            Illegal instruction: From instruction decode. Complement with illegal access to CSR at MEM stage.
+            Breakpoint: Fom instruction decode.
+            """
+            self.io.csr_retire.next   = not self.io.full_stall and not self.io.csr_exception
+            self.io.csr_eret.next     = self.mem_eret and self.io.csr_prv != CSRModes.PRV_U and not self.io.full_stall
+            self.id_illegal_inst.next = self.control[31]
+            self.id_breakpoint.next   = self.id_ebreak
 
         @always_comb
         def _assignments3():
+            """
+            Check for memory related exceptions.
+
+            Exceptions:
+            - E_INST_ADDR_MISALIGNED
+            - E_INST_ACCESS_FAULT
+            - E_LOAD_ADDR_MISALIGNED
+            - E_LOAD_ACCESS_FAULT
+            - E_AMO_ADDR_MISALIGNED
+            - E_AMO_ACCESS_FAULT
+            """
             self.if_imem_misalign.next = self.CheckInvalidAddress(self.io.imem_pipeline.req.addr,
                                                                   self.io.imem_pipeline.req.typ)
             self.if_imem_fault.next    = self.imem.resp.fault
-            self.id_illegal_inst.next  = self.control[31]
-            self.id_breakpoint.next    = self.id_ebreak
             self.mem_ld_misalign.next  = (self.io.dmem_pipeline.req.valid and
                                           self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_RD and
                                           self.CheckInvalidAddress(self.io.dmem_pipeline.req.addr,
@@ -426,6 +553,11 @@ class Ctrlpath:
 
         @always(self.clk.posedge)
         def _ifid_register():
+            """
+            Internal pipeline register: IF->ID
+
+            Register the exception signals generated in the IF stage.
+            """
             if self.rst:
                 self.id_imem_fault.next    = False
                 self.id_imem_misalign.next = False
@@ -439,6 +571,18 @@ class Ctrlpath:
 
         @always(self.clk.posedge)
         def _idex_register():
+            """
+            Internal pipeline register: ID->EX
+
+            Register the exceptions signals generated in ID stage: IF + ID exceptions.
+            ID exceptions:
+            - E_ILLEGAL_INST
+            - E_BREAKPOINT
+            - Interrupts: software and timer.
+
+            In case of multiple exceptions (the instruction generated an exception at IF, and then at ID),
+            blame IF. The priority of exceptions with origin in IF (or ID) is arbitrary.
+            """
             if self.rst:
                 self.ex_exception.next      = False
                 self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
@@ -476,6 +620,12 @@ class Ctrlpath:
 
         @always(self.clk.posedge)
         def _exmem_register():
+            """
+            Internal pipeline register: EX->MEM
+
+            Register the (exception) signals coming from the EX stage.
+            This stage does not generates eceptions.
+            """
             if self.rst:
                 self.mem_breakpoint.next        = False
                 self.mem_eret.next              = False
@@ -495,6 +645,12 @@ class Ctrlpath:
 
         @always(self.clk.posedge)
         def _memwb_register():
+            """
+            Internal pipeline register: MEM->WB
+
+            Register the memory operation executed at MEM. This is necessary for the correct execution of
+            the FENCE.I instruction.
+            """
             if self.rst:
                 self.wb_mem_funct.next = False
             else:
@@ -502,13 +658,21 @@ class Ctrlpath:
 
         @always_comb
         def _ecall_assignment():
-            self.mem_ecall_u.next        = self.io.csr_prv == CSRModes.PRV_U and self.mem_ecall
-            self.mem_ecall_s.next        = self.io.csr_prv == CSRModes.PRV_S and self.mem_ecall
-            self.mem_ecall_h.next        = self.io.csr_prv == CSRModes.PRV_H and self.mem_ecall
-            self.mem_ecall_m.next        = self.io.csr_prv == CSRModes.PRV_M and self.mem_ecall
+            """
+            Check the correct enviroment call.
+            """
+            self.mem_ecall_u.next = self.io.csr_prv == CSRModes.PRV_U and self.mem_ecall
+            self.mem_ecall_s.next = self.io.csr_prv == CSRModes.PRV_S and self.mem_ecall
+            self.mem_ecall_h.next = self.io.csr_prv == CSRModes.PRV_H and self.mem_ecall
+            self.mem_ecall_m.next = self.io.csr_prv == CSRModes.PRV_M and self.mem_ecall
 
         @always_comb
         def _exc_assignment():
+            """
+            Set the exception flag to the CSR, and the exception code.
+
+            Priority for code assignment: IF > ID > MEM.
+            """
             self.mem_exception.next      = (self.mem_exception_ex or self.mem_ld_misalign or self.mem_ld_fault or
                                             self.mem_st_misalign or self.mem_st_misalign or self.mem_ecall_u or
                                             self.mem_ecall_s or self.mem_ecall_h or self.mem_ecall_m or self.mem_breakpoint or
@@ -528,12 +692,21 @@ class Ctrlpath:
 
         @always_comb
         def _branch_detect():
+            """
+            Generate branch conditions: EQ, LT and LTU.
+            """
             self.id_eq.next  = self.io.id_op1 == self.io.id_op2
             self.id_lt.next  = self.io.id_op1.signed() < self.io.id_op2.signed()
             self.id_ltu.next = self.io.id_op1 < self.io.id_op2
 
         @always_comb
         def _pc_select():
+            """
+            Set the control signal for the next PC multiplexer.
+
+            Priority: PC from CSR (exception handler or epc), PC for branch and jump instructions, PC for jump
+            register instructions, and PC + 4.
+            """
             self.io.pc_select.next = (Consts.PC_EXC if self.io.csr_exception or self.io.csr_eret else
                                       (Consts.PC_BRJMP if ((self.id_br_type == Consts.BR_J) or
                                                            (self.id_br_type == Consts.BR_NE and not self.id_eq) or
@@ -547,6 +720,12 @@ class Ctrlpath:
 
         @always_comb
         def _fwd_ctrl():
+            """
+            Set forwarding controls.
+
+            Rules: the read address is not r0, the read address must match the write address, and the instruction must write to the RF (we == 1).
+            Priority: EX > MEM > WB
+            """
             self.io.id_fwd1_select.next = (Consts.FWD_EX if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
                                            (Consts.FWD_MEM if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
                                             (Consts.FWD_WB if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
@@ -558,6 +737,9 @@ class Ctrlpath:
 
         @always_comb
         def _ctrl_pipeline():
+            """
+            Set control signals for pipeline registers.
+            """
             self.io.if_kill.next       = self.io.pc_select != Consts.PC_4
             self.io.id_stall.next      = (((self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and
                                            (self.ex_mem_funct == MemoryOpConstant.M_RD or self.ex_csr_cmd != CSRCommand.CSR_IDLE)) or
@@ -568,11 +750,17 @@ class Ctrlpath:
 
         @always_comb
         def _exc_detect():
+            """
+            Connect the internal exception registers to the CSR exception ports.
+            """
             self.io.csr_exception.next      = self.mem_exception
             self.io.csr_exception_code.next = self.mem_exception_code
 
         @always_comb
         def _imem_assignment():
+            """
+            Connect the pipeline imem port to the control imem port.
+            """
             self.imem.req.addr.next              = self.io.imem_pipeline.req.addr
             self.imem.req.data.next              = self.io.imem_pipeline.req.data
             self.imem.req.fcn.next               = self.io.imem_pipeline.req.fcn
@@ -581,16 +769,35 @@ class Ctrlpath:
 
         @always_comb
         def _imem_control():
+            """
+            Logic for the valid signal.
+
+            Enable the access if the pipeline requests it, and wait until the memory response. Abort in case
+            of exception.
+            """
             self.imem.req.valid.next = (self.io.imem_pipeline.req.valid and (not self.imem.resp.valid) and
                                         not self.io.csr_exception)
 
         @always_comb
         def _dmem_assignment():
+            """
+            Connect the pipeline dmem port to the control dmem port.
+            """
             self.dmem.req.addr.next              = self.io.dmem_pipeline.req.addr
             self.dmem.req.fcn.next               = self.io.dmem_pipeline.req.fcn
 
         @always_comb
         def _dmem_read_data():
+            """
+            Data convertion from dmem to pipeline.
+
+            Generate the correct data type:
+            - Signed byte.
+            - Unsigned byte.
+            - Signed half-word
+            - Unsigned half-word
+            - Word
+            """
             dmtype     = self.io.dmem_pipeline.req.typ[2:0]
             sgn_extend = not self.io.dmem_pipeline.req.typ[2]
 
@@ -613,6 +820,21 @@ class Ctrlpath:
 
         @always_comb
         def _dmem_write_data():
+            """
+            Data convertion from pipeline to dmem.
+
+            Generate a pattern to write to memory:
+            - Byte: [b, b, b, b]
+            - Half-word: [h, h]
+            - Word: [w]
+            with the wr signal:
+            - Byte: [b3, b2, b1, b0]
+            - Half-word: [h1, h1, h0, h0]
+            - Word: [1, 1, 1, 1]
+            where:
+            - bx = bytes x, x in [3, 2, 1, 0]
+            - hx = halfword x, x in [1, 0]
+            """
             dmtype = self.io.dmem_pipeline.req.typ[2:0]
             addr = self.io.dmem_pipeline.req.addr[2:0]
 
@@ -632,6 +854,12 @@ class Ctrlpath:
 
         @always_comb
         def _dmem_control():
+            """
+            Logic for the valid signal.
+
+            Enable the access if the pipeline requests it, and wait until the memory response. Abort in case
+            of exception.
+            """
             self.dmem.req.valid.next = (self.io.dmem_pipeline.req.valid and (not self.dmem.resp.valid) and
                                         not self.io.csr_exception)
 

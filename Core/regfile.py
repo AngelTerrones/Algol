@@ -26,24 +26,56 @@ from myhdl import modbv
 
 
 class RFReadPort:
+    """
+    Defines the RF's read IO port.
+
+    :ivar ra: Read address
+    :ivar rd: Read data
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.ra = Signal(modbv(0)[5:])
         self.rd = Signal(modbv(0)[32:])
 
 
 class RFWritePort:
+    """
+    Defines the RF's write IO port.
+
+    :ivar wa: Write address
+    :ivar we: Write enable
+    :ivar wd: Write data
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.wa = Signal(modbv(0)[5:])
         self.we = Signal(False)
         self.wd = Signal(modbv(0)[32:])
 
 
 class RegisterFile:
+    """
+    The Register File (RF) module.
+
+    32 32-bit registers, with the register 0 hardwired to zero.
+    """
     def __init__(self,
                  clk: Signal,
                  portA: RFReadPort,
                  portB: RFReadPort,
                  writePort: RFWritePort):
+        """
+        Initializes the IO ports.
+
+        :param clk:       System clock
+        :param portA:     IO bundle (read port)
+        :param portB:     IO bundle (read port)
+        :param writePort: IO bundle (write port)
+        """
         self.clk = clk
         self.portA = portA
         self.portB = portB
@@ -51,6 +83,9 @@ class RegisterFile:
         self._registers = [Signal(modbv(0)[32:]) for ii in range(0, 32)]
 
     def GetRTL(self):
+        """
+        Defines module behavior
+        """
         clk = self.clk
         portA = self.portA
         portB = self.portB
@@ -58,11 +93,19 @@ class RegisterFile:
 
         @always_comb
         def read():
+            """
+            Asynchronous read operation.
+            """
             portA.rd.next = self._registers[portA.ra] if portA.ra != 0 else 0
             portB.rd.next = self._registers[portB.ra] if portB.ra != 0 else 0
 
         @always(clk.posedge)
         def write():
+            """
+            Synchronous write operation.
+
+            If the write address is zero, do nothing.
+            """
             if writePort.wa != 0 and writePort.we == 1:
                 self._registers[writePort.wa].next = writePort.wd
 

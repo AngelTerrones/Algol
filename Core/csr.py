@@ -68,6 +68,10 @@ class CSRAddressMap:
 
 
 class CSRExceptionCode:
+    """
+    Exception codes.
+    (Priviledge mode v1.7)
+    """
     SZ_ECODE               = 4
     # Exception codes
     E_INST_ADDR_MISALIGNED = 0
@@ -88,6 +92,11 @@ class CSRExceptionCode:
 
 
 class CSRCommand:
+    """
+    CSR commands.
+
+    The CSR_READ command is for those cases when the 'rs1' field is zero.
+    """
     SZ_CMD    = 3
     CSR_IDLE  = modbv(0)[SZ_CMD:]
     CSR_READ  = modbv(4)[SZ_CMD:]
@@ -97,6 +106,9 @@ class CSRCommand:
 
 
 class CSRModes:
+    """
+    Priviledge modes.
+    """
     SZ_MODE = 2
     PRV_U   = 0
     PRV_S   = 1
@@ -105,27 +117,59 @@ class CSRModes:
 
 
 class CSRFileRWIO:
+    """
+    Defines the CSR IO port for RW operations.
+
+    :ivar addr:  Register address
+    :ivar cmd:   CSR command
+    :ivar wdata: Write data (input)
+    :ivar rdata: Read data (output)
+    """
     def __init__(self):
+        """
+        Initializes the IO ports.
+        """
         self.addr  = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])  # I: Register address
         self.cmd   = Signal(modbv(0)[CSRCommand.SZ_CMD:])      # I: command
-        self.wdata = Signal(modbv(0)[32:])  # I: input data
-        self.rdata = Signal(modbv(0)[32:])  # O: output data
+        self.wdata = Signal(modbv(0)[32:])                     # I: input data
+        self.rdata = Signal(modbv(0)[32:])                     # O: output data
 
 
 class CSRExceptionIO:
+    """
+    Defines the CSR IO port for exception signals.
+
+    :ivar interrupt:           Interrupt flag
+    :ivar interrupt_code:      Type of interrupt
+    :ivar exception:           Exception flag, from the CU
+    :ivar exception_code:      Type of exception, from the CU
+    :ivar eret:                Execute an ERET instruction
+    :ivar exception_load_addr: Memory address for LD/ST instruction
+    :ivar exception_pc:        The PC for the faulty instruction
+    :ivar exception_handler:   Next PC for exceptions
+    :ivar epc:                 Next PC after executing sucesfully an ERET instruction
+    """
     def __init__(self):
-        self.interrupt           = Signal(False)  # O
+        """
+        Initializes the IO ports.
+        """
+        self.interrupt           = Signal(False)                                 # O
         self.interrupt_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])  # O
-        self.exception           = Signal(False)          # I: from Control Unit.
-        self.exception_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])   # I: from Control Unit.
-        self.eret                = Signal(False)          # I: the current instruction (@MEM) is ERET.
-        self.exception_load_addr = Signal(modbv(0)[32:])  # I: Load address caused an exception.
-        self.exception_pc        = Signal(modbv(0)[32:])  # I
-        self.exception_handler   = Signal(modbv(0)[32:])  # O: Trap PC
-        self.epc                 = Signal(modbv(0)[32:])  # O: Return address
+        self.exception           = Signal(False)                                 # I: from Control Unit.
+        self.exception_code      = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])  # I: from Control Unit.
+        self.eret                = Signal(False)                                 # I: the current instruction (@MEM) is ERET.
+        self.exception_load_addr = Signal(modbv(0)[32:])                         # I: Load address caused an exception.
+        self.exception_pc        = Signal(modbv(0)[32:])                         # I
+        self.exception_handler   = Signal(modbv(0)[32:])                         # O: Trap PC
+        self.epc                 = Signal(modbv(0)[32:])                         # O: Return address
 
 
 class CSR:
+    """
+    The Control and Status Registers (CSR)
+
+    This module is necessary for exception handling.
+    """
     def __init__(self,
                  clk:            Signal(False),
                  rst:            Signal(False),
@@ -135,6 +179,18 @@ class CSR:
                  prv:            Signal(modbv(0)[CSRModes.SZ_MODE:]),
                  illegal_access: Signal(False),
                  toHost:         Signal(False)):
+        """
+        Initializes the IO ports.
+
+        :param clk:            System clock
+        :param rst:            System reset
+        :param rw:             IO bundle for RW operations
+        :param exc_io:         IO bundle for exception related operations
+        :param retire:         Increment the counter for executed instructions
+        :param prv:            Current priviledge mode (valid at MEM stage)
+        :param illegal_access: The RW operation is invalid
+        :param toHost:         Connected to the CSR's mtohost register. For simulation purposes.
+        """
         self.clk            = clk
         self.rst            = rst
         self.rw             = rw
@@ -145,6 +201,9 @@ class CSR:
         self.toHost         = toHost
 
     def GetRTL(self):
+        """
+        Defines module behavior
+        """
         # registers
         cycle_full      = Signal(modbv(0)[64:])
         cycle           = Signal(modbv(0)[32:])
@@ -206,6 +265,9 @@ class CSR:
 
         @always_comb
         def assigments():
+            """
+            Some assignments.
+            """
             cycle.next                         = cycle_full[32:0]
             cycleh.next                        = cycle_full[64:32]
             time.next                          = time_full[32:0]
@@ -237,6 +299,11 @@ class CSR:
 
         @always_comb
         def assigments2():
+            """
+            Continue the assignments.
+
+            Avoid warnings from MyHDL about signals being translated as inout.
+            """
             self.prv.next                      = priv_stack[3:1]
             mtimer_expired.next                = mtimecmp == mtime
             system_en.next                     = self.rw.cmd[3]
@@ -244,11 +311,19 @@ class CSR:
 
         @always_comb
         def assigments3():
+            """
+            Continue the assignments.
+
+            Avoid warnings from MyHDL about signals being translated as inout.
+            """
             illegal_region.next                = ((system_wen & (self.rw.addr[12:10] == 0b11)) |
                                                   (system_en & (self.rw.addr[11:8] > self.prv)))
 
         @always_comb
         def _wdata_aux():
+            """
+            Select the write data according to the command.
+            """
             if system_wen:
                 if self.rw.cmd == CSRCommand.CSR_SET:
                     wdata_aux.next = self.rw.rdata | self.rw.wdata
@@ -259,6 +334,9 @@ class CSR:
 
         @always_comb
         def _interrupt_code():
+            """
+            Set the interrupt code and flag.
+            """
             interrupt_code.next = CSRExceptionCode.I_TIMER
             if self.prv == CSRModes.PRV_U:
                 interrupt_taken.next = (ie & uinterrupt) | minterrupt
@@ -269,6 +347,13 @@ class CSR:
 
         @always(self.clk.posedge)
         def _priv_stack():
+            """
+            The priviledge mode stack.
+
+            - At reset: machine mode.
+            - Exception: shift stack to the left, enter machine mode.
+            - Eret: shift stack to the right. Set next mode to User leve.
+            """
             if self.rst:
                 priv_stack.next = 0b000110
             elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS):
@@ -281,6 +366,9 @@ class CSR:
 
         @always(self.clk.posedge)
         def _mtip_msip():
+            """
+            Handle the flags for interrupt pending.
+            """
             if self.rst:
                 mtip.next = 0
                 msip.next = 0
@@ -295,6 +383,9 @@ class CSR:
 
         @always(self.clk.posedge)
         def _mtie_msie():
+            """
+            Handle the interrupt enable flags.
+            """
             if self.rst:
                 mtie.next = 0
                 msie.next = 0
@@ -304,6 +395,9 @@ class CSR:
 
         @always(self.clk.posedge)
         def _mepc():
+            """
+            Handle writes to the mepc register.
+            """
             if self.exc_io.exception | interrupt_taken:
                 mepc.next = self.exc_io.exception_pc & ~0x03
             elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MEPC):
@@ -311,6 +405,9 @@ class CSR:
 
         @always(self.clk.posedge)
         def _mecode_mint():
+            """
+            Handle writes to the 'mecode' and 'mint' registers.
+            """
             if self.rst:
                 mecode.next = 0
                 mint.next = 0
@@ -326,6 +423,9 @@ class CSR:
 
         @always(self.clk.posedge)
         def _mbadaddr():
+            """
+            Handle writes to the 'mbadaddr' address.
+            """
             if self.exc_io.exception:
                 mbadaddr.next = self.exc_io.exception_pc if code_imem else self.exc_io.exception_load_addr
             elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MBADADDR):
@@ -333,6 +433,9 @@ class CSR:
 
         @always_comb
         def _read():
+            """
+            Read CSR registers.
+            """
             addr = self.rw.addr
             if addr == CSRAddressMap.CSR_ADDR_CYCLE:
                 self.rw.rdata.next = cycle
@@ -427,6 +530,9 @@ class CSR:
 
         @always(self.clk.posedge)
         def _write():
+            """
+            Handle writes to CSR registers.
+            """
             addr = self.rw.addr
             if self.rst:
                 cycle_full.next   = 0

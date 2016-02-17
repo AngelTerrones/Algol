@@ -27,12 +27,23 @@ from Core.cpath import CtrlIO
 
 
 class Core:
+    """
+    Core top module.
+    """
     def __init__(self,
                  clk:    Signal,
                  rst:    Signal,
                  imem:   MemPortIO,
                  dmem:   MemPortIO,
                  toHost: Signal):
+        """
+        Initializes the IO ports.
+        :param clk:    System clock
+        :param rst:    System reset
+        :param imem:   Instruction memory port
+        :paran dmem:   Data memory port
+        :param toHost: CSR's mtohost register. For simulation purposes.
+        """
         self.clk    = clk
         self.rst    = rst
         self.imem   = imem
@@ -40,6 +51,9 @@ class Core:
         self.toHost = toHost
 
     def GetRTL(self):
+        """
+        Behavioral description.
+        """
         ctrl_dpath = CtrlIO()
 
         dpath = Datapath(self.clk,
