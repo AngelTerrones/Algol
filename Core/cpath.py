@@ -324,21 +324,11 @@ class Ctrlpath:
         self.wb_mem_funct          = Signal(modbv(0)[MemoryOpConstant.SZ_M:])
         self.control               = Signal(modbv(0)[32:])
 
+        self.if_misalign           = Signal(False)
+        self.mem_misalign          = Signal(False)
+
         self.opcode                = Signal(modbv(0)[7:])
         self.funct3                = Signal(modbv(0)[3:])
-
-    @staticmethod
-    def CheckInvalidAddress(addr, mem_type):
-        """
-        Check address misalignment.
-
-        :param addr:     The address to check
-        :param mem_type: The data size: byte, half-word, word
-        :return:         True if the address is invalid given the data size. False is ok.
-        """
-        return (addr[0] if mem_type == MemoryOpConstant.MT_H or mem_type == MemoryOpConstant.MT_HU else
-                (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
-                 (False)))
 
     def GetRTL(self):
         """
@@ -527,6 +517,22 @@ class Ctrlpath:
         @always_comb
         def _assignments3():
             """
+            Determines address misalignment.
+            """
+            addr                        = self.io.imem_pipeline.req.addr
+            mem_type                    = self.io.imem_pipeline.req.typ
+            self.if_misalign.next       = (addr[0] if (mem_type == MemoryOpConstant.MT_H) or (mem_type == MemoryOpConstant.MT_HU) else
+                                           (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
+                                           (False)))
+            addr                        = self.io.dmem_pipeline.req.addr
+            mem_type                    = self.io.dmem_pipeline.req.typ
+            self.mem_misalign.next      = (addr[0] if (mem_type == MemoryOpConstant.MT_H) or (mem_type == MemoryOpConstant.MT_HU) else
+                                           (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
+                                            (False)))
+
+        @always_comb
+        def _assignments4():
+            """
             Check for memory related exceptions.
 
             Exceptions:
@@ -537,19 +543,16 @@ class Ctrlpath:
             - E_AMO_ADDR_MISALIGNED
             - E_AMO_ACCESS_FAULT
             """
-            self.if_imem_misalign.next = self.CheckInvalidAddress(self.io.imem_pipeline.req.addr,
-                                                                  self.io.imem_pipeline.req.typ)
-            self.if_imem_fault.next    = self.imem.resp.fault
-            self.mem_ld_misalign.next  = (self.io.dmem_pipeline.req.valid and
-                                          self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_RD and
-                                          self.CheckInvalidAddress(self.io.dmem_pipeline.req.addr,
-                                                                   self.io.dmem_pipeline.req.typ))
-            self.mem_ld_fault.next     = self.dmem.resp.fault
-            self.mem_st_misalign.next  = (self.io.dmem_pipeline.req.valid and
-                                          self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR and
-                                          self.CheckInvalidAddress(self.io.dmem_pipeline.req.addr,
-                                                                   self.io.dmem_pipeline.req.typ))
-            self.mem_st_fault.next     = self.dmem.resp.fault
+            self.if_imem_misalign.next  = self.if_misalign
+            self.if_imem_fault.next     = self.imem.resp.fault
+            self.mem_ld_misalign.next   = (self.io.dmem_pipeline.req.valid and
+                                           self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_RD and
+                                           self.mem_misalign)
+            self.mem_ld_fault.next      = self.dmem.resp.fault
+            self.mem_st_misalign.next   = (self.io.dmem_pipeline.req.valid and
+                                           self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR and
+                                           self.mem_misalign)
+            self.mem_st_fault.next      = self.dmem.resp.fault
 
         @always(self.clk.posedge)
         def _ifid_register():
@@ -743,7 +746,7 @@ class Ctrlpath:
             self.io.if_kill.next       = self.io.pc_select != Consts.PC_4
             self.io.id_stall.next      = (((self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and
                                            (self.ex_mem_funct == MemoryOpConstant.M_RD or self.ex_csr_cmd != CSRCommand.CSR_IDLE)) or
-                                          self.id_fence_i and (self.ex_mem_funct or self.mem_mem_funct or self.wb_mem_funct))
+                                          self.id_fence_i and (self.ex_mem_funct == MemoryOpConstant.M_WR or self.mem_mem_funct == MemoryOpConstant.M_WR or self.wb_mem_funct == MemoryOpConstant.M_WR))
             self.io.id_kill.next       = False
             self.io.full_stall.next    = self.imem.req.valid or self.dmem.req.valid
             self.io.pipeline_kill.next = self.io.csr_exception
