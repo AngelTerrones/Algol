@@ -280,7 +280,7 @@ class CSR:
             self.exc_io.interrupt.next         = mint
             self.exc_io.interrupt_code.next    = mecode
             self.exc_io.exception_handler.next = mtvec + (self.prv << 6)
-            self.illegal_access.next           = illegal_region or (system_en & (not defined))
+            self.illegal_access.next           = illegal_region or (system_en and (not defined))
             self.exc_io.epc.next               = mepc
             ie.next                            = priv_stack[0]
             wen_internal.next                  = system_wen
