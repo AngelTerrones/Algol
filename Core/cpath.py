@@ -631,7 +631,7 @@ class Ctrlpath:
                 self.mem_eret.next              = False
                 self.mem_ebreak.next            = False
                 self.mem_ecall.next             = False
-                self.mem_mem_funct              = False
+                self.mem_mem_funct.next         = False
                 self.mem_exception_ex.next      = False
                 self.mem_exception_code_ex.next = CSRExceptionCode.E_ILLEGAL_INST
             else:
@@ -639,7 +639,7 @@ class Ctrlpath:
                 self.mem_eret.next              = (self.mem_eret if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_eret))
                 self.mem_ebreak.next            = (self.mem_ebreak if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_ebreak))
                 self.mem_ecall.next             = (self.mem_ecall if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_ecall))
-                self.mem_mem_funct              = (self.mem_mem_funct if self.io.full_stall else (MemoryOpConstant.M_RD if self.io.pipeline_kill else self.ex_mem_funct))
+                self.mem_mem_funct.next         = (self.mem_mem_funct if self.io.full_stall else (MemoryOpConstant.M_RD if self.io.pipeline_kill else self.ex_mem_funct))
                 self.mem_exception_ex.next      = (self.mem_exception_ex if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_exception))
                 self.mem_exception_code_ex.next = (self.mem_exception_code_ex if self.io.full_stall else (CSRExceptionCode.E_ILLEGAL_INST if self.io.pipeline_kill else self.ex_exception_code))
 
