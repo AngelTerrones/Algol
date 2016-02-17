@@ -30,7 +30,6 @@ from myhdl import delay
 from myhdl import Simulation
 from myhdl import StopSimulation
 import pytest
-import os
 
 
 MEM_SIZE      = 2**15  # Bytes
