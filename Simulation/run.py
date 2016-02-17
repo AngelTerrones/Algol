@@ -23,6 +23,11 @@ import pytest
 import os
 import glob
 import subprocess
+from myhdl import toVerilog
+from myhdl import Signal
+from myhdl import modbv
+from Core.core import Core
+from Core.memIO import MemPortIO
 
 
 def run_module(args):
@@ -73,6 +78,20 @@ def clean_tests(args):
     assert make_process.wait() == 0, 'Unable to clean test folder.'
 
 
+def convert_to_verilog(args):
+    clk = Signal(False)
+    rst = Signal(False)
+    imem = MemPortIO()
+    dmem = MemPortIO()
+    toHost = Signal(modbv(0)[32:])
+    core = Core(clk=clk, rst=rst, imem=imem, dmem=dmem, toHost=toHost)
+
+    def core(clk, rst, imem, dmem, toHost):
+        return Core(clk=clk, rst=rst, imem=imem, dmem=dmem, toHost=toHost).GetRTL()
+
+    toVerilog(core, clk, rst, imem, dmem, toHost)
+
+
 def main():
     """
     Set arguments, parse, and call the required function
@@ -107,6 +126,10 @@ def main():
     # Clean tests
     parser_clean = subparsers.add_parser('clean_tests', help='Clean the RISC-V test folder')
     parser_clean.set_defaults(func=clean_tests)
+
+    # Convert to Verilog
+    parser_to_verilog = subparsers.add_parser('to_verilog', help='Convert design to Verilog')
+    parser_to_verilog.set_defaults(func=convert_to_verilog)
 
     args = parser.parse_args()
     args.func(args)
