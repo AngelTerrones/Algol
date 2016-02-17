@@ -294,8 +294,8 @@ class CSR:
             mip.next                           = concat(mtip, modbv(0)[3:], msip, modbv(0)[3:])
             mie.next                           = concat(mtie, modbv(0)[3:], msie, modbv(0)[3:])
             mcause.next                        = concat(mint, modbv(0)[27:], mecode)
-            code_imem.next                     = (self.exc_io.exception_code == CSRExceptionCode.E_INST_ADDR_MISALIGNED |
-                                                  self.exc_io.exception_code == CSRExceptionCode.E_INST_ACCESS_FAULT)
+            code_imem.next                     = ((self.exc_io.exception_code == CSRExceptionCode.E_INST_ADDR_MISALIGNED) |
+                                                  (self.exc_io.exception_code == CSRExceptionCode.E_INST_ACCESS_FAULT))
 
         @always_comb
         def assigments2():
