@@ -101,15 +101,14 @@ class ALU:
 
         @always_comb
         def rtl():
-            shamt = io.input2[5:0]
             if io.function == ALUFunction.OP_ADD:
                 io.output.next = io.input1 + io.input2
             elif io.function == ALUFunction.OP_SLL:
-                io.output.next = io.input1 << shamt
+                io.output.next = io.input1 << io.input2[5:0]
             elif io.function == ALUFunction.OP_XOR:
                 io.output.next = io.input1 ^ io.input2
             elif io.function == ALUFunction.OP_SRL:
-                io.output.next = io.input1 >> shamt
+                io.output.next = io.input1 >> io.input2[5:0]
             elif io.function == ALUFunction.OP_OR:
                 io.output.next = io.input1 | io.input2
             elif io.function == ALUFunction.OP_AND:
@@ -121,7 +120,7 @@ class ALU:
             elif io.function == ALUFunction.OP_SUB:
                 io.output.next = io.input1 - io.input2
             elif io.function == ALUFunction.OP_SRA:
-                io.output.next = io.input1.signed() >> shamt
+                io.output.next = io.input1.signed() >> io.input2[5:0]
             elif io.function == ALUFunction.OP_SLT:
                 io.output.next = concat(modbv(0)[31:], io.input1.signed() < io.input2.signed())
             elif io.function == ALUFunction.OP_SGE:

@@ -339,7 +339,6 @@ class CSR:
             else:
                 wdata_aux.next = 0x0BADF00D
 
-
         @always_comb
         def _interrupt_code():
             """
@@ -444,92 +443,91 @@ class CSR:
             """
             Read CSR registers.
             """
-            addr = self.rw.addr
-            if addr == CSRAddressMap.CSR_ADDR_CYCLE:
+            if self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLE:
                 self.rw.rdata.next = cycle
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_TIME:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIME:
                 self.rw.rdata.next = time
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_INSTRET:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRET:
                 self.rw.rdata.next = instret
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_CYCLEH:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEH:
                 self.rw.rdata.next = cycleh
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_TIMEH:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEH:
                 self.rw.rdata.next = timeh
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_INSTRETH:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETH:
                 self.rw.rdata.next = instreth
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MCPUID:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MCPUID:
                 self.rw.rdata.next = mcpuid
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MIMPID:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MIMPID:
                 self.rw.rdata.next = mimpid
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MHARTID:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MHARTID:
                 self.rw.rdata.next = mhartid
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MSTATUS:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS:
                 self.rw.rdata.next = mstatus
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MTVEC:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTVEC:
                 self.rw.rdata.next = mtvec
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MTDELEG:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTDELEG:
                 self.rw.rdata.next = mtdeleg
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MIE:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MIE:
                 self.rw.rdata.next = mie
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
                 self.rw.rdata.next = mtimecmp
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MTIME:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIME:
                 self.rw.rdata.next = mtime
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MTIMEH:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMEH:
                 self.rw.rdata.next = mtimeh
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
                 self.rw.rdata.next = mscratch
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MEPC:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MEPC:
                 self.rw.rdata.next = mepc
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MCAUSE:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MCAUSE:
                 self.rw.rdata.next = mcause
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MBADADDR:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MBADADDR:
                 self.rw.rdata.next = mbadaddr
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_MIP:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MIP:
                 self.rw.rdata.next = mip
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_CYCLEW:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEW:
                 self.rw.rdata.next = cycle
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_TIMEW:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEW:
                 self.rw.rdata.next = time
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_INSTRETW:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETW:
                 self.rw.rdata.next = instret
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
                 self.rw.rdata.next = cycleh
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_TIMEHW:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEHW:
                 self.rw.rdata.next = timeh
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
                 self.rw.rdata.next = instreth
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_TO_HOST:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TO_HOST:
                 self.rw.rdata.next = mtohost
                 defined.next = 1
-            elif addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
+            elif self.rw.addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
                 self.rw.rdata.next = mfromhost
                 defined.next = 1
             else:
@@ -541,7 +539,6 @@ class CSR:
             """
             Handle writes to CSR registers.
             """
-            addr = self.rw.addr
             if self.rst:
                 cycle_full.next   = 0
                 time_full.next    = 0
@@ -557,43 +554,43 @@ class CSR:
                 if self.retire:
                     instret_full.next = instret_full + 1
                 if wen_internal:
-                    if addr == CSRAddressMap.CSR_ADDR_CYCLE:
+                    if self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLE:
                         cycle_full[32:0].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_TIME:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIME:
                         time_full[32:0].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_INSTRET:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRET:
                         instret_full[32:0].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_CYCLEH:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEH:
                         cycle_full[64:32].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_TIMEH:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEH:
                         time_full[64:32].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_INSTRETH:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETH:
                         instret_full[64:32].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_MTVEC:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTVEC:
                         mtvec.next = wdata_aux & ~0x03
-                    elif addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
                         mtimecmp.next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_MTIME:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIME:
                         mtime_full[32:0].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_MTIMEH:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMEH:
                         mtime_full[64:32].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
                         mscratch.next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_CYCLEW:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEW:
                         cycle_full[32:0].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_TIMEW:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEW:
                         time_full[32:0].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_INSTRETW:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETW:
                         instret_full[32:0].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
                         cycle_full[64:32].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_TIMEHW:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEHW:
                         time_full[64:32].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
                         instret_full[64:32].next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_TO_HOST:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TO_HOST:
                         mtohost.next = wdata_aux
-                    elif addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
+                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
                         mfromhost.next = wdata_aux
 
         return instances()
