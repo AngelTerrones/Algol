@@ -465,7 +465,7 @@ class Ctrlpath:
             self.io.id_mem_type.next     = self.control[18:15]
             self.io.id_mem_funct.next    = self.control[18]
             self.io.id_mem_valid.next    = self.control[19]
-            self.io.id_csr_cmd.next      = self.control[23:20] if (self.control[23:20] == CSRCommand.CSR_IDLE or self.io.id_rs1_addr != 0) else CSRCommand.CSR_READ
+            self.io.id_csr_cmd.next      = self.control[23:20] if (self.control[23:20] == CSRCommand.CSR_IDLE or self.io.id_rs1_addr != 0) else modbv(CSRCommand.CSR_READ)[CSRCommand.SZ_CMD:]
             self.io.id_mem_data_sel.next = self.control[25:23]
             self.io.id_wb_we.next        = self.control[25]
             self.id_eret.next            = self.control[26]
@@ -574,7 +574,7 @@ class Ctrlpath:
             else:
                 if (self.io.pipeline_kill or self.io.id_kill or self.io.id_stall) and not self.io.full_stall:
                     self.ex_exception.next      = N
-                    self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
+                    self.ex_exception_code.next = modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:]
                     self.ex_mem_funct.next      = MemoryOpConstant.M_X
                     self.ex_breakpoint.next     = N
                     self.ex_eret.next           = N
@@ -585,11 +585,11 @@ class Ctrlpath:
                     self.ex_exception.next      = (self.id_imem_misalign or self.id_imem_fault or self.id_illegal_inst or
                                                    self.id_breakpoint or self.io.csr_interrupt)
                     self.ex_exception_code.next = (self.io.csr_interrupt_code if self.io.csr_interrupt else
-                                                   (CSRExceptionCode.E_INST_ADDR_MISALIGNED if self.id_imem_misalign else
-                                                    (CSRExceptionCode.E_INST_ACCESS_FAULT if self.id_imem_fault else
-                                                     (CSRExceptionCode.E_ILLEGAL_INST if self.id_illegal_inst else
-                                                      (CSRExceptionCode.E_BREAKPOINT if self.id_breakpoint else
-                                                       (CSRExceptionCode.E_ILLEGAL_INST))))))
+                                                   (modbv(CSRExceptionCode.E_INST_ADDR_MISALIGNED)[CSRExceptionCode.SZ_ECODE:] if self.id_imem_misalign else
+                                                    (modbv(CSRExceptionCode.E_INST_ACCESS_FAULT)[CSRExceptionCode.SZ_ECODE:] if self.id_imem_fault else
+                                                     (modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:] if self.id_illegal_inst else
+                                                      (modbv(CSRExceptionCode.E_BREAKPOINT)[CSRExceptionCode.SZ_ECODE:] if self.id_breakpoint else
+                                                       (modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:]))))))
                     self.ex_mem_funct.next      = self.io.id_mem_funct
                     self.ex_breakpoint.next     = self.id_breakpoint
                     self.ex_eret.next           = self.id_eret
@@ -612,7 +612,7 @@ class Ctrlpath:
                 self.mem_ecall.next             = N
                 self.mem_mem_funct.next         = N
                 self.mem_exception_ex.next      = N
-                self.mem_exception_code_ex.next = CSRExceptionCode.E_ILLEGAL_INST
+                self.mem_exception_code_ex.next = modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:]
             else:
                 self.mem_breakpoint.next        = (self.mem_breakpoint if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_breakpoint))
                 self.mem_eret.next              = (self.mem_eret if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_eret))
@@ -620,7 +620,7 @@ class Ctrlpath:
                 self.mem_ecall.next             = (self.mem_ecall if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_ecall))
                 self.mem_mem_funct.next         = (self.mem_mem_funct if self.io.full_stall else (MemoryOpConstant.M_RD if self.io.pipeline_kill else self.ex_mem_funct))
                 self.mem_exception_ex.next      = (self.mem_exception_ex if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_exception))
-                self.mem_exception_code_ex.next = (self.mem_exception_code_ex if self.io.full_stall else (CSRExceptionCode.E_ILLEGAL_INST if self.io.pipeline_kill else self.ex_exception_code))
+                self.mem_exception_code_ex.next = (self.mem_exception_code_ex if self.io.full_stall else (modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:] if self.io.pipeline_kill else self.ex_exception_code))
 
         @always(self.clk.posedge)
         def _memwb_register():
@@ -656,18 +656,18 @@ class Ctrlpath:
                                             self.mem_st_misalign or self.mem_st_misalign or self.mem_ecall_u or
                                             self.mem_ecall_s or self.mem_ecall_h or self.mem_ecall_m or self.mem_breakpoint or
                                             self.io.csr_illegal_access)
-            self.mem_exception_code.next = (self.ex_exception_code if self.mem_exception_ex else
-                                            (CSRExceptionCode.E_ILLEGAL_INST if self.io.csr_illegal_access else
-                                             (CSRExceptionCode.E_BREAKPOINT if self.mem_breakpoint else
-                                              (CSRExceptionCode.E_ECALL_FROM_U if self.mem_ecall_u else
-                                               (CSRExceptionCode.E_ECALL_FROM_S if self.mem_ecall_s else
-                                                (CSRExceptionCode.E_ECALL_FROM_H if self.mem_ecall_h else
-                                                 (CSRExceptionCode.E_ECALL_FROM_M if self.mem_ecall_m else
-                                                  (CSRExceptionCode.E_LOAD_ACCESS_FAULT if self.mem_ld_fault else
-                                                   (CSRExceptionCode.E_LOAD_ADDR_MISALIGNED if self.mem_ld_misalign else
-                                                    (CSRExceptionCode.E_AMO_ACCESS_FAULT if self.mem_st_fault else
-                                                     (CSRExceptionCode.E_AMO_ADDR_MISALIGNED if self.mem_st_misalign else
-                                                      CSRExceptionCode.E_ILLEGAL_INST)))))))))))
+            self.mem_exception_code.next = (self.mem_exception_code_ex if self.mem_exception_ex else
+                                            (modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:] if self.io.csr_illegal_access else
+                                             (modbv(CSRExceptionCode.E_BREAKPOINT)[CSRExceptionCode.SZ_ECODE:] if self.mem_breakpoint else
+                                              (modbv(CSRExceptionCode.E_ECALL_FROM_U)[CSRExceptionCode.SZ_ECODE:] if self.mem_ecall_u else
+                                               (modbv(CSRExceptionCode.E_ECALL_FROM_S)[CSRExceptionCode.SZ_ECODE:] if self.mem_ecall_s else
+                                                (modbv(CSRExceptionCode.E_ECALL_FROM_H)[CSRExceptionCode.SZ_ECODE:] if self.mem_ecall_h else
+                                                 (modbv(CSRExceptionCode.E_ECALL_FROM_M)[CSRExceptionCode.SZ_ECODE:] if self.mem_ecall_m else
+                                                  (modbv(CSRExceptionCode.E_LOAD_ACCESS_FAULT)[CSRExceptionCode.SZ_ECODE:] if self.mem_ld_fault else
+                                                   (modbv(CSRExceptionCode.E_LOAD_ADDR_MISALIGNED)[CSRExceptionCode.SZ_ECODE:] if self.mem_ld_misalign else
+                                                    (modbv(CSRExceptionCode.E_AMO_ACCESS_FAULT)[CSRExceptionCode.SZ_ECODE:] if self.mem_st_fault else
+                                                     (modbv(CSRExceptionCode.E_AMO_ADDR_MISALIGNED)[CSRExceptionCode.SZ_ECODE:] if self.mem_st_misalign else
+                                                      modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:])))))))))))
 
         @always_comb
         def _branch_detect():
@@ -686,16 +686,16 @@ class Ctrlpath:
             Priority: PC from CSR (exception handler or epc), PC for branch and jump instructions, PC for jump
             register instructions, and PC + 4.
             """
-            self.io.pc_select.next = (Consts.PC_EXC if self.io.csr_exception or self.io.csr_eret else
-                                      (Consts.PC_BRJMP if ((self.id_br_type == Consts.BR_J) or
+            self.io.pc_select.next = (modbv(Consts.PC_EXC)[Consts.SZ_PC_SEL:] if self.io.csr_exception or self.io.csr_eret else
+                                      (modbv(Consts.PC_BRJMP)[Consts.SZ_PC_SEL:] if ((self.id_br_type == Consts.BR_J) or
                                                            (self.id_br_type == Consts.BR_NE and not self.id_eq) or
                                                            (self.id_br_type == Consts.BR_EQ and self.id_eq) or
                                                            (self.id_br_type == Consts.BR_LT and self.id_lt) or
                                                            (self.id_br_type == Consts.BR_LTU and self.id_ltu) or
                                                            (self.id_br_type == Consts.BR_GE and not self.id_lt) or
                                                            (self.id_br_type == Consts.BR_GEU and not self.id_ltu)) else
-                                       (Consts.PC_JALR if self.id_br_type == Consts.BR_JR else
-                                        (Consts.PC_4))))
+                                       (modbv(Consts.PC_JALR)[Consts.SZ_PC_SEL:] if self.id_br_type == Consts.BR_JR else
+                                        (modbv(Consts.PC_4)[Consts.SZ_PC_SEL:]))))
 
         @always_comb
         def _fwd_ctrl():
@@ -705,14 +705,14 @@ class Ctrlpath:
             Rules: the read address is not r0, the read address must match the write address, and the instruction must write to the RF (we == 1).
             Priority: EX > MEM > WB
             """
-            self.io.id_fwd1_select.next = (Consts.FWD_EX if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
-                                           (Consts.FWD_MEM if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
-                                            (Consts.FWD_WB if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
-                                             Consts.FWD_N)))
-            self.io.id_fwd2_select.next = (Consts.FWD_EX if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
-                                           (Consts.FWD_MEM if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
-                                            (Consts.FWD_WB if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
-                                             (Consts.FWD_N))))
+            self.io.id_fwd1_select.next = (modbv(Consts.FWD_EX)[Consts.SZ_FWD:] if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
+                                           (modbv(Consts.FWD_MEM)[Consts.SZ_FWD:] if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
+                                            (modbv(Consts.FWD_WB)[Consts.SZ_FWD:] if self.io.id_rs1_addr != 0 and self.io.id_rs1_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
+                                             modbv(Consts.FWD_N)[Consts.SZ_FWD:])))
+            self.io.id_fwd2_select.next = (modbv(Consts.FWD_EX)[Consts.SZ_FWD:] if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.ex_wb_addr and self.io.ex_wb_we else
+                                           (modbv(Consts.FWD_MEM)[Consts.SZ_FWD:] if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.mem_wb_addr and self.io.mem_wb_we else
+                                            (modbv(Consts.FWD_WB)[Consts.SZ_FWD:] if self.io.id_rs2_addr != 0 and self.io.id_rs2_addr == self.io.wb_wb_addr and self.io.wb_wb_we else
+                                             (modbv(Consts.FWD_N)[Consts.SZ_FWD:]))))
 
         @always_comb
         def _ctrl_pipeline():
@@ -821,7 +821,7 @@ class Ctrlpath:
             if self.io.dmem_pipeline.fcn == MemoryOpConstant.M_WR:
                 self.dmem.wr.next = (concat(addr == 3, addr == 2, addr == 1, addr == 0) if dmtype == MemoryOpConstant.MT_B else
                                      (concat(addr == 2, addr == 2, addr == 0, addr == 0) if dmtype == MemoryOpConstant.MT_H else
-                                      (0b1111)))
+                                      modbv(0b1111)[4:]))
             else:
                 self.dmem.wr.next = 0b0000
 
