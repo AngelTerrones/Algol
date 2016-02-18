@@ -442,6 +442,8 @@ class Ctrlpath:
                     self.control.next = CtrlSignals.CSRRSI
                 elif self.funct3 == SystemFunct3.RV32_F3_CSRRCI:
                     self.control.next = CtrlSignals.CSRRCI
+                else:
+                    self.control.next = CtrlSignals.INVALID
             else:
                 self.control.next = CtrlSignals.INVALID
 

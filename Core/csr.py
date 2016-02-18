@@ -336,6 +336,9 @@ class CSR:
                     wdata_aux.next = self.rw.rdata & ~self.rw.wdata
                 else:
                     wdata_aux.next = self.rw.wdata
+            else:
+                wdata_aux.next = 0x0BADF00D
+
 
         @always_comb
         def _interrupt_code():

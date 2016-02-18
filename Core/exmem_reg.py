@@ -21,6 +21,7 @@
 
 from myhdl import Signal
 from myhdl import always
+from myhdl import modbv
 from Core.memIO import MemoryOpConstant
 from Core.consts import Consts
 from Core.csr import CSRCommand
@@ -115,7 +116,7 @@ class EXMEMReg:
                 self.mem_csr_wdata.next    = (self.mem_csr_wdata if self.full_stall else self.ex_csr_wdata)
                 self.mem_mem_valid.next    = (self.mem_mem_valid if self.full_stall else (False if self.pipeline_kill else self.ex_mem_valid))
                 self.mem_wb_we.next        = (self.mem_wb_we if self.full_stall else (False if self.pipeline_kill else self.ex_wb_we))
-                self.mem_csr_cmd.next      = (self.mem_csr_cmd if (self.full_stall) else (CSRCommand.CSR_IDLE if self.pipeline_kill else self.ex_csr_cmd))
+                self.mem_csr_cmd.next      = (self.mem_csr_cmd if (self.full_stall) else (modbv(CSRCommand.CSR_IDLE)[CSRCommand.SZ_CMD:] if self.pipeline_kill else self.ex_csr_cmd))
         return rtl
 
 # Local Variables:

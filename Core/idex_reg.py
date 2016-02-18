@@ -21,6 +21,7 @@
 
 from myhdl import Signal
 from myhdl import always
+from myhdl import modbv
 from Core.consts import Consts
 from Core.alu import ALUFunction
 from Core.memIO import MemoryOpConstant
@@ -140,7 +141,7 @@ class IDEXReg:
                                              (False if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
                                               (self.id_wb_we)))
                 self.ex_csr_cmd.next      = (self.ex_csr_cmd if self.full_stall else
-                                             (CSRCommand.CSR_IDLE if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
+                                             (modbv(CSRCommand.CSR_IDLE)[CSRCommand.SZ_CMD:] if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
                                               (self.id_csr_cmd)))
         return rtl
 
