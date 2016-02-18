@@ -321,8 +321,8 @@ class CSR:
 
             Avoid warnings from MyHDL about signals being translated as inout.
             """
-            illegal_region.next                = ((system_wen & (self.rw.addr[12:10] == 0b11)) |
-                                                  (system_en & (self.rw.addr[11:8] > self.prv)))
+            illegal_region.next = ((system_wen & (self.rw.addr[12:10] == 0b11)) |  # Read only region
+                                   (system_en & (self.rw.addr[10:8] > self.prv)))  # Check priviledge level
 
         @always_comb
         def _wdata_aux():
