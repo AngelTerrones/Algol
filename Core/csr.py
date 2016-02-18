@@ -498,7 +498,7 @@ class CSR:
                 self.rw.rdata.next = mbadaddr
                 defined.next = 1
             elif addr == CSRAddressMap.CSR_ADDR_MIP:
-                self.rw.rdata.next = cycle
+                self.rw.rdata.next = mip
                 defined.next = 1
             elif addr == CSRAddressMap.CSR_ADDR_CYCLEW:
                 self.rw.rdata.next = cycle
