@@ -69,8 +69,8 @@ class IMMGen:
             b11.next      = (False if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else
                              (self.instruction[20] if self.sel == Consts.IMM_UJ else
                               (self.instruction[7] if self.sel == Consts.IMM_SB else sign)))
-            b10_5.next    = 0 if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else self.instruction[31:25]
-            b4_1.next     = (0 if self.sel == Consts.IMM_U else
+            b10_5.next    = modbv(0)[6:] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else self.instruction[31:25]
+            b4_1.next     = (modbv(0)[4:] if self.sel == Consts.IMM_U else
                              (self.instruction[12:8] if (self.sel == Consts.IMM_S or self.sel == Consts.IMM_SB) else
                               (self.instruction[20:16] if self.sel == Consts.IMM_Z else self.instruction[25:21])))
             b0.next       = (self.instruction[7] if self.sel == Consts.IMM_S else

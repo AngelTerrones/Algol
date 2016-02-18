@@ -115,21 +115,21 @@ class ALU:
             elif io.function == ALUFunction.OP_AND:
                 io.output.next = io.input1 & io.input2
             elif io.function == ALUFunction.OP_SEQ:
-                io.output.next = concat(0, io.input1 == io.input2)
+                io.output.next = concat(modbv(0)[31:], io.input1 == io.input2)
             elif io.function == ALUFunction.OP_SNE:
-                io.output.next = concat(0, io.input1 != io.input2)
+                io.output.next = concat(modbv(0)[31:], io.input1 != io.input2)
             elif io.function == ALUFunction.OP_SUB:
                 io.output.next = io.input1 - io.input2
             elif io.function == ALUFunction.OP_SRA:
                 io.output.next = io.input1.signed() >> shamt
             elif io.function == ALUFunction.OP_SLT:
-                io.output.next = concat(0, io.input1.signed() < io.input2.signed())
+                io.output.next = concat(modbv(0)[31:], io.input1.signed() < io.input2.signed())
             elif io.function == ALUFunction.OP_SGE:
-                io.output.next = concat(0, io.input1.signed() >= io.input2.signed())
+                io.output.next = concat(modbv(0)[31:], io.input1.signed() >= io.input2.signed())
             elif io.function == ALUFunction.OP_SLTU:
-                io.output.next = concat(0, io.input1 < io.input2)
+                io.output.next = concat(modbv(0)[31:], io.input1 < io.input2)
             elif io.function == ALUFunction.OP_SGEU:
-                io.output.next = concat(0, io.input1 >= io.input2)
+                io.output.next = concat(modbv(0)[31:], io.input1 >= io.input2)
             else:
                 io.output.next = 0
 
