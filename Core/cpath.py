@@ -212,40 +212,20 @@ class MemDpathIO:
     """
     Defines the interface for memory accesses from dpath
 
-    :ivar req:  IO bundle for access requests
-    :ivar resp: IO bundle for access response
-    """
-    def __init__(self):
-        self.req  = MemDpathReq()
-        self.resp = MemCtrlResp()
-
-
-class MemDpathReq:
-    """
-    Defines the interface for memory requests from dpath
-
     :ivar addr:  Memory address
-    :ivar data:  Write data
+    :ivar wdata: Write data
     :ivar typ:   Data ype: byte, half-word, word
     :ivar fcn:   Access type: read or write
     :ivar valid: The request is valid
+    :ivar rdata: Read data
     """
     def __init__(self):
         self.addr  = Signal(modbv(0)[32:])
-        self.data  = Signal(modbv(0)[32:])
+        self.wdata = Signal(modbv(0)[32:])
         self.typ   = Signal(modbv(0)[3:])
         self.fcn   = Signal(False)
         self.valid = Signal(False)
-
-
-class MemCtrlResp:
-    """
-    Defines the interface for memory responses to dpath
-
-    :ivar data: Read data
-    """
-    def __init__(self):
-        self.data  = Signal(modbv(0)[32:])
+        self.rdata = Signal(modbv(0)[32:])
 
 
 class Ctrlpath:
@@ -513,13 +493,13 @@ class Ctrlpath:
             """
             Determines address misalignment.
             """
-            addr                        = self.io.imem_pipeline.req.addr
-            mem_type                    = self.io.imem_pipeline.req.typ
+            addr                        = self.io.imem_pipeline.addr
+            mem_type                    = self.io.imem_pipeline.typ
             self.if_misalign.next       = (addr[0] if (mem_type == MemoryOpConstant.MT_H) or (mem_type == MemoryOpConstant.MT_HU) else
                                            (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
                                            (False)))
-            addr                        = self.io.dmem_pipeline.req.addr
-            mem_type                    = self.io.dmem_pipeline.req.typ
+            addr                        = self.io.dmem_pipeline.addr
+            mem_type                    = self.io.dmem_pipeline.typ
             self.mem_misalign.next      = (addr[0] if (mem_type == MemoryOpConstant.MT_H) or (mem_type == MemoryOpConstant.MT_HU) else
                                            (addr[0] or addr[1] if mem_type == MemoryOpConstant.MT_W else
                                             (False)))
@@ -538,15 +518,15 @@ class Ctrlpath:
             - E_AMO_ACCESS_FAULT
             """
             self.if_imem_misalign.next  = self.if_misalign
-            self.if_imem_fault.next     = self.imem.resp.fault
-            self.mem_ld_misalign.next   = (self.io.dmem_pipeline.req.valid and
-                                           self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_RD and
+            self.if_imem_fault.next     = self.imem.fault
+            self.mem_ld_misalign.next   = (self.io.dmem_pipeline.valid and
+                                           self.io.dmem_pipeline.fcn == MemoryOpConstant.M_RD and
                                            self.mem_misalign)
-            self.mem_ld_fault.next      = self.dmem.resp.fault
-            self.mem_st_misalign.next   = (self.io.dmem_pipeline.req.valid and
-                                           self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR and
+            self.mem_ld_fault.next      = self.dmem.fault
+            self.mem_st_misalign.next   = (self.io.dmem_pipeline.valid and
+                                           self.io.dmem_pipeline.fcn == MemoryOpConstant.M_WR and
                                            self.mem_misalign)
-            self.mem_st_fault.next      = self.dmem.resp.fault
+            self.mem_st_fault.next      = self.dmem.fault
 
         @always(self.clk.posedge)
         def _ifid_register():
@@ -560,10 +540,10 @@ class Ctrlpath:
                 self.id_imem_misalign.next = N
             else:
                 self.id_imem_fault.next    = (self.id_imem_fault if (self.io.id_stall or self.io.full_stall) else
-                                              (False if (self.io.pipeline_kill or self.io.if_kill) else
+                                              (N if (self.io.pipeline_kill or self.io.if_kill) else
                                                self.if_imem_fault))
                 self.id_imem_misalign.next = (self.id_imem_misalign if (self.io.id_stall or self.io.full_stall) else
-                                              (False if (self.io.pipeline_kill or self.io.if_kill) else
+                                              (N if (self.io.pipeline_kill or self.io.if_kill) else
                                                self.if_imem_misalign))
 
         @always(self.clk.posedge)
@@ -741,8 +721,8 @@ class Ctrlpath:
             self.io.id_stall.next      = (((self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and
                                            (self.ex_mem_funct == MemoryOpConstant.M_RD or self.ex_csr_cmd != CSRCommand.CSR_IDLE)) or
                                           self.id_fence_i and (self.ex_mem_funct == MemoryOpConstant.M_WR or self.mem_mem_funct == MemoryOpConstant.M_WR or self.wb_mem_funct == MemoryOpConstant.M_WR))
-            self.io.full_stall.next    = self.imem.req.valid or self.dmem.req.valid
             self.io.id_kill.next       = N
+            self.io.full_stall.next    = self.imem.valid or self.dmem.valid
             self.io.pipeline_kill.next = self.io.csr_exception
 
         @always_comb
@@ -758,11 +738,11 @@ class Ctrlpath:
             """
             Connect the pipeline imem port to the control imem port.
             """
-            self.imem.req.addr.next              = self.io.imem_pipeline.req.addr
-            self.imem.req.data.next              = self.io.imem_pipeline.req.data
-            self.imem.req.fcn.next               = self.io.imem_pipeline.req.fcn
-            self.imem.req.wr.next                = 0b0000  # always read
-            self.io.imem_pipeline.resp.data.next = self.imem.resp.data
+            self.imem.addr.next              = self.io.imem_pipeline.addr
+            self.imem.wdata.next              = self.io.imem_pipeline.wdata
+            self.imem.fcn.next               = self.io.imem_pipeline.fcn
+            self.imem.wr.next                = 0b0000  # always read
+            self.io.imem_pipeline.rdata.next = self.imem.rdata
 
         @always_comb
         def _imem_control():
@@ -772,16 +752,16 @@ class Ctrlpath:
             Enable the access if the pipeline requests it, and wait until the memory response. Abort in case
             of exception.
             """
-            self.imem.req.valid.next = (self.io.imem_pipeline.req.valid and (not self.imem.resp.valid) and
-                                        not self.io.csr_exception)
+            self.imem.valid.next = (self.io.imem_pipeline.valid and (not self.imem.ready) and
+                                    not self.io.csr_exception)
 
         @always_comb
         def _dmem_assignment():
             """
             Connect the pipeline dmem port to the control dmem port.
             """
-            self.dmem.req.addr.next              = self.io.dmem_pipeline.req.addr
-            self.dmem.req.fcn.next               = self.io.dmem_pipeline.req.fcn
+            self.dmem.addr.next = self.io.dmem_pipeline.addr
+            self.dmem.fcn.next  = self.io.dmem_pipeline.fcn
 
         @always_comb
         def _dmem_read_data():
@@ -795,25 +775,25 @@ class Ctrlpath:
             - Unsigned half-word
             - Word
             """
-            dmtype     = self.io.dmem_pipeline.req.typ[2:0]
-            sgn_extend = not self.io.dmem_pipeline.req.typ[2]
+            dmtype     = self.io.dmem_pipeline.typ[2:0]
+            sgn_extend = not self.io.dmem_pipeline.typ[2]
 
             if dmtype == MemoryOpConstant.MT_B:
-                if self.io.dmem_pipeline.req.addr[2:0] == 0:
-                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[8:0].signed() if sgn_extend else self.dmem.resp.data[8:0]
-                elif self.io.dmem_pipeline.req.addr[2:0] == 1:
-                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[16:8].signed() if sgn_extend else self.dmem.resp.data[16:8]
-                elif self.io.dmem_pipeline.req.addr[2:0] == 2:
-                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[24:16].signed() if sgn_extend else self.dmem.resp.data[24:16]
+                if self.io.dmem_pipeline.addr[2:0] == 0:
+                    self.io.dmem_pipeline.rdata.next = self.dmem.rdata[8:0].signed() if sgn_extend else self.dmem.rdata[8:0]
+                elif self.io.dmem_pipeline.addr[2:0] == 1:
+                    self.io.dmem_pipeline.rdata.next = self.dmem.rdata[16:8].signed() if sgn_extend else self.dmem.rdata[16:8]
+                elif self.io.dmem_pipeline.addr[2:0] == 2:
+                    self.io.dmem_pipeline.rdata.next = self.dmem.rdata[24:16].signed() if sgn_extend else self.dmem.rdata[24:16]
                 else:
-                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[32:24].signed() if sgn_extend else self.dmem.resp.data[32:24]
+                    self.io.dmem_pipeline.rdata.next = self.dmem.rdata[32:24].signed() if sgn_extend else self.dmem.rdata[32:24]
             elif dmtype == MemoryOpConstant.MT_H:
-                if not self.io.dmem_pipeline.req.addr[1]:
-                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[16:0].signed() if sgn_extend else self.dmem.resp.data[16:0]
+                if not self.io.dmem_pipeline.addr[1]:
+                    self.io.dmem_pipeline.rdata.next = self.dmem.rdata[16:0].signed() if sgn_extend else self.dmem.rdata[16:0]
                 else:
-                    self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data[32:16].signed() if sgn_extend else self.dmem.resp.data[32:16]
+                    self.io.dmem_pipeline.rdata.next = self.dmem.rdata[32:16].signed() if sgn_extend else self.dmem.rdata[32:16]
             else:
-                self.io.dmem_pipeline.resp.data.next = self.dmem.resp.data
+                self.io.dmem_pipeline.rdata.next = self.dmem.rdata
 
         @always_comb
         def _dmem_write_data():
@@ -832,22 +812,22 @@ class Ctrlpath:
             - bx = bytes x, x in [3, 2, 1, 0]
             - hx = halfword x, x in [1, 0]
             """
-            dmtype = self.io.dmem_pipeline.req.typ[2:0]
-            addr = self.io.dmem_pipeline.req.addr[2:0]
+            dmtype = self.io.dmem_pipeline.typ[2:0]
+            addr = self.io.dmem_pipeline.addr[2:0]
 
             # set WR
-            if self.io.dmem_pipeline.req.fcn == MemoryOpConstant.M_WR:
-                self.dmem.req.wr.next = (concat(addr == 3, addr == 2, addr == 1, addr == 0) if dmtype == MemoryOpConstant.MT_B else
-                                         (concat(addr == 2, addr == 2, addr == 0, addr == 0) if dmtype == MemoryOpConstant.MT_H else
-                                          (0b1111)))
+            if self.io.dmem_pipeline.fcn == MemoryOpConstant.M_WR:
+                self.dmem.wr.next = (concat(addr == 3, addr == 2, addr == 1, addr == 0) if dmtype == MemoryOpConstant.MT_B else
+                                     (concat(addr == 2, addr == 2, addr == 0, addr == 0) if dmtype == MemoryOpConstant.MT_H else
+                                      (0b1111)))
             else:
-                self.dmem.req.wr.next = 0b0000
+                self.dmem.wr.next = 0b0000
 
             # Data to memory
-            data_o = self.io.dmem_pipeline.req.data
-            self.dmem.req.data.next = (concat(data_o[8:0], data_o[8:0], data_o[8:0], data_o[8:0]) if dmtype == MemoryOpConstant.MT_B else
-                                       (concat(data_o[16:0], data_o[16:0]) if dmtype == MemoryOpConstant.MT_H else
-                                        (data_o)))
+            data_o = self.io.dmem_pipeline.wdata
+            self.dmem.wdata.next = (concat(data_o[8:0], data_o[8:0], data_o[8:0], data_o[8:0]) if dmtype == MemoryOpConstant.MT_B else
+                                    (concat(data_o[16:0], data_o[16:0]) if dmtype == MemoryOpConstant.MT_H else
+                                     (data_o)))
 
         @always_comb
         def _dmem_control():
@@ -857,8 +837,8 @@ class Ctrlpath:
             Enable the access if the pipeline requests it, and wait until the memory response. Abort in case
             of exception.
             """
-            self.dmem.req.valid.next = (self.io.dmem_pipeline.req.valid and (not self.dmem.resp.valid) and
-                                        not self.io.csr_exception)
+            self.dmem.valid.next = (self.io.dmem_pipeline.valid and (not self.dmem.ready) and
+                                    not self.io.csr_exception)
 
         return instances()
 

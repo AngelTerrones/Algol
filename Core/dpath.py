@@ -167,14 +167,14 @@ class Datapath:
 
         @always_comb
         def _pc_next():
-            self.ctrlIO.imem_pipeline.req.addr.next  = if_pc
-            if_pc_next.next                          = if_pc + 4
-            if_instruction.next                      = self.ctrlIO.imem_pipeline.resp.data
+            self.ctrlIO.imem_pipeline.addr.next  = if_pc
+            if_pc_next.next                      = if_pc + 4
+            if_instruction.next                  = self.ctrlIO.imem_pipeline.rdata
             # --
-            self.ctrlIO.imem_pipeline.req.data.next  = 0xDEADC0DE
-            self.ctrlIO.imem_pipeline.req.typ.next   = MemoryOpConstant.MT_W
-            self.ctrlIO.imem_pipeline.req.fcn.next   = MemoryOpConstant.M_RD
-            self.ctrlIO.imem_pipeline.req.valid.next = True
+            self.ctrlIO.imem_pipeline.wdata.next = 0xDEADC0DE
+            self.ctrlIO.imem_pipeline.typ.next   = MemoryOpConstant.MT_W
+            self.ctrlIO.imem_pipeline.fcn.next   = MemoryOpConstant.M_RD
+            self.ctrlIO.imem_pipeline.valid.next = True
 
         # ID stage
         # ----------------------------------------------------------------------
@@ -354,23 +354,23 @@ class Datapath:
 
         @always_comb
         def _mem_assignments():
-            self.ctrlIO.dmem_pipeline.req.addr.next  = mem_alu_out
-            self.ctrlIO.dmem_pipeline.req.data.next  = mem_mem_wdata
-            self.ctrlIO.dmem_pipeline.req.fcn.next   = mem_mem_funct
-            self.ctrlIO.dmem_pipeline.req.typ.next   = mem_mem_type
-            self.ctrlIO.dmem_pipeline.req.valid.next = mem_mem_valid
-            mem_mem_data.next                        = self.ctrlIO.dmem_pipeline.resp.data
-            csr_exc_io.exception.next                = self.ctrlIO.csr_exception
-            csr_exc_io.exception_code.next           = self.ctrlIO.csr_exception_code
-            csr_exc_io.eret.next                     = self.ctrlIO.csr_eret
-            csr_exc_io.exception_load_addr.next      = mem_alu_out
-            csr_exc_io.exception_pc.next             = mem_pc
-            csr_rw.addr.next                         = mem_csr_addr
-            csr_rw.cmd.next                          = mem_csr_cmd
-            csr_rw.wdata.next                        = mem_csr_wdata
-            mem_csr_rdata.next                       = csr_rw.rdata
-            self.ctrlIO.mem_wb_we.next               = mem_wb_we
-            self.ctrlIO.mem_wb_addr.next             = mem_wb_addr
+            self.ctrlIO.dmem_pipeline.addr.next  = mem_alu_out
+            self.ctrlIO.dmem_pipeline.wdata.next = mem_mem_wdata
+            self.ctrlIO.dmem_pipeline.fcn.next   = mem_mem_funct
+            self.ctrlIO.dmem_pipeline.typ.next   = mem_mem_type
+            self.ctrlIO.dmem_pipeline.valid.next = mem_mem_valid
+            mem_mem_data.next                    = self.ctrlIO.dmem_pipeline.rdata
+            csr_exc_io.exception.next            = self.ctrlIO.csr_exception
+            csr_exc_io.exception_code.next       = self.ctrlIO.csr_exception_code
+            csr_exc_io.eret.next                 = self.ctrlIO.csr_eret
+            csr_exc_io.exception_load_addr.next  = mem_alu_out
+            csr_exc_io.exception_pc.next         = mem_pc
+            csr_rw.addr.next                     = mem_csr_addr
+            csr_rw.cmd.next                      = mem_csr_cmd
+            csr_rw.wdata.next                    = mem_csr_wdata
+            mem_csr_rdata.next                   = csr_rw.rdata
+            self.ctrlIO.mem_wb_we.next           = mem_wb_we
+            self.ctrlIO.mem_wb_addr.next         = mem_wb_addr
 
         # WB stage
         # ----------------------------------------------------------------------

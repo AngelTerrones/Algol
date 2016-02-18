@@ -57,25 +57,25 @@ class RamBus:
 
     def write(self, addr, data):
         yield self.clk.posedge
-        self.dmem.req.addr.next = addr
-        self.dmem.req.data.next = data
-        self.dmem.req.wr.next = 0b1111
-        self.dmem.req.fcn.next = MemoryOpConstant.M_WR
-        self.dmem.req.valid.next = True
+        self.dmem.addr.next = addr
+        self.dmem.wdata.next = data
+        self.dmem.wr.next = 0b1111
+        self.dmem.fcn.next = MemoryOpConstant.M_WR
+        self.dmem.valid.next = True
         self.mirror_mem[addr >> 2] = data
-        yield self.dmem.resp.valid.posedge
+        yield self.dmem.ready.posedge
         yield self.clk.negedge
-        self.dmem.req.valid.next = False
+        self.dmem.valid.next = False
 
     def read(self, addr):
         yield self.clk.posedge
-        self.dmem.req.addr.next = addr
-        self.dmem.req.wr.next = 0b0000
-        self.dmem.req.fcn.next = MemoryOpConstant.M_RD
-        self.dmem.req.valid.next = True
-        yield self.dmem.resp.valid.posedge
+        self.dmem.addr.next = addr
+        self.dmem.wr.next = 0b0000
+        self.dmem.fcn.next = MemoryOpConstant.M_RD
+        self.dmem.valid.next = True
+        yield self.dmem.ready.posedge
         yield self.clk.negedge
-        self.dmem.req.valid.next = False
+        self.dmem.valid.next = False
 
 
 def _testbench():
@@ -101,8 +101,8 @@ def _testbench():
         for addr in range(rb.depth):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
             data = int(lines[addr], 16)
-            assert rb.dmem.resp.data == data, "Data loading: Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
-                                                                                                                 hex(rb.dmem.resp.data),
+            assert rb.dmem.rdata == data, "Data loading: Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
+                                                                                                                 hex(rb.dmem.rdata),
                                                                                                                  data)
 
         # Testing R/W
@@ -112,7 +112,7 @@ def _testbench():
 
         for addr in range(rb.depth):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
-            assert rb.dmem.resp.data == rb.mirror_mem[addr], "R/W: Data mismatch! Addr = {0:#x}".format(addr << 2)
+            assert rb.dmem.rdata == rb.mirror_mem[addr], "R/W: Data mismatch! Addr = {0:#x}".format(addr << 2)
 
         raise StopSimulation
 

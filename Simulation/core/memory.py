@@ -81,50 +81,50 @@ class Memory:
     def GetRTL(self):
         @always(self.clk.posedge)
         def set_ready_signal():
-            self.imem.resp.valid.next = False if self.rst else self.imem.req.valid
-            self.dmem.resp.valid.next = False if self.rst else self.dmem.req.valid
+            self.imem.ready.next = False if self.rst else self.imem.valid
+            self.dmem.ready.next = False if self.rst else self.dmem.valid
 
         @always_comb
         def assignment_data_o():
-            self.imem.resp.data.next = self.i_data_o if self.imem.resp.valid else 0xDEADF00D
-            self.dmem.resp.data.next = self.d_data_o if self.dmem.resp.valid else 0xDEADF00D
+            self.imem.rdata.next = self.i_data_o if self.imem.ready else 0xDEADF00D
+            self.dmem.rdata.next = self.d_data_o if self.dmem.ready else 0xDEADF00D
 
         @always(self.clk.posedge)
         def set_fault():
-            self.imem.resp.fault.next = False
-            self.dmem.resp.fault.next = False
+            self.imem.fault.next = False
+            self.dmem.fault.next = False
 
         @always_comb
         def assignment_addr():
             # This memory is addressed by word, not byte. Ignore the 2 LSB.
-            self._imem_addr.next = self.imem.req.addr[self.aw:2]
-            self._dmem_addr.next = self.dmem.req.addr[self.aw:2]
+            self._imem_addr.next = self.imem.addr[self.aw:2]
+            self._dmem_addr.next = self.dmem.addr[self.aw:2]
 
         @always(self.clk.posedge)
         def imem_rtl():
             self.i_data_o.next = self._memory[self._imem_addr]
 
-            if self.imem.req.fcn == MemoryOpConstant.M_WR:
-                we                = self.imem.req.wr
-                data              = self.imem.req.data
-                self.i_data_o.next = self.imem.req.data
-                self._memory[self._imem_addr].next = concat(data[8:0] if we[0] and self.imem.req.valid else self._memory[self._imem_addr][8:0],
-                                                            data[16:8] if we[1] and self.imem.req.valid else self._memory[self._imem_addr][16:8],
-                                                            data[24:16] if we[2] and self.imem.req.valid else self._memory[self._imem_addr][24:16],
-                                                            data[32:24] if we[3] and self.imem.req.valid else self._memory[self._imem_addr][32:24])
+            if self.imem.fcn == MemoryOpConstant.M_WR:
+                we                = self.imem.wr
+                data              = self.imem.wdata
+                self.i_data_o.next = self.imem.wdata
+                self._memory[self._imem_addr].next = concat(data[8:0] if we[0] and self.imem.valid else self._memory[self._imem_addr][8:0],
+                                                            data[16:8] if we[1] and self.imem.valid else self._memory[self._imem_addr][16:8],
+                                                            data[24:16] if we[2] and self.imem.valid else self._memory[self._imem_addr][24:16],
+                                                            data[32:24] if we[3] and self.imem.valid else self._memory[self._imem_addr][32:24])
 
         @always(self.clk.posedge)
         def dmem_rtl():
             self.d_data_o.next = self._memory[self._dmem_addr]
 
-            if self.dmem.req.fcn == MemoryOpConstant.M_WR:
-                we                 = self.dmem.req.wr
-                data               = self.dmem.req.data
-                self.d_data_o.next = self.dmem.req.data
-                self._memory[self._dmem_addr].next = concat(data[8:0] if we[0] and self.dmem.req.valid else self._memory[self._dmem_addr][8:0],
-                                                            data[16:8] if we[1] and self.dmem.req.valid else self._memory[self._dmem_addr][16:8],
-                                                            data[24:16] if we[2] and self.dmem.req.valid else self._memory[self._dmem_addr][24:16],
-                                                            data[32:24] if we[3] and self.dmem.req.valid else self._memory[self._dmem_addr][32:24])
+            if self.dmem.fcn == MemoryOpConstant.M_WR:
+                we                 = self.dmem.wr
+                data               = self.dmem.wdata
+                self.d_data_o.next = self.dmem.wdata
+                self._memory[self._dmem_addr].next = concat(data[8:0] if we[0] and self.dmem.valid else self._memory[self._dmem_addr][8:0],
+                                                            data[16:8] if we[1] and self.dmem.valid else self._memory[self._dmem_addr][16:8],
+                                                            data[24:16] if we[2] and self.dmem.valid else self._memory[self._dmem_addr][24:16],
+                                                            data[32:24] if we[3] and self.dmem.valid else self._memory[self._dmem_addr][32:24])
 
         return instances()
 
