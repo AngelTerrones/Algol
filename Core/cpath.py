@@ -41,6 +41,9 @@ from Core.instructions import FenceFunct3
 from Core.instructions import SystemFunct3
 from Core.instructions import PrivFunct12
 
+Y = True
+N = False
+
 
 class CtrlSignals:
     """
@@ -49,80 +52,71 @@ class CtrlSignals:
     ISA: RV32I + priviledge instructions v1.7
     """
     # Control signals
-    #                  Illegal                                                                              Valid memory operation                                                                    OP1 select
-    #                  |      Fence.I      ecall                                                            |      Memory Function (type)                                                             |                OP2 select
-    #                  |      |      Fence |      ebreak                                                    |      |                      Memory type                                                 |                |                Branch/Jump
-    #                  |      |      |     |      |      eret                                               |      |                      |                       ALU operation                       |                |                |
-    #                  |      |      |     |      |      |      RF WE                                       |      |                      |                       |                    IMM type       |                |                |
-    #                  |      |      |     |      |      |      |      Sel dat to WB                        |      |                      |                       |                    |              |                |                |
-    #                  |      |      |     |      |      |      |      |              CSR command           |      |                      |                       |                    |              |                |                |
-    #                  |      |      |     |      |      |      |      |              |                     |      |                      |                       |                    |              |                |                |
-    #                  |      |      |     |      |      |      |      |              |                     |      |                      |                       |                    |              |                |                |
-    #                  |      |      |     |      |      |      |      |              |                     |      |                      |                       |                    |              |                |                |
-    NOP       = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    INVALID   = concat(True,  False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-
-    LUI       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_U,  Consts.OP1_ZERO, Consts.OP2_IMM,  Consts.BR_N)
-    AUIPC     = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_U,  Consts.OP1_PC,   Consts.OP2_IMM,  Consts.BR_N)
-
-    JAL       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_UJ, Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_J)
-    JALR      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_PC,   Consts.OP2_FOUR, Consts.BR_JR)
-    BEQ       = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_EQ)
-    BNE       = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_NE)
-    BLT       = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_LT)
-    BGE       = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_GE)
-    BLTU      = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_LTU)
-    BGEU      = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_SB, Consts.OP1_X,    Consts.OP2_X,    Consts.BR_GEU)
-
-    LB        = concat(False, False, False, False, False, False, True,  Consts.WB_MEM, CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_RD, MemoryOpConstant.MT_B,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    LH        = concat(False, False, False, False, False, False, True,  Consts.WB_MEM, CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_RD, MemoryOpConstant.MT_H,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    LW        = concat(False, False, False, False, False, False, True,  Consts.WB_MEM, CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_RD, MemoryOpConstant.MT_W,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    LBU       = concat(False, False, False, False, False, False, True,  Consts.WB_MEM, CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_RD, MemoryOpConstant.MT_BU, ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    LHU       = concat(False, False, False, False, False, False, True,  Consts.WB_MEM, CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_RD, MemoryOpConstant.MT_HU, ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SB        = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_WR, MemoryOpConstant.MT_B,  ALUFunction.OP_ADD,  Consts.IMM_S,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SH        = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_WR, MemoryOpConstant.MT_H,  ALUFunction.OP_ADD,  Consts.IMM_S,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SW        = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  True,  MemoryOpConstant.M_WR, MemoryOpConstant.MT_W,  ALUFunction.OP_ADD,  Consts.IMM_S,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-
-    ADDI      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SLTI      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SLT,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SLTIU     = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SLTU, Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    XORI      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_XOR,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    ORI       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_OR,   Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    ANDI      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_AND,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SLLI      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SLL,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SRLI      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SRL,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-    SRAI      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SRA,  Consts.IMM_I,  Consts.OP1_RS1,  Consts.OP2_IMM,  Consts.BR_N)
-
-    ADD       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    SUB       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SUB,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    SLL       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SLL,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    SLT       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SLT,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    SLTU      = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SLTU, Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    XOR       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_XOR,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    SRL       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SRL,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    SRA       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_SRA,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    OR        = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_OR,   Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-    AND       = concat(False, False, False, False, False, False, True,  Consts.WB_ALU, CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_AND,  Consts.IMM_X,  Consts.OP1_RS1,  Consts.OP2_RS2,  Consts.BR_N)
-
-    FENCE     = concat(False, False, True,  False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    FENCE_I   = concat(False, True,  False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-
-    CSRRW     = concat(False, False, False, False, False, False, True,  Consts.WB_CSR, CSRCommand.CSR_WRITE, False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_ZERO, Consts.OP2_ZERO, Consts.BR_N)
-    CSRRS     = concat(False, False, False, False, False, False, True,  Consts.WB_CSR, CSRCommand.CSR_SET,   False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_ZERO, Consts.OP2_ZERO, Consts.BR_N)
-    CSRRC     = concat(False, False, False, False, False, False, True,  Consts.WB_CSR, CSRCommand.CSR_CLEAR, False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_ZERO, Consts.OP2_ZERO, Consts.BR_N)
-    CSRRWI    = concat(False, False, False, False, False, False, True,  Consts.WB_CSR, CSRCommand.CSR_WRITE, False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_ZERO, Consts.OP2_ZERO, Consts.BR_N)
-    CSRRSI    = concat(False, False, False, False, False, False, True,  Consts.WB_CSR, CSRCommand.CSR_SET,   False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_ZERO, Consts.OP2_ZERO, Consts.BR_N)
-    CSRRCI    = concat(False, False, False, False, False, False, True,  Consts.WB_CSR, CSRCommand.CSR_CLEAR, False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_ZERO, Consts.OP2_ZERO, Consts.BR_N)
-
-    ECALL     = concat(False, False, False, True,  False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    EBREAK    = concat(False, False, False, False, True,  False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    ERET      = concat(False, False, False, False, False, True,  False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-
-    MRTS      = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    MRTH      = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    HRTS      = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    WFI       = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
-    SFENCE_VM = concat(False, False, False, False, False, False, False, Consts.WB_X,   CSRCommand.CSR_IDLE,  False, MemoryOpConstant.M_X,  MemoryOpConstant.MT_X,  ALUFunction.OP_ADD,  Consts.IMM_X,  Consts.OP1_X,    Consts.OP2_X,    Consts.BR_N)
+    #                  Illegal                                                     Valid memory operation                                                                   OP1 select
+    #                  |  Fence.I                                                  |  Memory Function (type)                                                                |                 OP2 select
+    #                  |  |  Fence                                                 |  |                      Memory type                                                    |                 |                 Branch/Jump
+    #                  |  |  |  ecall                                              |  |                      |                        ALU operation                         |                 |                 |
+    #                  |  |  |  |  ebreak                                          |  |                      |                        |                     IMM type        |                 |                 |
+    #                  |  |  |  |  |  eret                                         |  |                      |                        |                     |               |                 |                 |
+    #                  |  |  |  |  |  |  RF WE              CSR command            |  |                      |                        |                     |               |                 |                 |
+    #                  |  |  |  |  |  |  |  Sel dat to WB   |                      |  |                      |                        |                     |               |                 |                 |
+    #                  |  |  |  |  |  |  |  |               |                      |  |                      |                        |                     |               |                 |                 |
+    #                  |  |  |  |  |  |  |  |               |                      |  |                      |                        |                     |               |                 |                 |
+    NOP       = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    INVALID   = concat(Y, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    LUI       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_U,  Consts._OP1_ZERO, Consts._OP2_IMM,  Consts._BR_N).__int__()
+    AUIPC     = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_U,  Consts._OP1_PC,   Consts._OP2_IMM,  Consts._BR_N).__int__()
+    JAL       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_UJ, Consts._OP1_PC,   Consts._OP2_FOUR, Consts._BR_J).__int__()
+    JALR      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_I,  Consts._OP1_PC,   Consts._OP2_FOUR, Consts._BR_JR).__int__()
+    BEQ       = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_SB, Consts._OP1_X,    Consts._OP2_X,    Consts._BR_EQ).__int__()
+    BNE       = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_SB, Consts._OP1_X,    Consts._OP2_X,    Consts._BR_NE).__int__()
+    BLT       = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_SB, Consts._OP1_X,    Consts._OP2_X,    Consts._BR_LT).__int__()
+    BGE       = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_SB, Consts._OP1_X,    Consts._OP2_X,    Consts._BR_GE).__int__()
+    BLTU      = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_SB, Consts._OP1_X,    Consts._OP2_X,    Consts._BR_LTU).__int__()
+    BGEU      = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_SB, Consts._OP1_X,    Consts._OP2_X,    Consts._BR_GEU).__int__()
+    LB        = concat(N, N, N, N, N, N, Y, Consts._WB_MEM, CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_RD, MemoryOpConstant._MT_B,  ALUFunction._OP_ADD,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    LH        = concat(N, N, N, N, N, N, Y, Consts._WB_MEM, CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_RD, MemoryOpConstant._MT_H,  ALUFunction._OP_ADD,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    LW        = concat(N, N, N, N, N, N, Y, Consts._WB_MEM, CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_RD, MemoryOpConstant._MT_W,  ALUFunction._OP_ADD,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    LBU       = concat(N, N, N, N, N, N, Y, Consts._WB_MEM, CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_RD, MemoryOpConstant._MT_BU, ALUFunction._OP_ADD,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    LHU       = concat(N, N, N, N, N, N, Y, Consts._WB_MEM, CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_RD, MemoryOpConstant._MT_HU, ALUFunction._OP_ADD,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SB        = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_WR, MemoryOpConstant._MT_B,  ALUFunction._OP_ADD,  Consts._IMM_S,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SH        = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_WR, MemoryOpConstant._MT_H,  ALUFunction._OP_ADD,  Consts._IMM_S,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SW        = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  Y, MemoryOpConstant.M_WR, MemoryOpConstant._MT_W,  ALUFunction._OP_ADD,  Consts._IMM_S,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    ADDI      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SLTI      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SLT,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SLTIU     = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SLTU, Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    XORI      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_XOR,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    ORI       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_OR,   Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    ANDI      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_AND,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SLLI      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SLL,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SRLI      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SRL,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    SRAI      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SRA,  Consts._IMM_I,  Consts._OP1_RS1,  Consts._OP2_IMM,  Consts._BR_N).__int__()
+    ADD       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    SUB       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SUB,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    SLL       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SLL,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    SLT       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SLT,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    SLTU      = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SLTU, Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    XOR       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_XOR,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    SRL       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SRL,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    SRA       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_SRA,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    OR        = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_OR,   Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    AND       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_AND,  Consts._IMM_X,  Consts._OP1_RS1,  Consts._OP2_RS2,  Consts._BR_N).__int__()
+    FENCE     = concat(N, N, Y, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    FENCE_I   = concat(N, Y, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    CSRRW     = concat(N, N, N, N, N, N, Y, Consts._WB_CSR, CSRCommand._CSR_WRITE, N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_ZERO, Consts._OP2_ZERO, Consts._BR_N).__int__()
+    CSRRS     = concat(N, N, N, N, N, N, Y, Consts._WB_CSR, CSRCommand._CSR_SET,   N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_ZERO, Consts._OP2_ZERO, Consts._BR_N).__int__()
+    CSRRC     = concat(N, N, N, N, N, N, Y, Consts._WB_CSR, CSRCommand._CSR_CLEAR, N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_ZERO, Consts._OP2_ZERO, Consts._BR_N).__int__()
+    CSRRWI    = concat(N, N, N, N, N, N, Y, Consts._WB_CSR, CSRCommand._CSR_WRITE, N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_ZERO, Consts._OP2_ZERO, Consts._BR_N).__int__()
+    CSRRSI    = concat(N, N, N, N, N, N, Y, Consts._WB_CSR, CSRCommand._CSR_SET,   N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_ZERO, Consts._OP2_ZERO, Consts._BR_N).__int__()
+    CSRRCI    = concat(N, N, N, N, N, N, Y, Consts._WB_CSR, CSRCommand._CSR_CLEAR, N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_ZERO, Consts._OP2_ZERO, Consts._BR_N).__int__()
+    ECALL     = concat(N, N, N, Y, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    EBREAK    = concat(N, N, N, N, Y, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    ERET      = concat(N, N, N, N, N, Y, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    MRTS      = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    MRTH      = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    HRTS      = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    WFI       = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
+    SFENCE_VM = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCommand._CSR_IDLE,  N, MemoryOpConstant.M_X,  MemoryOpConstant._MT_X,  ALUFunction._OP_ADD,  Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
 
 
 class CtrlIO:
@@ -562,8 +556,8 @@ class Ctrlpath:
             Register the exception signals generated in the IF stage.
             """
             if self.rst:
-                self.id_imem_fault.next    = False
-                self.id_imem_misalign.next = False
+                self.id_imem_fault.next    = N
+                self.id_imem_misalign.next = N
             else:
                 self.id_imem_fault.next    = (self.id_imem_fault if (self.io.id_stall or self.io.full_stall) else
                                               (False if (self.io.pipeline_kill or self.io.if_kill) else
@@ -587,23 +581,23 @@ class Ctrlpath:
             blame IF. The priority of exceptions with origin in IF (or ID) is arbitrary.
             """
             if self.rst:
-                self.ex_exception.next      = False
+                self.ex_exception.next      = N
                 self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
                 self.ex_mem_funct.next      = MemoryOpConstant.M_X
-                self.ex_breakpoint.next     = False
-                self.ex_eret.next           = False
-                self.ex_ebreak.next         = False
-                self.ex_ecall.next          = False
+                self.ex_breakpoint.next     = N
+                self.ex_eret.next           = N
+                self.ex_ebreak.next         = N
+                self.ex_ecall.next          = N
                 self.ex_csr_cmd.next        = CSRCommand.CSR_IDLE
             else:
                 if (self.io.pipeline_kill or self.io.id_kill or self.io.id_stall) and not self.io.full_stall:
-                    self.ex_exception.next      = False
+                    self.ex_exception.next      = N
                     self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
                     self.ex_mem_funct.next      = MemoryOpConstant.M_X
-                    self.ex_breakpoint.next     = False
-                    self.ex_eret.next           = False
-                    self.ex_ebreak.next         = False
-                    self.ex_ecall.next          = False
+                    self.ex_breakpoint.next     = N
+                    self.ex_eret.next           = N
+                    self.ex_ebreak.next         = N
+                    self.ex_ecall.next          = N
                     self.ex_csr_cmd.next        = CSRCommand.CSR_IDLE
                 elif not self.io.id_stall and not self.io.full_stall:
                     self.ex_exception.next      = (self.id_imem_misalign or self.id_imem_fault or self.id_illegal_inst or
@@ -630,20 +624,20 @@ class Ctrlpath:
             This stage does not generates eceptions.
             """
             if self.rst:
-                self.mem_breakpoint.next        = False
-                self.mem_eret.next              = False
-                self.mem_ebreak.next            = False
-                self.mem_ecall.next             = False
-                self.mem_mem_funct.next         = False
-                self.mem_exception_ex.next      = False
+                self.mem_breakpoint.next        = N
+                self.mem_eret.next              = N
+                self.mem_ebreak.next            = N
+                self.mem_ecall.next             = N
+                self.mem_mem_funct.next         = N
+                self.mem_exception_ex.next      = N
                 self.mem_exception_code_ex.next = CSRExceptionCode.E_ILLEGAL_INST
             else:
-                self.mem_breakpoint.next        = (self.mem_breakpoint if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_breakpoint))
-                self.mem_eret.next              = (self.mem_eret if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_eret))
-                self.mem_ebreak.next            = (self.mem_ebreak if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_ebreak))
-                self.mem_ecall.next             = (self.mem_ecall if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_ecall))
+                self.mem_breakpoint.next        = (self.mem_breakpoint if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_breakpoint))
+                self.mem_eret.next              = (self.mem_eret if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_eret))
+                self.mem_ebreak.next            = (self.mem_ebreak if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_ebreak))
+                self.mem_ecall.next             = (self.mem_ecall if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_ecall))
                 self.mem_mem_funct.next         = (self.mem_mem_funct if self.io.full_stall else (MemoryOpConstant.M_RD if self.io.pipeline_kill else self.ex_mem_funct))
-                self.mem_exception_ex.next      = (self.mem_exception_ex if self.io.full_stall else (False if self.io.pipeline_kill else self.ex_exception))
+                self.mem_exception_ex.next      = (self.mem_exception_ex if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_exception))
                 self.mem_exception_code_ex.next = (self.mem_exception_code_ex if self.io.full_stall else (CSRExceptionCode.E_ILLEGAL_INST if self.io.pipeline_kill else self.ex_exception_code))
 
         @always(self.clk.posedge)
@@ -655,7 +649,7 @@ class Ctrlpath:
             the FENCE.I instruction.
             """
             if self.rst:
-                self.wb_mem_funct.next = False
+                self.wb_mem_funct.next = N
             else:
                 self.wb_mem_funct.next = (self.wb_mem_funct if self.io.full_stall else (MemoryOpConstant.M_RD if self.io.pipeline_kill else self.mem_mem_funct))
 
@@ -747,8 +741,8 @@ class Ctrlpath:
             self.io.id_stall.next      = (((self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and
                                            (self.ex_mem_funct == MemoryOpConstant.M_RD or self.ex_csr_cmd != CSRCommand.CSR_IDLE)) or
                                           self.id_fence_i and (self.ex_mem_funct == MemoryOpConstant.M_WR or self.mem_mem_funct == MemoryOpConstant.M_WR or self.wb_mem_funct == MemoryOpConstant.M_WR))
-            self.io.id_kill.next       = False
             self.io.full_stall.next    = self.imem.req.valid or self.dmem.req.valid
+            self.io.id_kill.next       = N
             self.io.pipeline_kill.next = self.io.csr_exception
 
         @always_comb

@@ -27,18 +27,24 @@ class MemoryOpConstant:
     """
     Defines data types and memory functions.
     """
-    SZ_MT = 3
-    MT_X  = modbv(0)[SZ_MT:]
-    MT_B  = modbv(1)[SZ_MT:]
-    MT_H  = modbv(2)[SZ_MT:]
-    MT_W  = modbv(3)[SZ_MT:]
-    MT_BU = modbv(5)[SZ_MT:]
-    MT_HU = modbv(6)[SZ_MT:]
+    SZ_MT  = 3
+    MT_X   = 0
+    MT_B   = 1
+    MT_H   = 2
+    MT_W   = 3
+    MT_BU  = 5
+    MT_HU  = 6
+    _MT_X  = modbv(0)[SZ_MT:]
+    _MT_B  = modbv(1)[SZ_MT:]
+    _MT_H  = modbv(2)[SZ_MT:]
+    _MT_W  = modbv(3)[SZ_MT:]
+    _MT_BU = modbv(5)[SZ_MT:]
+    _MT_HU = modbv(6)[SZ_MT:]
 
-    SZ_M = 1
-    M_X  = False
-    M_RD = False
-    M_WR = True
+    SZ_M   = 1
+    M_X    = False
+    M_RD   = False
+    M_WR   = True
 
 
 class MemPortIO:
