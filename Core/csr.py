@@ -558,17 +558,17 @@ class CSR:
                     instret_full.next = instret_full + 1
                 if wen_internal:
                     if addr == CSRAddressMap.CSR_ADDR_CYCLE:
-                        cycle_full[32:0] = wdata_aux
+                        cycle_full[32:0].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_TIME:
-                        time_full[32:0] = wdata_aux
+                        time_full[32:0].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_INSTRET:
-                        instret_full[32:0] = wdata_aux
+                        instret_full[32:0].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_CYCLEH:
-                        cycle_full[64:32] = wdata_aux
+                        cycle_full[64:32].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_TIMEH:
-                        time_full[64:32] = wdata_aux
+                        time_full[64:32].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_INSTRETH:
-                        instret_full[64:32] = wdata_aux
+                        instret_full[64:32].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_MTVEC:
                         mtvec.next = wdata_aux & ~0x03
                     elif addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
@@ -580,17 +580,17 @@ class CSR:
                     elif addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
                         mscratch.next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_CYCLEW:
-                        cycle_full[32:0] = wdata_aux
+                        cycle_full[32:0].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_TIMEW:
-                        time_full[32:0] = wdata_aux
+                        time_full[32:0].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_INSTRETW:
-                        instret_full[32:0] = wdata_aux
+                        instret_full[32:0].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
-                        cycle_full[64:32] = wdata_aux
+                        cycle_full[64:32].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_TIMEHW:
-                        time_full[64:32] = wdata_aux
+                        time_full[64:32].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
-                        instret_full[64:32] = wdata_aux
+                        instret_full[64:32].next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_TO_HOST:
                         mtohost.next = wdata_aux
                     elif addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
