@@ -311,7 +311,7 @@ class CSR:
             """
             self.prv.next                      = priv_stack[3:1]
             mtimer_expired.next                = mtimecmp == mtime
-            system_en.next                     = self.rw.cmd[3]
+            system_en.next                     = self.rw.cmd[2]
             system_wen.next                    = self.rw.cmd[0] | self.rw.cmd[1]
 
         @always_comb
