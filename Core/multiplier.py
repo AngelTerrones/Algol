@@ -34,13 +34,15 @@ class MultiplierOP:
     - unsigned x unsigned
     - signed x unsigned
     """
-    SZ_OP  = 3
-    OP_SS  = 0b001
-    OP_UU  = 0b010
-    OP_SU  = 0b100
-    _OP_SS = modbv(OP_SS)[SZ_OP:]
-    _OP_UU = modbv(OP_UU)[SZ_OP:]
-    _OP_SU = modbv(OP_SU)[SZ_OP:]
+    SZ_OP    = 3
+    OP_IDLE  = 0b000
+    OP_SS    = 0b001
+    OP_UU    = 0b010
+    OP_SU    = 0b100
+    _OP_IDLE = modbv(OP_IDLE)[SZ_OP:]
+    _OP_SS   = modbv(OP_SS)[SZ_OP:]
+    _OP_UU   = modbv(OP_UU)[SZ_OP:]
+    _OP_SU   = modbv(OP_SU)[SZ_OP:]
 
 
 class MultiplierIO:
