@@ -119,6 +119,6 @@ def test_multiplier_su():
     sim.run()
 
 # Local Variables:
-# flycheck-flake8-maximum-line-length: 120
+# flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
 # End:
