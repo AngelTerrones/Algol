@@ -67,22 +67,14 @@ def _testbench():
                     assert aluIO.output == a | b, "Error OR"
                 elif i == ALUFunction.OP_AND:
                     assert aluIO.output == a & b, "Error AND"
-                elif i == ALUFunction.OP_SEQ:
-                    assert aluIO.output == modbv(a == b)[32:], "Error SEQ"
-                elif i == ALUFunction.OP_SNE:
-                    assert aluIO.output == modbv(a != b)[32:], "Error SNE"
                 elif i == ALUFunction.OP_SUB:
                     assert aluIO.output == modbv(a - b)[32:], "Error SUB"
                 elif i == ALUFunction.OP_SRA:
                     assert aluIO.output == modbv(a.signed() >> shamt)[32:], "Error SRA"
                 elif i == ALUFunction.OP_SLT:
                     assert aluIO.output == modbv(a.signed() < b.signed())[32:], "Error SLT"
-                elif i == ALUFunction.OP_SGE:
-                    assert aluIO.output == modbv(a.signed() >= b.signed())[32:], "Error SGE"
                 elif i == ALUFunction.OP_SLTU:
                     assert aluIO.output == modbv(abs(a) < b)[32:], "Error SLTU"
-                elif i == ALUFunction.OP_SGEU:
-                    assert aluIO.output == modbv(abs(a) >= b)[32:], "Error SGEU"
                 else:
                     assert aluIO.output == 0, "Error UNDEFINED OP"
 

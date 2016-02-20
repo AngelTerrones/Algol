@@ -33,32 +33,24 @@ class ALUFunction:
     SZ_OP    = 4
     OP_ADD   = 0
     OP_SLL   = 1
-    OP_XOR   = 4
-    OP_SRL   = 5
-    OP_OR    = 6
-    OP_AND   = 7
-    OP_SEQ   = 8
-    OP_SNE   = 9
-    OP_SUB   = 10
-    OP_SRA   = 11
-    OP_SLT   = 12
-    OP_SGE   = 13
-    OP_SLTU  = 14
-    OP_SGEU  = 15
-    _OP_ADD  = modbv(0)[SZ_OP:]
-    _OP_SLL  = modbv(1)[SZ_OP:]
-    _OP_XOR  = modbv(4)[SZ_OP:]
-    _OP_SRL  = modbv(5)[SZ_OP:]
-    _OP_OR   = modbv(6)[SZ_OP:]
-    _OP_AND  = modbv(7)[SZ_OP:]
-    _OP_SEQ  = modbv(8)[SZ_OP:]
-    _OP_SNE  = modbv(9)[SZ_OP:]
-    _OP_SUB  = modbv(10)[SZ_OP:]
-    _OP_SRA  = modbv(11)[SZ_OP:]
-    _OP_SLT  = modbv(12)[SZ_OP:]
-    _OP_SGE  = modbv(13)[SZ_OP:]
-    _OP_SLTU = modbv(14)[SZ_OP:]
-    _OP_SGEU = modbv(15)[SZ_OP:]
+    OP_XOR   = 2
+    OP_SRL   = 3
+    OP_OR    = 4
+    OP_AND   = 5
+    OP_SUB   = 6
+    OP_SRA   = 7
+    OP_SLT   = 8
+    OP_SLTU  = 9
+    _OP_ADD  = modbv(OP_ADD)[SZ_OP:]
+    _OP_SLL  = modbv(OP_SLL)[SZ_OP:]
+    _OP_XOR  = modbv(OP_XOR)[SZ_OP:]
+    _OP_SRL  = modbv(OP_SRL)[SZ_OP:]
+    _OP_OR   = modbv(OP_OR)[SZ_OP:]
+    _OP_AND  = modbv(OP_AND)[SZ_OP:]
+    _OP_SUB  = modbv(OP_SUB)[SZ_OP:]
+    _OP_SRA  = modbv(OP_SRA)[SZ_OP:]
+    _OP_SLT  = modbv(OP_SLT)[SZ_OP:]
+    _OP_SLTU = modbv(OP_SLTU)[SZ_OP:]
 
 
 class ALUPortIO:
@@ -113,22 +105,14 @@ class ALU:
                 io.output.next = io.input1 | io.input2
             elif io.function == ALUFunction.OP_AND:
                 io.output.next = io.input1 & io.input2
-            elif io.function == ALUFunction.OP_SEQ:
-                io.output.next = concat(modbv(0)[31:], io.input1 == io.input2)
-            elif io.function == ALUFunction.OP_SNE:
-                io.output.next = concat(modbv(0)[31:], io.input1 != io.input2)
             elif io.function == ALUFunction.OP_SUB:
                 io.output.next = io.input1 - io.input2
             elif io.function == ALUFunction.OP_SRA:
                 io.output.next = io.input1.signed() >> io.input2[5:0]
             elif io.function == ALUFunction.OP_SLT:
                 io.output.next = concat(modbv(0)[31:], io.input1.signed() < io.input2.signed())
-            elif io.function == ALUFunction.OP_SGE:
-                io.output.next = concat(modbv(0)[31:], io.input1.signed() >= io.input2.signed())
             elif io.function == ALUFunction.OP_SLTU:
                 io.output.next = concat(modbv(0)[31:], io.input1 < io.input2)
-            elif io.function == ALUFunction.OP_SGEU:
-                io.output.next = concat(modbv(0)[31:], io.input1 >= io.input2)
             else:
                 io.output.next = 0
 
