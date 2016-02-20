@@ -677,12 +677,12 @@ class Ctrlpath:
             """
             self.io.pc_select.next = (modbv(Consts.PC_EXC)[Consts.SZ_PC_SEL:] if self.io.csr_exception or self.io.csr_eret else
                                       (modbv(Consts.PC_BRJMP)[Consts.SZ_PC_SEL:] if ((self.id_br_type == Consts.BR_J) or
-                                                           (self.id_br_type == Consts.BR_NE and not self.id_eq) or
-                                                           (self.id_br_type == Consts.BR_EQ and self.id_eq) or
-                                                           (self.id_br_type == Consts.BR_LT and self.id_lt) or
-                                                           (self.id_br_type == Consts.BR_LTU and self.id_ltu) or
-                                                           (self.id_br_type == Consts.BR_GE and not self.id_lt) or
-                                                           (self.id_br_type == Consts.BR_GEU and not self.id_ltu)) else
+                                                                                     (self.id_br_type == Consts.BR_NE and not self.id_eq) or
+                                                                                     (self.id_br_type == Consts.BR_EQ and self.id_eq) or
+                                                                                     (self.id_br_type == Consts.BR_LT and self.id_lt) or
+                                                                                     (self.id_br_type == Consts.BR_LTU and self.id_ltu) or
+                                                                                     (self.id_br_type == Consts.BR_GE and not self.id_lt) or
+                                                                                     (self.id_br_type == Consts.BR_GEU and not self.id_ltu)) else
                                        (modbv(Consts.PC_JALR)[Consts.SZ_PC_SEL:] if self.id_br_type == Consts.BR_JR else
                                         (modbv(Consts.PC_4)[Consts.SZ_PC_SEL:]))))
 
