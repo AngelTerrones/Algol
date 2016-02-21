@@ -24,7 +24,9 @@ from Core.alu import ALUOp
 from Core.alu import ALUPortIO
 import random
 from myhdl import modbv
+from myhdl import Signal
 from myhdl import instance
+from myhdl import always
 from myhdl import delay
 from myhdl import Simulation
 from myhdl import StopSimulation
@@ -34,13 +36,23 @@ def _testbench():
     """
     Testbech for the ALU module
     """
+    clk = Signal(False)
+    rst = Signal(True)
     aluIO = ALUPortIO()
-    alu = ALU(aluIO)
-    dut = alu.GetRTL()
+    dut = ALU(clk=clk,
+              rst=rst,
+              io=aluIO).GetRTL()
+
+    halfperiod = delay(5)
+
+    @always(halfperiod)
+    def clk_drive():
+        clk.next = not clk
 
     @instance
     def stimulus():
         yield delay(5)
+        rst.next = 0
 
         # Execute 1000 tests.
         for j in range(1000):
