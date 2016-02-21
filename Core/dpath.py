@@ -31,10 +31,6 @@ from Core.regfile import RFWritePort
 from Core.alu import ALU
 from Core.alu import ALUOp
 from Core.alu import ALUPortIO
-from Core.multiplier import Multiplier
-from Core.multiplier import MultiplierIO
-from Core.divider import Divider
-from Core.divider import DividerIO
 from Core.csr import CSR
 from Core.csr import CSRFileRWIO
 from Core.csr import CSRCMD
@@ -117,10 +113,6 @@ class Datapath:
         ex_op1_data      = Signal(modbv(0)[32:])
         ex_op2_data      = Signal(modbv(0)[32:])
         aluIO            = ALUPortIO()
-        multIO           = MultiplierIO()
-        divIO            = DividerIO()
-        ex_mult_out      = Signal(modbv(0)[32:])
-        ex_div_out       = Signal(modbv(0)[32:])
         ex_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
         ex_csr_wdata     = Signal(modbv(0)[32:])
         ex_csr_cmd       = Signal(modbv(0)[CSRCMD.SZ_CMD:])
@@ -296,56 +288,21 @@ class Datapath:
                            ex_csr_wdata,
                            ex_csr_cmd).GetRTL()
 
-        alu = ALU(aluIO).GetRTL()
-
-        mult = Multiplier(self.clk,
-                          self.rst,
-                          multIO).GetRTL()
-
-        div = Divider(self.clk,
-                      self.rst,
-                      divIO).GetRTL()
-
-        ex_mult_out_mux = Mux2(self.ctrlIO.ex_mult_out_sel,
-                               int(multIO.output[32:0]),
-                               int(multIO.output[64:32]),
-                               ex_mult_out).GetRTL()
-
-        ex_div_out_mux = Mux2(self.ctrlIO.ex_div_out_sel,
-                              divIO.quotient,
-                              divIO.remainder,
-                              ex_div_out).GetRTL()
-
-        ex_out_mux = Mux4(self.ctrlIO.ex_out_sel,
-                          aluIO.output,
-                          ex_mult_out,
-                          ex_div_out,
-                          0x01010101,
-                          ex_data_out).GetRTL()
+        alu = ALU(self.clk,
+                  self.rst,
+                  aluIO).GetRTL()
 
         @always_comb
         def _ex_assignments():
-            aluIO.function.next             = ex_alu_funct
-            aluIO.input1.next               = ex_op1_data
-            aluIO.input2.next               = ex_op2_data
-            # Multiplier
-            multIO.input1.next              = ex_op1_data
-            multIO.input2.next              = ex_op2_data
-            multIO.cmd.next                 = self.ctrlIO.ex_mult_cmd
-            multIO.enable.next              = self.ctrlIO.ex_mult_enable
-            multIO.stall.next               = False  # TODO: check this
-            multIO.kill.next                = self.ctrlIO.pipeline_kill
-            self.ctrlIO.ex_mult_active.next = multIO.active
-            self.ctrlIO.ex_mult_ready.next  = multIO.ready
-            # Divider
-            divIO.dividend.next             = ex_op1_data
-            divIO.divisor.next              = ex_op2_data
-            divIO.divs.next                 = self.ctrlIO.ex_divs
-            divIO.divu.next                 = self.ctrlIO.ex_divu
-            self.ctrlIO.ex_div_active.next  = divIO.active
-            # ex_data_out.next              = aluIO.output
-            self.ctrlIO.ex_wb_we.next       = ex_wb_we
-            self.ctrlIO.ex_wb_addr.next     = ex_wb_addr
+            aluIO.input1.next             = ex_op1_data
+            aluIO.input2.next             = ex_op2_data
+            aluIO.function.next           = ex_alu_funct
+            aluIO.stall.next              = self.ctrlIO.full_stall
+            aluIO.kill.next               = self.ctrlIO.pipeline_kill
+            ex_data_out.next              = aluIO.output
+            self.ctrlIO.ex_req_stall.next = aluIO.req_stall
+            self.ctrlIO.ex_wb_we.next     = ex_wb_we
+            self.ctrlIO.ex_wb_addr.next   = ex_wb_addr
 
         # MEM stage
         # ----------------------------------------------------------------------
@@ -446,9 +403,7 @@ class Datapath:
         return (pc_mux, pc_reg, _pc_next, ifid_reg, reg_file, op1_mux, op2_mux,
                 op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
                 _ex_assignments, exmem_reg, _mem_assignments, csr, mdata_mux, memwb_reg,
-                _wb_assignments, exc_pc_mux, mult, div, ex_mult_out_mux, ex_div_out_mux,
-                ex_out_mux)
-
+                _wb_assignments, exc_pc_mux)
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
 # flycheck-flake8rc: ".flake8rc"
