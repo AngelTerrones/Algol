@@ -303,6 +303,7 @@ class Ctrlpath:
         self.ex_exception          = Signal(False)
         self.ex_exception_code     = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
         self.ex_mem_funct          = Signal(modbv(0)[MemOp.SZ_M:])
+        self.ex_mem_valid          = Signal(False)
         self.ex_csr_cmd            = Signal(modbv(0)[CSRCMD.SZ_CMD:])
         self.mem_breakpoint        = Signal(False)
         self.mem_eret              = Signal(False)
@@ -585,6 +586,7 @@ class Ctrlpath:
                 self.ex_exception.next      = N
                 self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
                 self.ex_mem_funct.next      = MemOp.M_X
+                self.ex_mem_valid.next      = False
                 self.ex_breakpoint.next     = N
                 self.ex_eret.next           = N
                 self.ex_ecall.next          = N
@@ -608,6 +610,7 @@ class Ctrlpath:
                                                       (modbv(CSRExceptionCode.E_BREAKPOINT)[CSRExceptionCode.SZ_ECODE:] if self.id_breakpoint else
                                                        (modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:]))))))
                     self.ex_mem_funct.next      = self.io.id_mem_funct
+                    self.ex_mem_valid.next      = self.io.id_mem_valid
                     self.ex_breakpoint.next     = self.id_breakpoint
                     self.ex_eret.next           = self.id_eret
                     self.ex_ecall.next          = self.id_ecall
@@ -735,11 +738,11 @@ class Ctrlpath:
             """
             self.io.if_kill.next       = self.io.pc_select != Consts.PC_4
             self.io.id_stall.next      = (((self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and
-                                           (self.ex_mem_funct == MemOp.M_RD or self.ex_csr_cmd != CSRCMD.CSR_IDLE)) or
-                                          self.id_fence_i and (self.ex_mem_funct == MemOp.M_WR or self.mem_mem_funct == MemOp.M_WR or self.wb_mem_funct == MemOp.M_WR))
+                                           ((self.ex_mem_funct == MemOp.M_RD and self.ex_mem_valid) or self.ex_csr_cmd != CSRCMD.CSR_IDLE)) or
+                                          (self.id_fence_i and (self.ex_mem_funct == MemOp.M_WR or self.mem_mem_funct == MemOp.M_WR or self.wb_mem_funct == MemOp.M_WR)))
             self.io.id_kill.next       = N
             self.io.full_stall.next    = self.imem.valid or self.dmem.valid
-            self.io.pipeline_kill.next = self.io.csr_exception
+            self.io.pipeline_kill.next = self.io.csr_exception or self.io.csr_eret
 
         @always_comb
         def _exc_detect():
