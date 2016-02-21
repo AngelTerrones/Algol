@@ -20,7 +20,7 @@
 # THE SOFTWARE.
 
 from Simulation.core.memory import Memory
-from Core.memIO import MemoryOpConstant
+from Core.memIO import MemOp
 from Core.memIO import MemPortIO
 import random
 from myhdl import always
@@ -60,7 +60,7 @@ class RamBus:
         self.dmem.addr.next = addr
         self.dmem.wdata.next = data
         self.dmem.wr.next = 0b1111
-        self.dmem.fcn.next = MemoryOpConstant.M_WR
+        self.dmem.fcn.next = MemOp.M_WR
         self.dmem.valid.next = True
         self.mirror_mem[addr >> 2] = data
         yield self.dmem.ready.posedge
@@ -71,7 +71,7 @@ class RamBus:
         yield self.clk.posedge
         self.dmem.addr.next = addr
         self.dmem.wr.next = 0b0000
-        self.dmem.fcn.next = MemoryOpConstant.M_RD
+        self.dmem.fcn.next = MemOp.M_RD
         self.dmem.valid.next = True
         yield self.dmem.ready.posedge
         yield self.clk.negedge

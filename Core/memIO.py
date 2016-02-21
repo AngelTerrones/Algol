@@ -23,7 +23,7 @@ from myhdl import Signal
 from myhdl import modbv
 
 
-class MemoryOpConstant:
+class MemOp:
     """
     Defines data types and memory functions.
     """

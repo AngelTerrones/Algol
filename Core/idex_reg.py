@@ -23,9 +23,9 @@ from myhdl import Signal
 from myhdl import always
 from myhdl import modbv
 from Core.consts import Consts
-from Core.alu import ALUFunction
-from Core.memIO import MemoryOpConstant
-from Core.csr import CSRCommand
+from Core.alu import ALUOp
+from Core.memIO import MemOp
+from Core.csr import CSRCMD
 
 
 class IDEXReg:
@@ -108,9 +108,9 @@ class IDEXReg:
                 self.ex_pc.next           = 0
                 self.ex_op1_data.next     = 0
                 self.ex_op2_data.next     = 0
-                self.ex_alu_funct.next    = ALUFunction.OP_ADD
-                self.ex_mem_type.next     = MemoryOpConstant.MT_X
-                self.ex_mem_funct.next    = MemoryOpConstant.M_X
+                self.ex_alu_funct.next    = ALUOp.OP_ADD
+                self.ex_mem_type.next     = MemOp.MT_X
+                self.ex_mem_funct.next    = MemOp.M_X
                 self.ex_mem_valid.next    = False
                 self.ex_mem_wdata.next    = 0
                 self.ex_mem_data_sel.next = Consts.WB_X
@@ -118,7 +118,7 @@ class IDEXReg:
                 self.ex_wb_we.next        = False
                 self.ex_csr_addr.next     = 0
                 self.ex_csr_wdata.next    = 0
-                self.ex_csr_cmd.next      = CSRCommand.CSR_IDLE
+                self.ex_csr_cmd.next      = CSRCMD.CSR_IDLE
             else:
                 # id_stall and full_stall are not related.
                 self.ex_pc.next           = (self.ex_pc if (self.id_stall or self.full_stall) else (self.id_pc))
@@ -132,7 +132,7 @@ class IDEXReg:
                 self.ex_csr_addr.next     = (self.ex_csr_addr if (self.id_stall or self.full_stall) else (self.id_csr_addr))
                 self.ex_csr_wdata.next    = (self.ex_csr_wdata if (self.id_stall or self.full_stall) else (self.id_csr_wdata))
                 self.ex_mem_funct.next    = (self.ex_mem_funct if self.full_stall else
-                                             (MemoryOpConstant.M_X if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
+                                             (MemOp.M_X if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
                                               (self.id_mem_funct)))
                 self.ex_mem_valid.next    = (self.ex_mem_valid if self.full_stall else
                                              (False if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
@@ -141,7 +141,7 @@ class IDEXReg:
                                              (False if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
                                               (self.id_wb_we)))
                 self.ex_csr_cmd.next      = (self.ex_csr_cmd if self.full_stall else
-                                             (modbv(CSRCommand.CSR_IDLE)[CSRCommand.SZ_CMD:] if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
+                                             (modbv(CSRCMD.CSR_IDLE)[CSRCMD.SZ_CMD:] if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
                                               (self.id_csr_cmd)))
         return rtl
 

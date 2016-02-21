@@ -20,7 +20,7 @@
 # THE SOFTWARE.
 
 from Core.alu import ALU
-from Core.alu import ALUFunction
+from Core.alu import ALUOp
 from Core.alu import ALUPortIO
 import random
 from myhdl import modbv
@@ -55,33 +55,33 @@ def _testbench():
                 yield delay(1)
                 shamt = aluIO.input2[5:0]
 
-                if i == ALUFunction.OP_ADD:
+                if i == ALUOp.OP_ADD:
                     assert aluIO.output == modbv(a + b)[32:], "Error ADD"
-                elif i == ALUFunction.OP_SLL:
+                elif i == ALUOp.OP_SLL:
                     assert aluIO.output == modbv(a << shamt)[32:], "Error SLL"
-                elif i == ALUFunction.OP_XOR:
+                elif i == ALUOp.OP_XOR:
                     assert aluIO.output == a ^ b, "Error XOR"
-                elif i == ALUFunction.OP_SRL:
+                elif i == ALUOp.OP_SRL:
                     assert aluIO.output == a >> shamt, "Error SRL"
-                elif i == ALUFunction.OP_OR:
+                elif i == ALUOp.OP_OR:
                     assert aluIO.output == a | b, "Error OR"
-                elif i == ALUFunction.OP_AND:
+                elif i == ALUOp.OP_AND:
                     assert aluIO.output == a & b, "Error AND"
-                elif i == ALUFunction.OP_SEQ:
+                elif i == ALUOp.OP_SEQ:
                     assert aluIO.output == modbv(a == b)[32:], "Error SEQ"
-                elif i == ALUFunction.OP_SNE:
+                elif i == ALUOp.OP_SNE:
                     assert aluIO.output == modbv(a != b)[32:], "Error SNE"
-                elif i == ALUFunction.OP_SUB:
+                elif i == ALUOp.OP_SUB:
                     assert aluIO.output == modbv(a - b)[32:], "Error SUB"
-                elif i == ALUFunction.OP_SRA:
+                elif i == ALUOp.OP_SRA:
                     assert aluIO.output == modbv(a.signed() >> shamt)[32:], "Error SRA"
-                elif i == ALUFunction.OP_SLT:
+                elif i == ALUOp.OP_SLT:
                     assert aluIO.output == modbv(a.signed() < b.signed())[32:], "Error SLT"
-                elif i == ALUFunction.OP_SGE:
+                elif i == ALUOp.OP_SGE:
                     assert aluIO.output == modbv(a.signed() >= b.signed())[32:], "Error SGE"
-                elif i == ALUFunction.OP_SLTU:
+                elif i == ALUOp.OP_SLTU:
                     assert aluIO.output == modbv(abs(a) < b)[32:], "Error SLTU"
-                elif i == ALUFunction.OP_SGEU:
+                elif i == ALUOp.OP_SGEU:
                     assert aluIO.output == modbv(abs(a) >= b)[32:], "Error SGEU"
                 else:
                     assert aluIO.output == 0, "Error UNDEFINED OP"

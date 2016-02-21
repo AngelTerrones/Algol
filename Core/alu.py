@@ -25,7 +25,7 @@ from myhdl import always_comb
 from myhdl import modbv
 
 
-class ALUFunction:
+class ALUOp:
     """
     List of ALU opcodes.
     """
@@ -74,7 +74,7 @@ class ALUPortIO:
         """
         Initializes the IO ports.
         """
-        self.function = Signal(modbv(0)[ALUFunction.SZ_OP:])
+        self.function = Signal(modbv(0)[ALUOp.SZ_OP:])
         self.input1   = Signal(modbv(0)[32:])
         self.input2   = Signal(modbv(0)[32:])
         self.output   = Signal(modbv(0)[32:])
@@ -101,33 +101,33 @@ class ALU:
 
         @always_comb
         def rtl():
-            if io.function == ALUFunction.OP_ADD:
+            if io.function == ALUOp.OP_ADD:
                 io.output.next = io.input1 + io.input2
-            elif io.function == ALUFunction.OP_SLL:
+            elif io.function == ALUOp.OP_SLL:
                 io.output.next = io.input1 << io.input2[5:0]
-            elif io.function == ALUFunction.OP_XOR:
+            elif io.function == ALUOp.OP_XOR:
                 io.output.next = io.input1 ^ io.input2
-            elif io.function == ALUFunction.OP_SRL:
+            elif io.function == ALUOp.OP_SRL:
                 io.output.next = io.input1 >> io.input2[5:0]
-            elif io.function == ALUFunction.OP_OR:
+            elif io.function == ALUOp.OP_OR:
                 io.output.next = io.input1 | io.input2
-            elif io.function == ALUFunction.OP_AND:
+            elif io.function == ALUOp.OP_AND:
                 io.output.next = io.input1 & io.input2
-            elif io.function == ALUFunction.OP_SEQ:
+            elif io.function == ALUOp.OP_SEQ:
                 io.output.next = concat(modbv(0)[31:], io.input1 == io.input2)
-            elif io.function == ALUFunction.OP_SNE:
+            elif io.function == ALUOp.OP_SNE:
                 io.output.next = concat(modbv(0)[31:], io.input1 != io.input2)
-            elif io.function == ALUFunction.OP_SUB:
+            elif io.function == ALUOp.OP_SUB:
                 io.output.next = io.input1 - io.input2
-            elif io.function == ALUFunction.OP_SRA:
+            elif io.function == ALUOp.OP_SRA:
                 io.output.next = io.input1.signed() >> io.input2[5:0]
-            elif io.function == ALUFunction.OP_SLT:
+            elif io.function == ALUOp.OP_SLT:
                 io.output.next = concat(modbv(0)[31:], io.input1.signed() < io.input2.signed())
-            elif io.function == ALUFunction.OP_SGE:
+            elif io.function == ALUOp.OP_SGE:
                 io.output.next = concat(modbv(0)[31:], io.input1.signed() >= io.input2.signed())
-            elif io.function == ALUFunction.OP_SLTU:
+            elif io.function == ALUOp.OP_SLTU:
                 io.output.next = concat(modbv(0)[31:], io.input1 < io.input2)
-            elif io.function == ALUFunction.OP_SGEU:
+            elif io.function == ALUOp.OP_SGEU:
                 io.output.next = concat(modbv(0)[31:], io.input1 >= io.input2)
             else:
                 io.output.next = 0
