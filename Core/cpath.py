@@ -132,45 +132,46 @@ class CtrlIO:
     """
     Defines a bundle for the IO interface between the cpath and the dpath.
 
-    : ivar id_instruction:     Intruction at ID stage
-    : ivar if_kill:            Kill the IF stage
-    : ivar id_stall:           Stall the ID stage
-    : ivar id_kill:            Kill the ID stage
-    : ivar full_stall:         Stall whole pipeline
-    : ivar pipeline_kill:      Kill the pipeline
-    : ivar pc_select:          Select next PC
-    : ivar id_op1_select:      Data select for OP1 at ID stage
-    : ivar id_op2_select:      Data select for OP2 at ID stage
-    : ivar id_sel_imm:         Select the Immediate
-    : ivar id_alu_funct:       ALU opcode
-    : ivar id_mem_type:        Data size for memory operations: byte, half-word, word
-    : ivar id_mem_funct:       Memory function: read (RD) or write (WR)
-    : ivar id_mem_valid:       Valid memory operation
-    : ivar id_csr_cmd:         CSR command
-    : ivar id_mem_data_sel:    Data source for mux at MEM stage: ALU, memory or CSR
-    : ivar id_wb_we:           Commit data to RF
-    : ivar id_fwd1_select:     Forwarding selector for OP1
-    : ivar id_fwd2_select:     Forwarding selector for OP2
-    : ivar id_rs1_addr:        OP1 address
-    : ivar id_rs2_addr:        OP2 address
-    : ivar id_op1:             OP1 data
-    : ivar id_op2:             OP2 data
-    : ivar ex_wb_addr:         RF write address at EX stage
-    : ivar ex_wb_we:           RF write enable at EX stage
-    : ivar mem_wb_addr:        RF write address at MEM stage
-    : ivar mem_wb_we:          RF write enable at MEM stage
-    : ivar wb_wb_addr:         RF write address at WB stage
-    : ivar wb_wb_we:           RF write enable at WB stage
-    : ivar csr_eret:           Instruction is ERET
-    : ivar csr_prv:            Priviledge level at MEM stage
-    : ivar csr_illegal_access: Illegal access to CSR: CSR at MEM
-    : ivar csr_interrupt:      External interrupt: CSR at ID
-    : ivar csr_interrupt_code: Interrupt code: CSR at ID
-    : ivar csr_exception:      Exception detected: CSR at MEM
-    : ivar csr_exception_code: Exception code: CSR at MEM
-    : ivar csr_retire:         Increment instruction count: CSR at MEM
-    : ivar imem_pipeline:      Instruction memory access request from dpath
-    : ivar dmem_pipeline:      Data memory access request from dpath
+    :ivar id_instruction:     Intruction at ID stage
+    :ivar if_kill:            Kill the IF stage
+    :ivar id_stall:           Stall the ID stage
+    :ivar id_kill:            Kill the ID stage
+    :ivar full_stall:         Stall whole pipeline
+    :ivar pipeline_kill:      Kill the pipeline
+    :ivar pc_select:          Select next PC
+    :ivar id_op1_select:      Data select for OP1 at ID stage
+    :ivar id_op2_select:      Data select for OP2 at ID stage
+    :ivar id_sel_imm:         Select the Immediate
+    :ivar id_alu_funct:       ALU opcode
+    :ivar id_mem_type:        Data size for memory operations: byte, half-word, word
+    :ivar id_mem_funct:       Memory function: read (RD) or write (WR)
+    :ivar id_mem_valid:       Valid memory operation
+    :ivar id_csr_cmd:         CSR command
+    :ivar id_mem_data_sel:    Data source for mux at MEM stage: ALU, memory or CSR
+    :ivar id_wb_we:           Commit data to RF
+    :ivar id_fwd1_select:     Forwarding selector for OP1
+    :ivar id_fwd2_select:     Forwarding selector for OP2
+    :ivar id_rs1_addr:        OP1 address
+    :ivar id_rs2_addr:        OP2 address
+    :ivar id_op1:             OP1 data
+    :ivar id_op2:             OP2 data
+    :ivar ex_wb_addr:         RF write address at EX stage
+    :ivar ex_wb_we:           RF write enable at EX stage
+    :ivar ex_req_stall:       Long operation in EX.
+    :ivar mem_wb_addr:        RF write address at MEM stage
+    :ivar mem_wb_we:          RF write enable at MEM stage
+    :ivar wb_wb_addr:         RF write address at WB stage
+    :ivar wb_wb_we:           RF write enable at WB stage
+    :ivar csr_eret:           Instruction is ERET
+    :ivar csr_prv:            Priviledge level at MEM stage
+    :ivar csr_illegal_access: Illegal access to CSR: CSR at MEM
+    :ivar csr_interrupt:      External interrupt: CSR at ID
+    :ivar csr_interrupt_code: Interrupt code: CSR at ID
+    :ivar csr_exception:      Exception detected: CSR at MEM
+    :ivar csr_exception_code: Exception code: CSR at MEM
+    :ivar csr_retire:         Increment instruction count: CSR at MEM
+    :ivar imem_pipeline:      Instruction memory access request from dpath
+    :ivar dmem_pipeline:      Data memory access request from dpath
     """
     def __init__(self):
         """
@@ -201,9 +202,7 @@ class CtrlIO:
         self.id_op2             = Signal(modbv(0)[32:])
         self.ex_wb_addr         = Signal(modbv(0)[5:])
         self.ex_wb_we           = Signal(False)
-        #
         self.ex_req_stall       = Signal(False)
-        #
         self.mem_wb_addr        = Signal(modbv(0)[5:])
         self.mem_wb_we          = Signal(False)
         self.wb_wb_addr         = Signal(modbv(0)[5:])
