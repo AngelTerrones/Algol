@@ -142,7 +142,7 @@ class Divider:
                     if cycle == 0:
                         active.next = 0
 
-                    cycle.next = cycle - 1
+                    cycle.next = cycle - modbv(1)[5:]
 
         return instances()
 

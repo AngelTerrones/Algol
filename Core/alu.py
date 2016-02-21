@@ -150,10 +150,10 @@ class ALU:
         def _assignments():
             multIO.input1.next  = self.io.input1
             multIO.input2.next  = self.io.input2
-            multIO.cmd.next     = (MultiplierOP.OP_SS if mult_ss else
-                                   (MultiplierOP.OP_SU if mult_su else
-                                    (MultiplierOP.OP_UU if mult_uu else
-                                     MultiplierOP.OP_IDLE)))
+            multIO.cmd.next     = (modbv(MultiplierOP.OP_SS)[MultiplierOP.SZ_OP:] if mult_ss else
+                                   (modbv(MultiplierOP.OP_SU)[MultiplierOP.SZ_OP:] if mult_su else
+                                    (modbv(MultiplierOP.OP_UU)[MultiplierOP.SZ_OP:] if mult_uu else
+                                     modbv(MultiplierOP.OP_IDLE)[MultiplierOP.SZ_OP:])))
             multIO.enable.next  = (mult_ss or mult_su or mult_uu) and not multIO.active
             multIO.stall.next   = self.io.stall != io.req_stall
             multIO.kill.next    = self.io.kill
