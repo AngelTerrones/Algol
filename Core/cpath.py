@@ -569,14 +569,14 @@ class Ctrlpath:
             Register the exception signals generated in the IF stage.
             """
             if self.rst:
-                self.id_imem_fault.next    = N
-                self.id_imem_misalign.next = N
+                self.id_imem_fault.next    = False
+                self.id_imem_misalign.next = False
             else:
                 self.id_imem_fault.next    = (self.id_imem_fault if (self.io.id_stall or self.io.full_stall) else
-                                              (N if (self.io.pipeline_kill or self.io.if_kill) else
+                                              (False if (self.io.pipeline_kill or self.io.if_kill) else
                                                self.if_imem_fault))
                 self.id_imem_misalign.next = (self.id_imem_misalign if (self.io.id_stall or self.io.full_stall) else
-                                              (N if (self.io.pipeline_kill or self.io.if_kill) else
+                                              (False if (self.io.pipeline_kill or self.io.if_kill) else
                                                self.if_imem_misalign))
 
         @always(self.clk.posedge)
@@ -594,22 +594,22 @@ class Ctrlpath:
             blame IF. The priority of exceptions with origin in IF (or ID) is arbitrary.
             """
             if self.rst:
-                self.ex_exception.next      = N
+                self.ex_exception.next      = False
                 self.ex_exception_code.next = CSRExceptionCode.E_ILLEGAL_INST
                 self.ex_mem_funct.next      = MemOp.M_X
                 self.ex_mem_valid.next      = False
-                self.ex_breakpoint.next     = N
-                self.ex_eret.next           = N
-                self.ex_ecall.next          = N
+                self.ex_breakpoint.next     = False
+                self.ex_eret.next           = False
+                self.ex_ecall.next          = False
                 self.ex_csr_cmd.next        = CSRCMD.CSR_IDLE
             else:
                 if (self.io.pipeline_kill or self.io.id_kill or self.io.id_stall) and not self.io.full_stall:
-                    self.ex_exception.next      = N
+                    self.ex_exception.next      = False
                     self.ex_exception_code.next = modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:]
                     self.ex_mem_funct.next      = MemOp.M_X
-                    self.ex_breakpoint.next     = N
-                    self.ex_eret.next           = N
-                    self.ex_ecall.next          = N
+                    self.ex_breakpoint.next     = False
+                    self.ex_eret.next           = False
+                    self.ex_ecall.next          = False
                     self.ex_csr_cmd.next        = CSRCMD.CSR_IDLE
                 elif not self.io.id_stall and not self.io.full_stall:
                     self.ex_exception.next      = (self.id_imem_misalign or self.id_imem_fault or self.id_illegal_inst or
@@ -636,11 +636,11 @@ class Ctrlpath:
             This stage does not generates eceptions.
             """
             if self.rst:
-                self.mem_breakpoint.next        = N
-                self.mem_eret.next              = N
-                self.mem_ecall.next             = N
-                self.mem_mem_funct.next         = N
-                self.mem_exception_ex.next      = N
+                self.mem_breakpoint.next        = False
+                self.mem_eret.next              = False
+                self.mem_ecall.next             = False
+                self.mem_mem_funct.next         = False
+                self.mem_exception_ex.next      = False
                 self.mem_exception_code_ex.next = modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:]
             else:
                 self.mem_breakpoint.next        = (self.mem_breakpoint if self.io.full_stall else (N if self.io.pipeline_kill else self.ex_breakpoint))
@@ -659,7 +659,7 @@ class Ctrlpath:
             the FENCE.I instruction.
             """
             if self.rst:
-                self.wb_mem_funct.next = N
+                self.wb_mem_funct.next = False
             else:
                 self.wb_mem_funct.next = (self.wb_mem_funct if self.io.full_stall else (MemOp.M_RD if self.io.pipeline_kill else self.mem_mem_funct))
 
@@ -751,7 +751,7 @@ class Ctrlpath:
             self.io.id_stall.next      = (((self.io.id_fwd1_select == Consts.FWD_EX or self.io.id_fwd2_select == Consts.FWD_EX) and
                                            ((self.ex_mem_funct == MemOp.M_RD and self.ex_mem_valid) or self.ex_csr_cmd != CSRCMD.CSR_IDLE)) or
                                           (self.id_fence_i and (self.ex_mem_funct == MemOp.M_WR or self.mem_mem_funct == MemOp.M_WR or self.wb_mem_funct == MemOp.M_WR)))
-            self.io.id_kill.next       = N
+            self.io.id_kill.next       = False
             self.io.full_stall.next    = self.imem.valid or self.dmem.valid or self.io.ex_req_stall
             self.io.pipeline_kill.next = self.io.csr_exception or self.io.csr_eret
 
@@ -769,7 +769,7 @@ class Ctrlpath:
             Connect the pipeline imem port to the control imem port.
             """
             self.imem.addr.next              = self.io.imem_pipeline.addr
-            self.imem.wdata.next              = self.io.imem_pipeline.wdata
+            self.imem.wdata.next             = self.io.imem_pipeline.wdata
             self.imem.fcn.next               = self.io.imem_pipeline.fcn
             self.imem.wr.next                = 0b0000  # always read
             self.io.imem_pipeline.rdata.next = self.imem.rdata
