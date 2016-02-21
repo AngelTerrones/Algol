@@ -36,6 +36,7 @@ class DividerIO:
     :ivar divs:      Signed operation
     :ivar divu:      Unsigned operation
     :ivar active:    The unit is busy performing an operation
+    :ivar ready:     The output data is valid
     :ivar quotient:  Data output
     :ivar remainder: Data output
     """
@@ -45,6 +46,7 @@ class DividerIO:
         self.divs      = Signal(False)
         self.divu      = Signal(False)
         self.active    = Signal(False)
+        self.ready     = Signal(False)
         self.quotient  = Signal(modbv(0)[32:])
         self.remainder = Signal(modbv(0)[32:])
 
@@ -89,8 +91,18 @@ class Divider:
         def output():
             self.io.quotient.next  = result if neg_result == 0 else -result
             self.io.remainder.next = residual if neg_remainder == 0 else -residual
-            self.io.active.next    = active
+            self.io.ready.next     = self.io.active and not active
             partial_sub.next       = concat(residual[31:0], result[31]) - denominator
+
+        @always(self.clk.posedge)
+        def _active():
+            if self.rst:
+                self.io.active.next = False
+            else:
+                if self.io.active:
+                    self.io.active.next = False if not active else True
+                else:
+                    self.io.active.next = True if self.io.divs or self.io.divu else False
 
         @always(self.clk.posedge)
         def rtl():
