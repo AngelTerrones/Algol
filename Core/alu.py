@@ -29,8 +29,6 @@ class ALUOp:
     """
     List of ALU opcodes.
     """
-    SZ_OP    = 4
-    SZ_OP    = 4
     OP_ADD   = 0
     OP_SLL   = 1
     OP_XOR   = 4
@@ -59,6 +57,7 @@ class ALUOp:
     _OP_SGE  = modbv(13)[SZ_OP:]
     _OP_SLTU = modbv(14)[SZ_OP:]
     _OP_SGEU = modbv(15)[SZ_OP:]
+    SZ_OP      = 5
 
 
 class ALUPortIO:
