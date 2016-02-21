@@ -122,7 +122,7 @@ class Multiplier:
         def assignments_0():
             sign_a.next         = self.io.input1[31] if (self.io.cmd[0] or self.io.cmd[2]) else modbv(0)[1:]
             sign_b.next         = self.io.input2[31] if self.io.cmd[0] else modbv(0)[1:]
-            partial_sum.next    = concat(modbv(0)[16:], result_mid_1) + concat(result_hh_1[32:], result_ll_1[32:16])
+            partial_sum.next    = concat(modbv(0)[15:], result_mid_1) + concat(result_hh_1[32:], result_ll_1[32:16])
             self.io.output.next = -result_mult if sign_result3 else result_mult
             self.io.ready.next  = active3
             self.io.active.next = active0 | active1 | active2 | active3
