@@ -27,7 +27,6 @@ from myhdl import instances
 from myhdl import concat
 from Core.consts import Consts
 from Core.alu import ALUOp
-from Core.multiplier import MultiplierOP
 from Core.memIO import MemPortIO
 from Core.memIO import MemOp
 from Core.csr import CSRCMD
@@ -54,16 +53,16 @@ class CtrlSignals:
     ISA: RV32I + priviledge instructions v1.7
     """
     # Control signals
-    #                  Illegal                                                 Valid memory operation                                       OP1 select
-    #                  |  Fence.I                                              |  Memory Function (type)                                    |                 OP2 select
-    #                  |  |  Fence                                             |  |           Memory type                                   |                 |                 Branch/Jump
-    #                  |  |  |  ecall                                          |  |           |             ALU operation                   |                 |                 |
-    #                  |  |  |  |  ebreak                                      |  |           |             |               IMM type        |                 |                 |
-    #                  |  |  |  |  |  eret                                     |  |           |             |               |               |                 |                 |
-    #                  |  |  |  |  |  |  RF WE              CSR command        |  |           |             |               |               |                 |                 |
-    #                  |  |  |  |  |  |  |  Sel dat to WB   |                  |  |           |             |               |               |                 |                 |
-    #                  |  |  |  |  |  |  |  |               |                  |  |           |             |               |               |                 |                 |
-    #                  |  |  |  |  |  |  |  |               |                  |  |           |             |               |               |                 |                 |
+    #                  Illegal                                                 Valid memory operation                                         OP1 select
+    #                  |  Fence.I                                              |  Memory Function (type)                                      |                 OP2 select
+    #                  |  |  Fence                                             |  |           Memory type                                     |                 |                 Branch/Jump
+    #                  |  |  |  ecall                                          |  |           |             ALU operation                     |                 |                 |
+    #                  |  |  |  |  ebreak                                      |  |           |             |                 IMM type        |                 |                 |
+    #                  |  |  |  |  |  eret                                     |  |           |             |                 |               |                 |                 |
+    #                  |  |  |  |  |  |  RF WE              CSR command        |  |           |             |                 |               |                 |                 |
+    #                  |  |  |  |  |  |  |  Sel dat to WB   |                  |  |           |             |                 |               |                 |                 |
+    #                  |  |  |  |  |  |  |  |               |                  |  |           |             |                 |               |                 |                 |
+    #                  |  |  |  |  |  |  |  |               |                  |  |           |             |                 |               |                 |                 |
     NOP       = concat(N, N, N, N, N, N, N, Consts._WB_X,   CSRCMD._CSR_IDLE,  N, MemOp.M_X,  MemOp._MT_X,  ALUOp._OP_ADD,    Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
     INVALID   = concat(Y, N, N, N, N, N, N, Consts._WB_X,   CSRCMD._CSR_IDLE,  N, MemOp.M_X,  MemOp._MT_X,  ALUOp._OP_ADD,    Consts._IMM_X,  Consts._OP1_X,    Consts._OP2_X,    Consts._BR_N).__int__()
     LUI       = concat(N, N, N, N, N, N, Y, Consts._WB_ALU, CSRCMD._CSR_IDLE,  N, MemOp.M_X,  MemOp._MT_X,  ALUOp._OP_ADD,    Consts._IMM_U,  Consts._OP1_ZERO, Consts._OP2_IMM,  Consts._BR_N).__int__()
