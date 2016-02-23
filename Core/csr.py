@@ -91,7 +91,7 @@ class CSRExceptionCode:
     I_TIMER                = 1
 
 
-class CSRCommand:
+class CSRCMD:
     """
     CSR commands.
 
@@ -135,7 +135,7 @@ class CSRFileRWIO:
         Initializes the IO ports.
         """
         self.addr  = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])  # I: Register address
-        self.cmd   = Signal(modbv(0)[CSRCommand.SZ_CMD:])      # I: command
+        self.cmd   = Signal(modbv(0)[CSRCMD.SZ_CMD:])      # I: command
         self.wdata = Signal(modbv(0)[32:])                     # I: input data
         self.rdata = Signal(modbv(0)[32:])                     # O: output data
 
@@ -330,9 +330,9 @@ class CSR:
             Select the write data according to the command.
             """
             if system_wen:
-                if self.rw.cmd == CSRCommand.CSR_SET:
+                if self.rw.cmd == CSRCMD.CSR_SET:
                     wdata_aux.next = self.rw.rdata | self.rw.wdata
-                elif self.rw.cmd == CSRCommand.CSR_CLEAR:
+                elif self.rw.cmd == CSRCMD.CSR_CLEAR:
                     wdata_aux.next = self.rw.rdata & ~self.rw.wdata
                 else:
                     wdata_aux.next = self.rw.wdata

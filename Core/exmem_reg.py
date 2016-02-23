@@ -22,9 +22,9 @@
 from myhdl import Signal
 from myhdl import always
 from myhdl import modbv
-from Core.memIO import MemoryOpConstant
+from Core.memIO import MemOp
 from Core.consts import Consts
-from Core.csr import CSRCommand
+from Core.csr import CSRCMD
 
 
 class EXMEMReg:
@@ -96,14 +96,14 @@ class EXMEMReg:
                 self.mem_mem_valid.next    = False
                 self.mem_alu_out.next      = 0
                 self.mem_mem_wdata.next    = 0
-                self.mem_mem_type.next     = MemoryOpConstant.MT_X
-                self.mem_mem_funct.next    = MemoryOpConstant.M_X
+                self.mem_mem_type.next     = MemOp.MT_X
+                self.mem_mem_funct.next    = MemOp.M_X
                 self.mem_mem_data_sel.next = Consts.WB_X
                 self.mem_wb_addr.next      = 0
                 self.mem_wb_we.next        = False
                 self.mem_csr_addr.next     = 0
                 self.mem_csr_wdata.next    = 0
-                self.mem_csr_cmd.next      = CSRCommand.CSR_IDLE
+                self.mem_csr_cmd.next      = CSRCMD.CSR_IDLE
             else:
                 self.mem_pc.next           = (self.mem_pc if self.full_stall else self.ex_pc)
                 self.mem_alu_out.next      = (self.mem_alu_out if self.full_stall else self.ex_alu_out)
@@ -116,7 +116,7 @@ class EXMEMReg:
                 self.mem_csr_wdata.next    = (self.mem_csr_wdata if self.full_stall else self.ex_csr_wdata)
                 self.mem_mem_valid.next    = (self.mem_mem_valid if self.full_stall else (False if self.pipeline_kill else self.ex_mem_valid))
                 self.mem_wb_we.next        = (self.mem_wb_we if self.full_stall else (False if self.pipeline_kill else self.ex_wb_we))
-                self.mem_csr_cmd.next      = (self.mem_csr_cmd if (self.full_stall) else (modbv(CSRCommand.CSR_IDLE)[CSRCommand.SZ_CMD:] if self.pipeline_kill else self.ex_csr_cmd))
+                self.mem_csr_cmd.next      = (self.mem_csr_cmd if (self.full_stall) else (modbv(CSRCMD.CSR_IDLE)[CSRCMD.SZ_CMD:] if self.pipeline_kill else self.ex_csr_cmd))
         return rtl
 
 # Local Variables:

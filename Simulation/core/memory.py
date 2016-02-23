@@ -27,7 +27,7 @@ from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
 from myhdl import concat
-from Core.memIO import MemoryOpConstant
+from Core.memIO import MemOp
 from Core.memIO import MemPortIO
 
 
@@ -104,7 +104,7 @@ class Memory:
         def imem_rtl():
             self.i_data_o.next = self._memory[self._imem_addr]
 
-            if self.imem.fcn == MemoryOpConstant.M_WR:
+            if self.imem.fcn == MemOp.M_WR:
                 we                = self.imem.wr
                 data              = self.imem.wdata
                 self.i_data_o.next = self.imem.wdata
@@ -117,7 +117,7 @@ class Memory:
         def dmem_rtl():
             self.d_data_o.next = self._memory[self._dmem_addr]
 
-            if self.dmem.fcn == MemoryOpConstant.M_WR:
+            if self.dmem.fcn == MemOp.M_WR:
                 we                 = self.dmem.wr
                 data               = self.dmem.wdata
                 self.d_data_o.next = self.dmem.wdata

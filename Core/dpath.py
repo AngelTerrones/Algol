@@ -23,17 +23,17 @@ from myhdl import Signal
 from myhdl import always_comb
 from myhdl import modbv
 from Core.consts import Consts
-from Core.memIO import MemoryOpConstant
+from Core.memIO import MemOp
 from Core.cpath import CtrlIO
 from Core.regfile import RegisterFile
 from Core.regfile import RFReadPort
 from Core.regfile import RFWritePort
 from Core.alu import ALU
-from Core.alu import ALUFunction
+from Core.alu import ALUOp
 from Core.alu import ALUPortIO
 from Core.csr import CSR
 from Core.csr import CSRFileRWIO
-from Core.csr import CSRCommand
+from Core.csr import CSRCMD
 from Core.csr import CSRExceptionIO
 from Core.csr import CSRAddressMap
 from Core.imm_gen import IMMGen
@@ -97,14 +97,14 @@ class Datapath:
         id_wb_addr       = Signal(modbv(0)[5:])
         id_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
         id_csr_wdata     = Signal(modbv(0)[32:])
-        id_csr_cmd       = Signal(modbv(0)[CSRCommand.SZ_CMD:])
+        id_csr_cmd       = Signal(modbv(0)[CSRCMD.SZ_CMD:])
 
         # EX stage
         ex_pc            = Signal(modbv(0)[32:])
-        ex_alu_out       = Signal(modbv(0)[32:])
-        ex_alu_funct     = Signal(modbv(0)[ALUFunction.SZ_OP:])
+        ex_data_out      = Signal(modbv(0)[32:])
+        ex_alu_funct     = Signal(modbv(0)[ALUOp.SZ_OP:])
         ex_mem_wdata     = Signal(modbv(0)[32:])
-        ex_mem_type      = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
+        ex_mem_type      = Signal(modbv(0)[MemOp.SZ_MT:])
         ex_mem_funct     = Signal(False)
         ex_mem_valid     = Signal(False)
         ex_mem_data_sel  = Signal(modbv(0)[Consts.SZ_WB:])
@@ -115,14 +115,14 @@ class Datapath:
         aluIO            = ALUPortIO()
         ex_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
         ex_csr_wdata     = Signal(modbv(0)[32:])
-        ex_csr_cmd       = Signal(modbv(0)[CSRCommand.SZ_CMD:])
+        ex_csr_cmd       = Signal(modbv(0)[CSRCMD.SZ_CMD:])
 
         # MEM stage
         exc_pc           = Signal(modbv(0)[32:])
         mem_pc           = Signal(modbv(0)[32:])
         mem_alu_out      = Signal(modbv(0)[32:])
         mem_mem_wdata    = Signal(modbv(0)[32:])
-        mem_mem_type     = Signal(modbv(0)[MemoryOpConstant.SZ_MT:])
+        mem_mem_type     = Signal(modbv(0)[MemOp.SZ_MT:])
         mem_mem_funct    = Signal(False)
         mem_mem_valid    = Signal(False)
         mem_mem_data_sel = Signal(modbv(0)[Consts.SZ_WB:])
@@ -135,7 +135,7 @@ class Datapath:
         mem_csr_addr     = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
         mem_csr_wdata    = Signal(modbv(0)[32:])
         mem_csr_rdata    = Signal(modbv(0)[32:])
-        mem_csr_cmd      = Signal(modbv(0)[CSRCommand.SZ_CMD:])
+        mem_csr_cmd      = Signal(modbv(0)[CSRCMD.SZ_CMD:])
 
         # WB stage
         wb_pc            = Signal(modbv(0)[32:])
@@ -172,8 +172,8 @@ class Datapath:
             if_instruction.next                  = self.ctrlIO.imem_pipeline.rdata
             # --
             self.ctrlIO.imem_pipeline.wdata.next = 0xDEADC0DE
-            self.ctrlIO.imem_pipeline.typ.next   = MemoryOpConstant.MT_W
-            self.ctrlIO.imem_pipeline.fcn.next   = MemoryOpConstant.M_RD
+            self.ctrlIO.imem_pipeline.typ.next   = MemOp.MT_W
+            self.ctrlIO.imem_pipeline.fcn.next   = MemOp.M_RD
             self.ctrlIO.imem_pipeline.valid.next = True
 
         # ID stage
@@ -197,14 +197,14 @@ class Datapath:
 
         op1_data_fwd = Mux4(self.ctrlIO.id_fwd1_select,
                             id_rs1_data,
-                            ex_alu_out,
+                            ex_data_out,
                             mem_wb_wdata,
                             wb_wb_wdata,
                             id_op1).GetRTL()
 
         op2_data_fwd = Mux4(self.ctrlIO.id_fwd2_select,
                             id_rs2_data,
-                            ex_alu_out,
+                            ex_data_out,
                             mem_wb_wdata,
                             wb_wb_wdata,
                             id_op2).GetRTL()
@@ -239,8 +239,8 @@ class Datapath:
             id_wb_addr.next                     = id_instruction[12:7]
             id_csr_addr.next                    = id_instruction[32:20]
             id_mem_wdata.next                   = id_op2
-            id_pc_brjmp.next                    = id_pc + id_imm.signed()
-            id_pc_jalr.next                     = id_op1 + id_imm.signed()
+            id_pc_brjmp.next                    = id_pc.signed() + id_imm.signed()
+            id_pc_jalr.next                     = id_op1.signed() + id_imm.signed()
             id_csr_addr.next                    = id_instruction[32:20]
             id_csr_cmd.next                     = self.ctrlIO.id_csr_cmd
             id_csr_wdata.next                   = id_instruction[20:15] if id_instruction[14] else id_op1
@@ -288,16 +288,21 @@ class Datapath:
                            ex_csr_wdata,
                            ex_csr_cmd).GetRTL()
 
-        alu = ALU(aluIO).GetRTL()
+        alu = ALU(self.clk,
+                  self.rst,
+                  aluIO).GetRTL()
 
         @always_comb
         def _ex_assignments():
-            aluIO.function.next         = ex_alu_funct
-            aluIO.input1.next           = ex_op1_data
-            aluIO.input2.next           = ex_op2_data
-            ex_alu_out.next             = aluIO.output
-            self.ctrlIO.ex_wb_we.next   = ex_wb_we
-            self.ctrlIO.ex_wb_addr.next = ex_wb_addr
+            aluIO.input1.next             = ex_op1_data
+            aluIO.input2.next             = ex_op2_data
+            aluIO.function.next           = ex_alu_funct
+            aluIO.stall.next              = self.ctrlIO.full_stall
+            aluIO.kill.next               = self.ctrlIO.pipeline_kill
+            ex_data_out.next              = aluIO.output
+            self.ctrlIO.ex_req_stall.next = aluIO.req_stall
+            self.ctrlIO.ex_wb_we.next     = ex_wb_we
+            self.ctrlIO.ex_wb_addr.next   = ex_wb_addr
 
         # MEM stage
         # ----------------------------------------------------------------------
@@ -306,7 +311,7 @@ class Datapath:
                              self.ctrlIO.full_stall,
                              self.ctrlIO.pipeline_kill,
                              ex_pc,
-                             ex_alu_out,
+                             ex_data_out,
                              ex_mem_wdata,
                              ex_mem_type,
                              ex_mem_funct,
@@ -399,7 +404,6 @@ class Datapath:
                 op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
                 _ex_assignments, exmem_reg, _mem_assignments, csr, mdata_mux, memwb_reg,
                 _wb_assignments, exc_pc_mux)
-
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
 # flycheck-flake8rc: ".flake8rc"
