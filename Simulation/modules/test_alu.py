@@ -41,7 +41,7 @@ def _testbench():
     aluIO = ALUPortIO()
     dut = ALU(clk=clk,
               rst=rst,
-              io=aluIO).GetRTL()
+              io=aluIO)
 
     halfperiod = delay(5)
 

@@ -169,431 +169,411 @@ class CSRExceptionIO:
         self.epc                 = Signal(modbv(0)[32:])                         # O: Return address
 
 
-class CSR:
+def CSR(clk,
+        rst,
+        rw,
+        exc_io,
+        retire,
+        prv,
+        illegal_access,
+        toHost):
     """
     The Control and Status Registers (CSR)
 
+    :param clk:            System clock
+    :param rst:            System reset
+    :param rw:             IO bundle for RW operations
+    :param exc_io:         IO bundle for exception related operations
+    :param retire:         Increment the counter for executed instructions
+    :param prv:            Current priviledge mode (valid at MEM stage)
+    :param illegal_access: The RW operation is invalid
+    :param toHost:         Connected to the CSR's mtohost register. For simulation purposes.
     This module is necessary for exception handling.
     """
-    def __init__(self,
-                 clk:            Signal(False),
-                 rst:            Signal(False),
-                 rw:             CSRFileRWIO(),
-                 exc_io:         CSRExceptionIO(),
-                 retire:         Signal(False),
-                 prv:            Signal(modbv(0)[CSRModes.SZ_MODE:]),
-                 illegal_access: Signal(False),
-                 toHost:         Signal(False)):
+    # registers
+    cycle_full      = Signal(modbv(0)[64:])
+    cycle           = Signal(modbv(0)[32:])
+    cycleh          = Signal(modbv(0)[32:])
+
+    time_full       = Signal(modbv(0)[64:])
+    time            = Signal(modbv(0)[32:])
+    timeh           = Signal(modbv(0)[32:])
+
+    instret_full    = Signal(modbv(0)[64:])
+    instret         = Signal(modbv(0)[32:])
+    instreth        = Signal(modbv(0)[32:])
+
+    mcpuid          = Signal(modbv(0)[32:])
+    mimpid          = Signal(modbv(0)[32:])
+    mhartid         = Signal(modbv(0)[32:])
+    mstatus         = Signal(modbv(0)[32:])
+    mtvec           = Signal(modbv(0)[32:])
+    mtdeleg         = Signal(modbv(0)[32:])
+    mie             = Signal(modbv(0)[32:])
+    mtimecmp        = Signal(modbv(0)[32:])
+
+    mtime_full      = Signal(modbv(0)[64:])
+    mtime           = Signal(modbv(0)[32:])
+    mtimeh          = Signal(modbv(0)[32:])
+
+    mscratch        = Signal(modbv(0)[32:])
+    mepc            = Signal(modbv(0)[32:])
+    mcause          = Signal(modbv(0)[32:])
+    mbadaddr        = Signal(modbv(0)[32:])
+    mip             = Signal(modbv(0)[32:])
+
+    # Connect this register to the IO for simulation purposes.
+    # TODO: Remove this and use a debug interface.
+    mtohost         = toHost  # Signal(modbv(0)[32:])
+    mfromhost       = Signal(modbv(0)[32:])
+
+    # aux
+    wdata_aux       = Signal(modbv(0)[32:])
+    priv_stack      = Signal(modbv(0)[6:])
+    mtie            = Signal(False)
+    msie            = Signal(False)
+    mtip            = Signal(False)
+    msip            = Signal(False)
+    mecode          = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
+    mint            = Signal(False)
+    ie              = Signal(False)
+    mtimer_expired  = Signal(False)
+    system_en       = Signal(False)
+    system_wen      = Signal(False)
+    wen_internal    = Signal(False)
+    illegal_region  = Signal(False)
+    defined         = Signal(False)
+    uinterrupt      = Signal(False)
+    minterrupt      = Signal(False)
+    interrupt_taken = Signal(False)
+    interrupt_code  = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
+    code_imem       = Signal(False)
+
+    @always_comb
+    def assigments():
         """
-        Initializes the IO ports.
-
-        :param clk:            System clock
-        :param rst:            System reset
-        :param rw:             IO bundle for RW operations
-        :param exc_io:         IO bundle for exception related operations
-        :param retire:         Increment the counter for executed instructions
-        :param prv:            Current priviledge mode (valid at MEM stage)
-        :param illegal_access: The RW operation is invalid
-        :param toHost:         Connected to the CSR's mtohost register. For simulation purposes.
+        Some assignments.
         """
-        self.clk            = clk
-        self.rst            = rst
-        self.rw             = rw
-        self.exc_io         = exc_io
-        self.retire         = retire
-        self.prv            = prv
-        self.illegal_access = illegal_access
-        self.toHost         = toHost
+        cycle.next                     = cycle_full[32:0]
+        cycleh.next                    = cycle_full[64:32]
+        time.next                      = time_full[32:0]
+        timeh.next                     = time_full[64:32]
+        instret.next                   = instret_full[32:0]
+        instreth.next                  = instret_full[64:32]
+        mtime.next                     = mtime_full[32:0]
+        mtimeh.next                    = mtime_full[64:32]
+        exc_io.interrupt.next          = mint
+        exc_io.interrupt_code.next     = mecode
+        exc_io.exception_handler.next  = mtvec + (prv << 6)
+        illegal_access.next            = illegal_region or (system_en and (not defined))
+        exc_io.epc.next                = mepc
+        ie.next                        = priv_stack[0]
+        wen_internal.next              = system_wen
+        uinterrupt.next                = 0
+        minterrupt.next                = mtie & mtimer_expired
+        mcpuid.next                    = (1 << 20) | (1 << 8)  # RV32I, support for U mode
+        mimpid.next                    = 0x8000
+        mhartid.next                   = 0
+        mstatus.next                   = concat(modbv(0)[26:], priv_stack)
+        mtdeleg.next                   = 0
+        mip.next                       = concat(mtip, modbv(0)[3:], msip, modbv(0)[3:])
+        mie.next                       = concat(mtie, modbv(0)[3:], msie, modbv(0)[3:])
+        mcause.next                    = concat(mint, modbv(0)[27:], mecode)
+        code_imem.next                 = ((exc_io.exception_code == CSRExceptionCode.E_INST_ADDR_MISALIGNED) |
+                                          (exc_io.exception_code == CSRExceptionCode.E_INST_ACCESS_FAULT))
 
-    def GetRTL(self):
+    @always_comb
+    def assigments2():
         """
-        Defines module behavior
+        Continue the assignments.
+
+        Avoid warnings from MyHDL about signals being translated as inout.
         """
-        # registers
-        cycle_full      = Signal(modbv(0)[64:])
-        cycle           = Signal(modbv(0)[32:])
-        cycleh          = Signal(modbv(0)[32:])
+        prv.next            = priv_stack[3:1]
+        mtimer_expired.next = mtimecmp == mtime
+        system_en.next      = rw.cmd[2]
+        system_wen.next     = rw.cmd[0] | rw.cmd[1]
 
-        time_full       = Signal(modbv(0)[64:])
-        time            = Signal(modbv(0)[32:])
-        timeh           = Signal(modbv(0)[32:])
+    @always_comb
+    def assigments3():
+        """
+        Continue the assignments.
 
-        instret_full    = Signal(modbv(0)[64:])
-        instret         = Signal(modbv(0)[32:])
-        instreth        = Signal(modbv(0)[32:])
+        Avoid warnings from MyHDL about signals being translated as inout.
+        """
+        illegal_region.next = ((system_wen & (rw.addr[12:10] == 0b11)) |  # Read only region
+                               (system_en & (rw.addr[10:8] > prv)))  # Check priviledge level
 
-        mcpuid          = Signal(modbv(0)[32:])
-        mimpid          = Signal(modbv(0)[32:])
-        mhartid         = Signal(modbv(0)[32:])
-        mstatus         = Signal(modbv(0)[32:])
-        mtvec           = Signal(modbv(0)[32:])
-        mtdeleg         = Signal(modbv(0)[32:])
-        mie             = Signal(modbv(0)[32:])
-        mtimecmp        = Signal(modbv(0)[32:])
-
-        mtime_full      = Signal(modbv(0)[64:])
-        mtime           = Signal(modbv(0)[32:])
-        mtimeh          = Signal(modbv(0)[32:])
-
-        mscratch        = Signal(modbv(0)[32:])
-        mepc            = Signal(modbv(0)[32:])
-        mcause          = Signal(modbv(0)[32:])
-        mbadaddr        = Signal(modbv(0)[32:])
-        mip             = Signal(modbv(0)[32:])
-
-        # Connect this register to the IO for simulation purposes.
-        # TODO: Remove this and use a debug interface.
-        mtohost         = self.toHost  # Signal(modbv(0)[32:])
-        mfromhost       = Signal(modbv(0)[32:])
-
-        # aux
-        wdata_aux       = Signal(modbv(0)[32:])
-        priv_stack      = Signal(modbv(0)[6:])
-        mtie            = Signal(False)
-        msie            = Signal(False)
-        mtip            = Signal(False)
-        msip            = Signal(False)
-        mecode          = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
-        mint            = Signal(False)
-        ie              = Signal(False)
-        mtimer_expired  = Signal(False)
-        system_en       = Signal(False)
-        system_wen      = Signal(False)
-        wen_internal    = Signal(False)
-        illegal_region  = Signal(False)
-        defined         = Signal(False)
-        uinterrupt      = Signal(False)
-        minterrupt      = Signal(False)
-        interrupt_taken = Signal(False)
-        interrupt_code  = Signal(modbv(0)[CSRExceptionCode.SZ_ECODE:])
-        code_imem       = Signal(False)
-
-        @always_comb
-        def assigments():
-            """
-            Some assignments.
-            """
-            cycle.next                         = cycle_full[32:0]
-            cycleh.next                        = cycle_full[64:32]
-            time.next                          = time_full[32:0]
-            timeh.next                         = time_full[64:32]
-            instret.next                       = instret_full[32:0]
-            instreth.next                      = instret_full[64:32]
-            mtime.next                         = mtime_full[32:0]
-            mtimeh.next                        = mtime_full[64:32]
-
-            self.exc_io.interrupt.next         = mint
-            self.exc_io.interrupt_code.next    = mecode
-            self.exc_io.exception_handler.next = mtvec + (self.prv << 6)
-            self.illegal_access.next           = illegal_region or (system_en and (not defined))
-            self.exc_io.epc.next               = mepc
-            ie.next                            = priv_stack[0]
-            wen_internal.next                  = system_wen
-            uinterrupt.next                    = 0
-            minterrupt.next                    = mtie & mtimer_expired
-            mcpuid.next                        = (1 << 20) | (1 << 8)  # RV32I, support for U mode
-            mimpid.next                        = 0x8000
-            mhartid.next                       = 0
-            mstatus.next                       = concat(modbv(0)[26:], priv_stack)
-            mtdeleg.next                       = 0
-            mip.next                           = concat(mtip, modbv(0)[3:], msip, modbv(0)[3:])
-            mie.next                           = concat(mtie, modbv(0)[3:], msie, modbv(0)[3:])
-            mcause.next                        = concat(mint, modbv(0)[27:], mecode)
-            code_imem.next                     = ((self.exc_io.exception_code == CSRExceptionCode.E_INST_ADDR_MISALIGNED) |
-                                                  (self.exc_io.exception_code == CSRExceptionCode.E_INST_ACCESS_FAULT))
-
-        @always_comb
-        def assigments2():
-            """
-            Continue the assignments.
-
-            Avoid warnings from MyHDL about signals being translated as inout.
-            """
-            self.prv.next                      = priv_stack[3:1]
-            mtimer_expired.next                = mtimecmp == mtime
-            system_en.next                     = self.rw.cmd[2]
-            system_wen.next                    = self.rw.cmd[0] | self.rw.cmd[1]
-
-        @always_comb
-        def assigments3():
-            """
-            Continue the assignments.
-
-            Avoid warnings from MyHDL about signals being translated as inout.
-            """
-            illegal_region.next = ((system_wen & (self.rw.addr[12:10] == 0b11)) |  # Read only region
-                                   (system_en & (self.rw.addr[10:8] > self.prv)))  # Check priviledge level
-
-        @always_comb
-        def _wdata_aux():
-            """
-            Select the write data according to the command.
-            """
-            if system_wen:
-                if self.rw.cmd == CSRCMD.CSR_SET:
-                    wdata_aux.next = self.rw.rdata | self.rw.wdata
-                elif self.rw.cmd == CSRCMD.CSR_CLEAR:
-                    wdata_aux.next = self.rw.rdata & ~self.rw.wdata
-                else:
-                    wdata_aux.next = self.rw.wdata
+    @always_comb
+    def _wdata_aux():
+        """
+        Select the write data according to the command.
+        """
+        if system_wen:
+            if rw.cmd == CSRCMD.CSR_SET:
+                wdata_aux.next = rw.rdata | rw.wdata
+            elif rw.cmd == CSRCMD.CSR_CLEAR:
+                wdata_aux.next = rw.rdata & ~rw.wdata
             else:
-                wdata_aux.next = 0x0BADF00D
+                wdata_aux.next = rw.wdata
+        else:
+            wdata_aux.next = 0x0BADF00D
 
-        @always_comb
-        def _interrupt_code():
-            """
-            Set the interrupt code and flag.
-            """
-            interrupt_code.next = CSRExceptionCode.I_TIMER
-            if self.prv == CSRModes.PRV_U:
-                interrupt_taken.next = (ie & uinterrupt) | minterrupt
-            elif self.prv == CSRModes.PRV_M:
-                interrupt_taken.next = ie & minterrupt
-            else:
-                interrupt_taken.next = 1
+    @always_comb
+    def _interrupt_code():
+        """
+        Set the interrupt code and flag.
+        """
+        interrupt_code.next = CSRExceptionCode.I_TIMER
+        if prv == CSRModes.PRV_U:
+            interrupt_taken.next = (ie & uinterrupt) | minterrupt
+        elif prv == CSRModes.PRV_M:
+            interrupt_taken.next = ie & minterrupt
+        else:
+            interrupt_taken.next = 1
 
-        @always(self.clk.posedge)
-        def _priv_stack():
-            """
-            The priviledge mode stack.
+    @always(clk.posedge)
+    def _priv_stack():
+        """
+        The priviledge mode stack.
 
-            - At reset: machine mode.
-            - Exception: shift stack to the left, enter machine mode.
-            - Eret: shift stack to the right. Set next mode to User leve.
-            """
-            if self.rst:
-                priv_stack.next = 0b000110
-            elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS):
-                priv_stack.next = wdata_aux[6:0]
-            elif self.exc_io.exception:
-                # All exceptions to machine mode
-                priv_stack.next = concat(priv_stack[3:0], modbv(0b11)[2:], False)
-            elif self.exc_io.eret:
-                priv_stack.next = concat(modbv(0)[2:], True, priv_stack[6:3])
+        - At reset: machine mode.
+        - Exception: shift stack to the left, enter machine mode.
+        - Eret: shift stack to the right. Set next mode to User leve.
+        """
+        if rst:
+            priv_stack.next = 0b000110
+        elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS):
+            priv_stack.next = wdata_aux[6:0]
+        elif exc_io.exception:
+            # All exceptions to machine mode
+            priv_stack.next = concat(priv_stack[3:0], modbv(0b11)[2:], False)
+        elif exc_io.eret:
+            priv_stack.next = concat(modbv(0)[2:], True, priv_stack[6:3])
 
-        @always(self.clk.posedge)
-        def _mtip_msip():
-            """
-            Handle the flags for interrupt pending.
-            """
-            if self.rst:
+    @always(clk.posedge)
+    def _mtip_msip():
+        """
+        Handle the flags for interrupt pending.
+        """
+        if rst:
+            mtip.next = 0
+            msip.next = 0
+        else:
+            if mtimer_expired:
+                mtip.next = 1
+            elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP):
                 mtip.next = 0
-                msip.next = 0
-            else:
-                if mtimer_expired:
-                    mtip.next = 1
-                elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP):
-                    mtip.next = 0
-                elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MIP):
-                    mtip.next = wdata_aux[7]
-                    msip.next = wdata_aux[3]
+            elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MIP):
+                mtip.next = wdata_aux[7]
+                msip.next = wdata_aux[3]
 
-        @always(self.clk.posedge)
-        def _mtie_msie():
-            """
-            Handle the interrupt enable flags.
-            """
-            if self.rst:
-                mtie.next = 0
-                msie.next = 0
-            elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MIE):
-                mtie.next = wdata_aux[7]
-                msie.next = wdata_aux[3]
+    @always(clk.posedge)
+    def _mtie_msie():
+        """
+        Handle the interrupt enable flags.
+        """
+        if rst:
+            mtie.next = 0
+            msie.next = 0
+        elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MIE):
+            mtie.next = wdata_aux[7]
+            msie.next = wdata_aux[3]
 
-        @always(self.clk.posedge)
-        def _mepc():
-            """
-            Handle writes to the mepc register.
-            """
-            if self.exc_io.exception | interrupt_taken:
-                mepc.next = self.exc_io.exception_pc & ~0x03
-            elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MEPC):
-                mepc.next = wdata_aux & ~0x03
+    @always(clk.posedge)
+    def _mepc():
+        """
+        Handle writes to the mepc register.
+        """
+        if exc_io.exception | interrupt_taken:
+            mepc.next = exc_io.exception_pc & ~0x03
+        elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MEPC):
+            mepc.next = wdata_aux & ~0x03
 
-        @always(self.clk.posedge)
-        def _mecode_mint():
-            """
-            Handle writes to the 'mecode' and 'mint' registers.
-            """
-            if self.rst:
-                mecode.next = 0
-                mint.next = 0
-            elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MCAUSE):
-                mecode.next = wdata_aux[4:0]
-                mint.next = wdata_aux[31]
-            elif interrupt_taken:
-                mecode.next = interrupt_code
-                mint.next = 1
-            elif self.exc_io.exception:
-                mecode.next = self.exc_io.exception_code
-                mint.next = 0
+    @always(clk.posedge)
+    def _mecode_mint():
+        """
+        Handle writes to the 'mecode' and 'mint' registers.
+        """
+        if rst:
+            mecode.next = 0
+            mint.next = 0
+        elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MCAUSE):
+            mecode.next = wdata_aux[4:0]
+            mint.next = wdata_aux[31]
+        elif interrupt_taken:
+            mecode.next = interrupt_code
+            mint.next = 1
+        elif exc_io.exception:
+            mecode.next = exc_io.exception_code
+            mint.next = 0
 
-        @always(self.clk.posedge)
-        def _mbadaddr():
-            """
-            Handle writes to the 'mbadaddr' address.
-            """
-            if self.exc_io.exception:
-                mbadaddr.next = self.exc_io.exception_pc if code_imem else self.exc_io.exception_load_addr
-            elif wen_internal & (self.rw.addr == CSRAddressMap.CSR_ADDR_MBADADDR):
-                mbadaddr.next = wdata_aux
+    @always(clk.posedge)
+    def _mbadaddr():
+        """
+        Handle writes to the 'mbadaddr' address.
+        """
+        if exc_io.exception:
+            mbadaddr.next = exc_io.exception_pc if code_imem else exc_io.exception_load_addr
+        elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MBADADDR):
+            mbadaddr.next = wdata_aux
 
-        @always_comb
-        def _read():
-            """
-            Read CSR registers.
-            """
-            if self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLE:
-                self.rw.rdata.next = cycle
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIME:
-                self.rw.rdata.next = time
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRET:
-                self.rw.rdata.next = instret
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEH:
-                self.rw.rdata.next = cycleh
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEH:
-                self.rw.rdata.next = timeh
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETH:
-                self.rw.rdata.next = instreth
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MCPUID:
-                self.rw.rdata.next = mcpuid
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MIMPID:
-                self.rw.rdata.next = mimpid
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MHARTID:
-                self.rw.rdata.next = mhartid
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS:
-                self.rw.rdata.next = mstatus
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTVEC:
-                self.rw.rdata.next = mtvec
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTDELEG:
-                self.rw.rdata.next = mtdeleg
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MIE:
-                self.rw.rdata.next = mie
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
-                self.rw.rdata.next = mtimecmp
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIME:
-                self.rw.rdata.next = mtime
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMEH:
-                self.rw.rdata.next = mtimeh
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
-                self.rw.rdata.next = mscratch
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MEPC:
-                self.rw.rdata.next = mepc
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MCAUSE:
-                self.rw.rdata.next = mcause
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MBADADDR:
-                self.rw.rdata.next = mbadaddr
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_MIP:
-                self.rw.rdata.next = mip
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEW:
-                self.rw.rdata.next = cycle
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEW:
-                self.rw.rdata.next = time
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETW:
-                self.rw.rdata.next = instret
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
-                self.rw.rdata.next = cycleh
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEHW:
-                self.rw.rdata.next = timeh
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
-                self.rw.rdata.next = instreth
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_TO_HOST:
-                self.rw.rdata.next = mtohost
-                defined.next = 1
-            elif self.rw.addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
-                self.rw.rdata.next = mfromhost
-                defined.next = 1
-            else:
-                self.rw.rdata.next = 0
-                defined.next = 0
+    @always_comb
+    def _read():
+        """
+        Read CSR registers.
+        """
+        if rw.addr == CSRAddressMap.CSR_ADDR_CYCLE:
+            rw.rdata.next = cycle
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_TIME:
+            rw.rdata.next = time
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRET:
+            rw.rdata.next = instret
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_CYCLEH:
+            rw.rdata.next = cycleh
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_TIMEH:
+            rw.rdata.next = timeh
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRETH:
+            rw.rdata.next = instreth
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MCPUID:
+            rw.rdata.next = mcpuid
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MIMPID:
+            rw.rdata.next = mimpid
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MHARTID:
+            rw.rdata.next = mhartid
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MSTATUS:
+            rw.rdata.next = mstatus
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MTVEC:
+            rw.rdata.next = mtvec
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MTDELEG:
+            rw.rdata.next = mtdeleg
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MIE:
+            rw.rdata.next = mie
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
+            rw.rdata.next = mtimecmp
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MTIME:
+            rw.rdata.next = mtime
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MTIMEH:
+            rw.rdata.next = mtimeh
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
+            rw.rdata.next = mscratch
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MEPC:
+            rw.rdata.next = mepc
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MCAUSE:
+            rw.rdata.next = mcause
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MBADADDR:
+            rw.rdata.next = mbadaddr
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_MIP:
+            rw.rdata.next = mip
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_CYCLEW:
+            rw.rdata.next = cycle
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_TIMEW:
+            rw.rdata.next = time
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRETW:
+            rw.rdata.next = instret
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
+            rw.rdata.next = cycleh
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_TIMEHW:
+            rw.rdata.next = timeh
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
+            rw.rdata.next = instreth
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_TO_HOST:
+            rw.rdata.next = mtohost
+            defined.next = 1
+        elif rw.addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
+            rw.rdata.next = mfromhost
+            defined.next = 1
+        else:
+            rw.rdata.next = 0
+            defined.next = 0
 
-        @always(self.clk.posedge)
-        def _write():
-            """
-            Handle writes to CSR registers.
-            """
-            if self.rst:
-                cycle_full.next   = 0
-                time_full.next    = 0
-                instret_full.next = 0
-                mtime_full.next   = 0
-                mtvec.next        = Consts.MTVEC
-                mtohost.next      = 0
-                mfromhost.next    = 0
-            else:
-                cycle_full.next = cycle_full + 1
-                time_full.next  = time_full + 1
-                mtime_full.next = mtime_full + 1
-                if self.retire:
-                    instret_full.next = instret_full + 1
-                if wen_internal:
-                    if self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLE:
-                        cycle_full[32:0].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIME:
-                        time_full[32:0].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRET:
-                        instret_full[32:0].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEH:
-                        cycle_full[64:32].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEH:
-                        time_full[64:32].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETH:
-                        instret_full[64:32].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTVEC:
-                        mtvec.next = wdata_aux & ~0x03
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
-                        mtimecmp.next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIME:
-                        mtime_full[32:0].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MTIMEH:
-                        mtime_full[64:32].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
-                        mscratch.next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEW:
-                        cycle_full[32:0].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEW:
-                        time_full[32:0].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETW:
-                        instret_full[32:0].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
-                        cycle_full[64:32].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TIMEHW:
-                        time_full[64:32].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
-                        instret_full[64:32].next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_TO_HOST:
-                        mtohost.next = wdata_aux
-                    elif self.rw.addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
-                        mfromhost.next = wdata_aux
+    @always(clk.posedge)
+    def _write():
+        """
+        Handle writes to CSR registers.
+        """
+        if rst:
+            cycle_full.next   = 0
+            time_full.next    = 0
+            instret_full.next = 0
+            mtime_full.next   = 0
+            mtvec.next        = Consts.MTVEC
+            mtohost.next      = 0
+            mfromhost.next    = 0
+        else:
+            cycle_full.next = cycle_full + 1
+            time_full.next  = time_full + 1
+            mtime_full.next = mtime_full + 1
+            if retire:
+                instret_full.next = instret_full + 1
+            if wen_internal:
+                if rw.addr == CSRAddressMap.CSR_ADDR_CYCLE:
+                    cycle_full[32:0].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_TIME:
+                    time_full[32:0].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRET:
+                    instret_full[32:0].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_CYCLEH:
+                    cycle_full[64:32].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_TIMEH:
+                    time_full[64:32].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRETH:
+                    instret_full[64:32].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_MTVEC:
+                    mtvec.next = wdata_aux & ~0x03
+                elif rw.addr == CSRAddressMap.CSR_ADDR_MTIMECMP:
+                    mtimecmp.next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_MTIME:
+                    mtime_full[32:0].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_MTIMEH:
+                    mtime_full[64:32].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_MSCRATCH:
+                    mscratch.next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_CYCLEW:
+                    cycle_full[32:0].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_TIMEW:
+                    time_full[32:0].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRETW:
+                    instret_full[32:0].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_CYCLEHW:
+                    cycle_full[64:32].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_TIMEHW:
+                    time_full[64:32].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_INSTRETHW:
+                    instret_full[64:32].next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_TO_HOST:
+                    mtohost.next = wdata_aux
+                elif rw.addr == CSRAddressMap.CSR_ADDR_FROM_HOST:
+                    mfromhost.next = wdata_aux
 
-        return instances()
+    return instances()
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200

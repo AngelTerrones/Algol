@@ -57,59 +57,40 @@ class RFWritePort:
         self.wd = Signal(modbv(0)[32:])
 
 
-class RegisterFile:
+def RegisterFile(clk,
+                 portA,
+                 portB,
+                 writePort):
     """
     The Register File (RF) module.
-
     32 32-bit registers, with the register 0 hardwired to zero.
+
+    :param clk:       System clock
+    :param portA:     IO bundle (read port)
+    :param portB:     IO bundle (read port)
+    :param writePort: IO bundle (write port)
     """
-    def __init__(self,
-                 clk: Signal,
-                 portA: RFReadPort,
-                 portB: RFReadPort,
-                 writePort: RFWritePort):
+    _registers = [Signal(modbv(0)[32:]) for ii in range(0, 32)]
+
+    @always_comb
+    def read():
         """
-        Initializes the IO ports.
-
-        :param clk:       System clock
-        :param portA:     IO bundle (read port)
-        :param portB:     IO bundle (read port)
-        :param writePort: IO bundle (write port)
+        Asynchronous read operation.
         """
-        self.clk = clk
-        self.portA = portA
-        self.portB = portB
-        self.writePort = writePort
-        self._registers = [Signal(modbv(0)[32:]) for ii in range(0, 32)]
+        portA.rd.next = _registers[portA.ra] if portA.ra != 0 else 0
+        portB.rd.next = _registers[portB.ra] if portB.ra != 0 else 0
 
-    def GetRTL(self):
+    @always(clk.posedge)
+    def write():
         """
-        Defines module behavior
+        Synchronous write operation.
+
+        If the write address is zero, do nothing.
         """
-        clk = self.clk
-        portA = self.portA
-        portB = self.portB
-        writePort = self.writePort
+        if writePort.wa != 0 and writePort.we == 1:
+            _registers[writePort.wa].next = writePort.wd
 
-        @always_comb
-        def read():
-            """
-            Asynchronous read operation.
-            """
-            portA.rd.next = self._registers[portA.ra] if portA.ra != 0 else 0
-            portB.rd.next = self._registers[portB.ra] if portB.ra != 0 else 0
-
-        @always(clk.posedge)
-        def write():
-            """
-            Synchronous write operation.
-
-            If the write address is zero, do nothing.
-            """
-            if writePort.wa != 0 and writePort.we == 1:
-                self._registers[writePort.wa].next = writePort.wd
-
-        return read, write
+    return read, write
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120

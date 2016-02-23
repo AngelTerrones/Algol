@@ -40,11 +40,10 @@ def _testbench():
     portA = RFReadPort()
     portB = RFReadPort()
     writePort = RFWritePort()
-    regFile = RegisterFile(clk=clk,
-                           portA=portA,
-                           portB=portB,
-                           writePort=writePort)
-    dut = regFile.GetRTL()
+    dut = RegisterFile(clk=clk,
+                       portA=portA,
+                       portB=portB,
+                       writePort=writePort)
 
     values = [random.randrange(0, 2**32) for _ in range(32)]  # random values. Used as reference.
 

@@ -44,7 +44,7 @@ def _testbench(cmd):
     multIO = MultiplierIO()
     dut = Multiplier(clk=clk,
                      rst=rst,
-                     io=multIO).GetRTL()
+                     io=multIO)
 
     halfperiod = delay(5)
 

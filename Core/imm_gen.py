@@ -27,61 +27,48 @@ from myhdl import instances
 from Core.consts import Consts
 
 
-class IMMGen:
+def IMMGen(sel,
+           instruction,
+           imm):
     """
     Generate the immediate values.
+
+    :param sel:         Select the type of instruction/immediate
+    :param instruction: Current instruction
+    :param imm:         A 32-bit immediate value
     """
-    def __init__(self,
-                 sel:         Signal,
-                 instruction: Signal,
-                 imm:         Signal):
-        """
-        Initializes the IO ports.
+    sign   = Signal(False)
+    b30_20 = Signal(modbv(0)[11:])
+    b19_12 = Signal(modbv(0)[8:])
+    b11    = Signal(False)
+    b10_5  = Signal(modbv(0)[6:])
+    b4_1   = Signal(modbv(0)[4:])
+    b0     = Signal(False)
 
-        :param sel:         Select the type of instruction/immediate
-        :param instruction: Current instruction
-        :param imm:         A 32-bit immediate value
-        """
-        self.sel         = sel
-        self.instruction = instruction
-        self.imm         = imm
+    @always_comb
+    def _sign():
+        sign.next     = False if sel == Consts.IMM_Z else instruction[31]
 
-    def GetRTL(self):
-        """
-        Defines module behavior
-        """
-        sign   = Signal(False)
-        b30_20 = Signal(modbv(0)[11:])
-        b19_12 = Signal(modbv(0)[8:])
-        b11    = Signal(False)
-        b10_5  = Signal(modbv(0)[6:])
-        b4_1   = Signal(modbv(0)[4:])
-        b0     = Signal(False)
+    @always_comb
+    def rtl():
+        b30_20.next   = instruction[31:20] if sel == Consts.IMM_U else concat(sign, sign, sign, sign, sign, sign, sign, sign, sign, sign, sign)
+        b19_12.next   = instruction[20:12] if (sel == Consts.IMM_U or sel == Consts.IMM_UJ) else concat(sign, sign, sign, sign, sign, sign, sign, sign)
+        b11.next      = (False if (sel == Consts.IMM_U or sel == Consts.IMM_Z) else
+                         (instruction[20] if sel == Consts.IMM_UJ else
+                          (instruction[7] if sel == Consts.IMM_SB else sign)))
+        b10_5.next    = modbv(0)[6:] if (sel == Consts.IMM_U or sel == Consts.IMM_Z) else instruction[31:25]
+        b4_1.next     = (modbv(0)[4:] if sel == Consts.IMM_U else
+                         (instruction[12:8] if (sel == Consts.IMM_S or sel == Consts.IMM_SB) else
+                          (instruction[20:16] if sel == Consts.IMM_Z else instruction[25:21])))
+        b0.next       = (instruction[7] if sel == Consts.IMM_S else
+                         (instruction[20] if sel == Consts.IMM_I else
+                          (instruction[15] if sel == Consts.IMM_Z else False)))
 
-        @always_comb
-        def _sign():
-            sign.next     = False if self.sel == Consts.IMM_Z else self.instruction[31]
+    @always_comb
+    def imm_concat():
+        imm.next = concat(sign, b30_20, b19_12, b11, b10_5, b4_1, b0)
 
-        @always_comb
-        def rtl():
-            b30_20.next   = self.instruction[31:20] if self.sel == Consts.IMM_U else concat(sign, sign, sign, sign, sign, sign, sign, sign, sign, sign, sign)
-            b19_12.next   = self.instruction[20:12] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_UJ) else concat(sign, sign, sign, sign, sign, sign, sign, sign)
-            b11.next      = (False if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else
-                             (self.instruction[20] if self.sel == Consts.IMM_UJ else
-                              (self.instruction[7] if self.sel == Consts.IMM_SB else sign)))
-            b10_5.next    = modbv(0)[6:] if (self.sel == Consts.IMM_U or self.sel == Consts.IMM_Z) else self.instruction[31:25]
-            b4_1.next     = (modbv(0)[4:] if self.sel == Consts.IMM_U else
-                             (self.instruction[12:8] if (self.sel == Consts.IMM_S or self.sel == Consts.IMM_SB) else
-                              (self.instruction[20:16] if self.sel == Consts.IMM_Z else self.instruction[25:21])))
-            b0.next       = (self.instruction[7] if self.sel == Consts.IMM_S else
-                             (self.instruction[20] if self.sel == Consts.IMM_I else
-                              (self.instruction[15] if self.sel == Consts.IMM_Z else False)))
-
-        @always_comb
-        def imm_concat():
-            self.imm.next = concat(sign, b30_20, b19_12, b11, b10_5, b4_1, b0)
-
-        return instances()
+    return instances()
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200

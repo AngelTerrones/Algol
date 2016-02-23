@@ -19,41 +19,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from myhdl import Signal
-from myhdl import modbv
 from myhdl import always
 from Core.consts import Consts
 
 
-class PCreg:
-    def __init__(self,
-                 clk:           Signal(False),
-                 rst:           Signal(False),
-                 id_stall:      Signal(False),
-                 full_stall:    Signal(False),
-                 pipeline_kill: Signal(False),
-                 a_pc:          Signal(modbv(0)[32:]),
-                 if_pc:         Signal(modbv(0)[32:])):
-        # inputs
-        self.clk           = clk
-        self.rst           = rst
-        self.id_stall      = id_stall
-        self.full_stall    = full_stall
-        self.pipeline_kill = pipeline_kill
-        self.a_pc          = a_pc
-        # outputs
-        self.if_pc         = if_pc
+def PCreg(clk,
+          rst,
+          id_stall,
+          full_stall,
+          pipeline_kill,
+          a_pc,
+          if_pc):
+    @always(clk.posedge)
+    def rtl():
+        if rst == 1:
+            if_pc.next = Consts.START_ADDR
+        else:
+            if (not id_stall and not full_stall) | pipeline_kill:
+                if_pc.next = a_pc
 
-    def GetRTL(self):
-        @always(self.clk.posedge)
-        def rtl():
-            if self.rst == 1:
-                self.if_pc.next = Consts.START_ADDR
-            else:
-                if (not self.id_stall and not self.full_stall) | self.pipeline_kill:
-                    self.if_pc.next = self.a_pc
-
-        return rtl
+    return rtl
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120

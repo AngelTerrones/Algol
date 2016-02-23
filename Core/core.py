@@ -26,47 +26,33 @@ from Core.cpath import Ctrlpath
 from Core.cpath import CtrlIO
 
 
-class Core:
+def Core(clk,
+         rst,
+         imem,
+         dmem,
+         toHost):
     """
     Core top module.
+
+    :param clk:    System clock
+    :param rst:    System reset
+    :param imem:   Instruction memory port
+    :paran dmem:   Data memory port
+    :param toHost: CSR's mtohost register. For simulation purposes.
     """
-    def __init__(self,
-                 clk:    Signal,
-                 rst:    Signal,
-                 imem:   MemPortIO,
-                 dmem:   MemPortIO,
-                 toHost: Signal):
-        """
-        Initializes the IO ports.
-        :param clk:    System clock
-        :param rst:    System reset
-        :param imem:   Instruction memory port
-        :paran dmem:   Data memory port
-        :param toHost: CSR's mtohost register. For simulation purposes.
-        """
-        self.clk    = clk
-        self.rst    = rst
-        self.imem   = imem
-        self.dmem   = dmem
-        self.toHost = toHost
+    ctrl_dpath = CtrlIO()
 
-    def GetRTL(self):
-        """
-        Behavioral description.
-        """
-        ctrl_dpath = CtrlIO()
+    dpath = Datapath(clk,
+                     rst,
+                     ctrl_dpath,
+                     toHost)
+    cpath = Ctrlpath(clk,
+                     rst,
+                     ctrl_dpath,
+                     imem,
+                     dmem)
 
-        dpath = Datapath(self.clk,
-                         self.rst,
-                         ctrl_dpath,
-                         self.toHost).GetRTL()
-        cpath = Ctrlpath(self.clk,
-                         self.rst,
-                         ctrl_dpath,
-                         self.imem,
-                         self.dmem).GetRTL()
-
-        return dpath, cpath
+    return dpath, cpath
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120

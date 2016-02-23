@@ -85,10 +85,7 @@ def convert_to_verilog(args):
     dmem = MemPortIO()
     toHost = Signal(modbv(0)[32:])
 
-    def core(clk, rst, imem, dmem, toHost):
-        return Core(clk=clk, rst=rst, imem=imem, dmem=dmem, toHost=toHost).GetRTL()
-
-    toVerilog(core, clk, rst, imem, dmem, toHost)
+    toVerilog(Core, clk, rst, imem, dmem, toHost)
 
 
 def main():

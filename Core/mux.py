@@ -19,90 +19,60 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from myhdl import Signal
 from myhdl import always_comb
 
 
-class Mux2:
+def Mux2(sel,
+         in1,
+         in2,
+         out):
     """
     Defines a multiplexor 2 to 1.
+
+    :param sel:  Data selector
+    :param int1: Data input
+    :param int2: Data input
+    :param out:  Data output
     """
-    def __init__(self,
-                 sel: Signal,
-                 in1: Signal,
-                 in2: Signal,
-                 out: Signal):
-        """
-        Initializes the IO ports.
+    @always_comb
+    def rtl():
+        if sel == 0:
+            out.next = in1
+        else:
+            out.next = in2
 
-        :param sel:  Data selector
-        :param int1: Data input
-        :param int2: Data input
-        :param out:  Data output
-        """
-        self.sel = sel
-        self.in1 = in1
-        self.in2 = in2
-        self.out = out
-
-    def GetRTL(self):
-        """
-        Defines the module behavior.
-        """
-        @always_comb
-        def rtl():
-            if self.sel == 0:
-                self.out.next = self.in1
-            else:
-                self.out.next = self.in2
-
-        return rtl
+    return rtl
 
 
-class Mux4:
+def Mux4(sel,
+         in1,
+         in2,
+         in3,
+         in4,
+         out):
     """
     Defines a multiplexor 4 to 1.
+
+    :param sel:  Data selector
+    :param int1: Data input
+    :param int2: Data input
+    :param int3: Data input
+    :param int4: Data input
+    :param out:  Data output
     """
-    def __init__(self,
-                 sel: Signal,
-                 in1: Signal,
-                 in2: Signal,
-                 in3: Signal,
-                 in4: Signal,
-                 out: Signal):
-        """
-        Initializes the IO ports.
+    @always_comb
+    def rtl():
+        if sel == 0:
+            out.next = in1
+        elif sel == 1:
+            out.next = in2
+        elif sel == 2:
+            out.next = in3
+        else:
+            out.next = in4
 
-        :param sel:  Data selector
-        :param int1: Data input
-        :param int2: Data input
-        :param int3: Data input
-        :param int4: Data input
-        :param out:  Data output
-        """
-        self.sel = sel
-        self.in1 = in1
-        self.in2 = in2
-        self.in3 = in3
-        self.in4 = in4
-        self.out = out
+    return rtl
 
-    def GetRTL(self):
-        """
-        Defines the module behavior.
-        """
-        @always_comb
-        def rtl():
-            if self.sel == 0:
-                self.out.next = self.in1
-            elif self.sel == 1:
-                self.out.next = self.in2
-            elif self.sel == 2:
-                self.out.next = self.in3
-            else:
-                self.out.next = self.in4
-
-        return rtl
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
 # flycheck-flake8rc: ".flake8rc"

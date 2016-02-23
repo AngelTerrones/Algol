@@ -19,7 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from myhdl import Signal
 from myhdl import always
 from myhdl import modbv
 from Core.consts import Consts
@@ -28,122 +27,82 @@ from Core.memIO import MemOp
 from Core.csr import CSRCMD
 
 
-class IDEXReg:
-    def __init__(self,
-                 clk:             Signal,
-                 rst:             Signal,
-                 id_stall:        Signal,
-                 full_stall:      Signal,
-                 id_kill:         Signal,
-                 pipeline_kill:   Signal,
-                 id_pc:           Signal,
-                 id_op1_data:     Signal,
-                 id_op2_data:     Signal,
-                 id_alu_funct:    Signal,
-                 id_mem_type:     Signal,
-                 id_mem_funct:    Signal,
-                 id_mem_valid:    Signal,
-                 id_mem_wdata:    Signal,
-                 id_mem_data_sel: Signal,
-                 id_wb_addr:      Signal,
-                 id_wb_we:        Signal,
-                 id_csr_addr:     Signal,
-                 id_csr_wdata:    Signal,
-                 id_csr_cmd:      Signal,
-                 ex_pc:           Signal,
-                 ex_op1_data:     Signal,
-                 ex_op2_data:     Signal,
-                 ex_alu_funct:    Signal,
-                 ex_mem_type:     Signal,
-                 ex_mem_funct:    Signal,
-                 ex_mem_valid:    Signal,
-                 ex_mem_wdata:    Signal,
-                 ex_mem_data_sel: Signal,
-                 ex_wb_addr:      Signal,
-                 ex_wb_we:        Signal,
-                 ex_csr_addr:     Signal,
-                 ex_csr_wdata:    Signal,
-                 ex_csr_cmd:      Signal):
-        # inputs
-        self.clk             = clk
-        self.rst             = rst
-        self.id_stall        = id_stall
-        self.full_stall      = full_stall
-        self.id_kill         = id_kill
-        self.pipeline_kill   = pipeline_kill
-        self.id_pc           = id_pc
-        self.id_op1_data     = id_op1_data
-        self.id_op2_data     = id_op2_data
-        self.id_alu_funct    = id_alu_funct
-        self.id_mem_type     = id_mem_type
-        self.id_mem_funct    = id_mem_funct
-        self.id_mem_valid    = id_mem_valid
-        self.id_mem_wdata    = id_mem_wdata
-        self.id_mem_data_sel = id_mem_data_sel
-        self.id_wb_addr      = id_wb_addr
-        self.id_wb_we        = id_wb_we
-        self.id_csr_addr     = id_csr_addr
-        self.id_csr_wdata    = id_csr_wdata
-        self.id_csr_cmd      = id_csr_cmd
-        # outputs
-        self.ex_pc           = ex_pc
-        self.ex_op1_data     = ex_op1_data
-        self.ex_op2_data     = ex_op2_data
-        self.ex_alu_funct    = ex_alu_funct
-        self.ex_mem_type     = ex_mem_type
-        self.ex_mem_funct    = ex_mem_funct
-        self.ex_mem_valid    = ex_mem_valid
-        self.ex_mem_wdata    = ex_mem_wdata
-        self.ex_mem_data_sel = ex_mem_data_sel
-        self.ex_wb_addr      = ex_wb_addr
-        self.ex_wb_we        = ex_wb_we
-        self.ex_csr_addr     = ex_csr_addr
-        self.ex_csr_wdata    = ex_csr_wdata
-        self.ex_csr_cmd      = ex_csr_cmd
-
-    def GetRTL(self):
-        @always(self.clk.posedge)
-        def rtl():
-            if self.rst == 1:
-                self.ex_pc.next           = 0
-                self.ex_op1_data.next     = 0
-                self.ex_op2_data.next     = 0
-                self.ex_alu_funct.next    = ALUOp.OP_ADD
-                self.ex_mem_type.next     = MemOp.MT_X
-                self.ex_mem_funct.next    = MemOp.M_X
-                self.ex_mem_valid.next    = False
-                self.ex_mem_wdata.next    = 0
-                self.ex_mem_data_sel.next = Consts.WB_X
-                self.ex_wb_addr.next      = 0
-                self.ex_wb_we.next        = False
-                self.ex_csr_addr.next     = 0
-                self.ex_csr_wdata.next    = 0
-                self.ex_csr_cmd.next      = CSRCMD.CSR_IDLE
-            else:
-                # id_stall and full_stall are not related.
-                self.ex_pc.next           = (self.ex_pc if (self.id_stall or self.full_stall) else (self.id_pc))
-                self.ex_op1_data.next     = (self.ex_op1_data if (self.id_stall or self.full_stall) else (self.id_op1_data))
-                self.ex_op2_data.next     = (self.ex_op2_data if (self.id_stall or self.full_stall) else (self.id_op2_data))
-                self.ex_alu_funct.next    = (self.ex_alu_funct if (self.id_stall or self.full_stall) else (self.id_alu_funct))
-                self.ex_mem_type.next     = (self.ex_mem_type if (self.id_stall or self.full_stall) else (self.id_mem_type))
-                self.ex_mem_wdata.next    = (self.ex_mem_wdata if (self.id_stall or self.full_stall) else (self.id_mem_wdata))
-                self.ex_mem_data_sel.next = (self.ex_mem_data_sel if (self.id_stall or self.full_stall) else (self.id_mem_data_sel))
-                self.ex_wb_addr.next      = (self.ex_wb_addr if (self.id_stall or self.full_stall) else (self.id_wb_addr))
-                self.ex_csr_addr.next     = (self.ex_csr_addr if (self.id_stall or self.full_stall) else (self.id_csr_addr))
-                self.ex_csr_wdata.next    = (self.ex_csr_wdata if (self.id_stall or self.full_stall) else (self.id_csr_wdata))
-                self.ex_mem_funct.next    = (self.ex_mem_funct if self.full_stall else
-                                             (MemOp.M_X if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
-                                              (self.id_mem_funct)))
-                self.ex_mem_valid.next    = (self.ex_mem_valid if self.full_stall else
-                                             (False if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
-                                              (self.id_mem_valid)))
-                self.ex_wb_we.next        = (self.ex_wb_we if self.full_stall else
-                                             (False if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
-                                              (self.id_wb_we)))
-                self.ex_csr_cmd.next      = (self.ex_csr_cmd if self.full_stall else
-                                             (modbv(CSRCMD.CSR_IDLE)[CSRCMD.SZ_CMD:] if (self.pipeline_kill or self.id_kill or (self.id_stall and not self.full_stall)) else
-                                              (self.id_csr_cmd)))
-        return rtl
+def IDEXReg(clk,
+            rst,
+            id_stall,
+            full_stall,
+            id_kill,
+            pipeline_kill,
+            id_pc,
+            id_op1_data,
+            id_op2_data,
+            id_alu_funct,
+            id_mem_type,
+            id_mem_funct,
+            id_mem_valid,
+            id_mem_wdata,
+            id_mem_data_sel,
+            id_wb_addr,
+            id_wb_we,
+            id_csr_addr,
+            id_csr_wdata,
+            id_csr_cmd,
+            ex_pc,
+            ex_op1_data,
+            ex_op2_data,
+            ex_alu_funct,
+            ex_mem_type,
+            ex_mem_funct,
+            ex_mem_valid,
+            ex_mem_wdata,
+            ex_mem_data_sel,
+            ex_wb_addr,
+            ex_wb_we,
+            ex_csr_addr,
+            ex_csr_wdata,
+            ex_csr_cmd):
+    @always(clk.posedge)
+    def rtl():
+        if rst == 1:
+            ex_pc.next           = 0
+            ex_op1_data.next     = 0
+            ex_op2_data.next     = 0
+            ex_alu_funct.next    = ALUOp.OP_ADD
+            ex_mem_type.next     = MemOp.MT_X
+            ex_mem_funct.next    = MemOp.M_X
+            ex_mem_valid.next    = False
+            ex_mem_wdata.next    = 0
+            ex_mem_data_sel.next = Consts.WB_X
+            ex_wb_addr.next      = 0
+            ex_wb_we.next        = False
+            ex_csr_addr.next     = 0
+            ex_csr_wdata.next    = 0
+            ex_csr_cmd.next      = CSRCMD.CSR_IDLE
+        else:
+            # id_stall and full_stall are not related.
+            ex_pc.next           = (ex_pc if (id_stall or full_stall) else (id_pc))
+            ex_op1_data.next     = (ex_op1_data if (id_stall or full_stall) else (id_op1_data))
+            ex_op2_data.next     = (ex_op2_data if (id_stall or full_stall) else (id_op2_data))
+            ex_alu_funct.next    = (ex_alu_funct if (id_stall or full_stall) else (id_alu_funct))
+            ex_mem_type.next     = (ex_mem_type if (id_stall or full_stall) else (id_mem_type))
+            ex_mem_wdata.next    = (ex_mem_wdata if (id_stall or full_stall) else (id_mem_wdata))
+            ex_mem_data_sel.next = (ex_mem_data_sel if (id_stall or full_stall) else (id_mem_data_sel))
+            ex_wb_addr.next      = (ex_wb_addr if (id_stall or full_stall) else (id_wb_addr))
+            ex_csr_addr.next     = (ex_csr_addr if (id_stall or full_stall) else (id_csr_addr))
+            ex_csr_wdata.next    = (ex_csr_wdata if (id_stall or full_stall) else (id_csr_wdata))
+            ex_mem_funct.next    = (ex_mem_funct if full_stall else
+                                    (MemOp.M_X if (pipeline_kill or id_kill or (id_stall and not full_stall)) else
+                                     (id_mem_funct)))
+            ex_mem_valid.next    = (ex_mem_valid if full_stall else
+                                    (False if (pipeline_kill or id_kill or (id_stall and not full_stall)) else
+                                     (id_mem_valid)))
+            ex_wb_we.next        = (ex_wb_we if full_stall else
+                                    (False if (pipeline_kill or id_kill or (id_stall and not full_stall)) else
+                                     (id_wb_we)))
+            ex_csr_cmd.next      = (ex_csr_cmd if full_stall else
+                                    (modbv(CSRCMD.CSR_IDLE)[CSRCMD.SZ_CMD:] if (pipeline_kill or id_kill or (id_stall and not full_stall)) else
+                                     (id_csr_cmd)))
+    return rtl
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 300

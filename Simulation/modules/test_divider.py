@@ -42,7 +42,7 @@ def _testbench(signed_op=True):
     divIO = DividerIO()
     dut = Divider(clk=clk,
                   rst=rst,
-                  io=divIO).GetRTL()
+                  io=divIO)
 
     halfperiod = delay(5)
 

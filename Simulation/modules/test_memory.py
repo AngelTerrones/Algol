@@ -86,7 +86,7 @@ def _testbench():
                  dmem=rb.dmem,
                  SIZE=MEM_SIZE,
                  HEX=MEM_TEST_FILE,
-                 BYTES_X_LINE=BYTES_X_LINE).GetRTL()
+                 BYTES_X_LINE=BYTES_X_LINE)
 
     tb_clk = rb.gen_clocks()
 
@@ -157,7 +157,7 @@ def test_memory_assertions():
                dmem=dmem,
                SIZE=20,
                HEX=MEM_TEST_FILE,
-               BYTES_X_LINE=BYTES_X_LINE).GetRTL()
+               BYTES_X_LINE=BYTES_X_LINE)
 
     # test valid filename
     with pytest.raises(AssertionError):
@@ -167,7 +167,7 @@ def test_memory_assertions():
                dmem=dmem,
                SIZE=MEM_SIZE,
                HEX='ERROR',
-               BYTES_X_LINE=BYTES_X_LINE).GetRTL()
+               BYTES_X_LINE=BYTES_X_LINE)
 1
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200

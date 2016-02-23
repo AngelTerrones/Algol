@@ -48,14 +48,14 @@ def core_testbench(mem_size, hex_file, bytes_line):
                     rst=rst,
                     imem=imem,
                     dmem=dmem,
-                    toHost=toHost).GetRTL()
+                    toHost=toHost)
     memory = Memory(clk=clk,
                     rst=rst,
                     imem=imem,
                     dmem=dmem,
                     SIZE=mem_size,
                     HEX=hex_file,
-                    BYTES_X_LINE=bytes_line).GetRTL()
+                    BYTES_X_LINE=bytes_line)
 
     @always(delay(int(TICK_PERIOD / 2)))
     def gen_clock():

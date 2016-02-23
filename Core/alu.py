@@ -98,121 +98,107 @@ class ALUPortIO:
         self.req_stall = Signal(False)
 
 
-class ALU:
+def ALU(clk,
+        rst,
+        io):
     """
     Defines an Arithmetic-Logic Unit (ALU)
+
+    :param clk: System clock
+    :param rst: System reset
+    :param IO:  An IO bundle (Function, Input1, Input2, Output)
     """
-    def __init__(self,
-                 clk: Signal,
-                 rst: Signal,
-                 io:  ALUPortIO):
-        """
-        Initializes the IO ports.
+    multIO    = MultiplierIO()
+    divIO     = DividerIO()
+    mult_l    = Signal(modbv(0)[32:])
+    mult_h    = Signal(modbv(0)[32:])
+    quotient  = Signal(modbv(0)[32:])
+    remainder = Signal(modbv(0)[32:])
+    mult_ss   = Signal(False)
+    mult_su   = Signal(False)
+    mult_uu   = Signal(False)
 
-        :param clk: System clock
-        :param rst: System reset
-        :param IO:  An IO bundle (Function, Input1, Input2, Output)
-        """
-        self.clk = clk
-        self.rst = rst
-        self.io  = io
+    @always_comb
+    def _mult_ops():
+        mult_ss.next = io.function == ALUOp.OP_MUL or io.function == ALUOp.OP_MULH
+        mult_su.next = io.function == ALUOp.OP_MULHSU
+        mult_uu.next = io.function == ALUOp.OP_MULHU
 
-    def GetRTL(self):
-        """
-        Defines the module behavior
-        """
-        io        = self.io
-        multIO    = MultiplierIO()
-        divIO     = DividerIO()
-        mult_l    = Signal(modbv(0)[32:])
-        mult_h    = Signal(modbv(0)[32:])
-        quotient  = Signal(modbv(0)[32:])
-        remainder = Signal(modbv(0)[32:])
-        mult_ss   = Signal(False)
-        mult_su   = Signal(False)
-        mult_uu   = Signal(False)
+    @always_comb
+    def _assignments():
+        multIO.input1.next  = io.input1
+        multIO.input2.next  = io.input2
+        multIO.cmd.next     = (modbv(MultiplierOP.OP_SS)[MultiplierOP.SZ_OP:] if mult_ss else
+                               (modbv(MultiplierOP.OP_SU)[MultiplierOP.SZ_OP:] if mult_su else
+                                (modbv(MultiplierOP.OP_UU)[MultiplierOP.SZ_OP:] if mult_uu else
+                                 modbv(MultiplierOP.OP_IDLE)[MultiplierOP.SZ_OP:])))
+        multIO.enable.next  = (mult_ss or mult_su or mult_uu) and not multIO.active
+        multIO.stall.next   = io.stall != io.req_stall
+        multIO.kill.next    = io.kill
+        mult_l.next         = multIO.output[32:0]
+        mult_h.next         = multIO.output[64:32]
 
-        @always_comb
-        def _mult_ops():
-            mult_ss.next = io.function == ALUOp.OP_MUL or io.function == ALUOp.OP_MULH
-            mult_su.next = io.function == ALUOp.OP_MULHSU
-            mult_uu.next = io.function == ALUOp.OP_MULHU
+        divIO.dividend.next = io.input1
+        divIO.divisor.next  = io.input2
+        divIO.divs.next     = (io.function == ALUOp.OP_DIV or io.function == ALUOp.OP_REM) and not divIO.active
+        divIO.divu.next     = (io.function == ALUOp.OP_DIVU or io.function == ALUOp.OP_REMU) and not divIO.active
+        quotient.next       = divIO.quotient
+        remainder.next      = divIO.remainder
 
-        @always_comb
-        def _assignments():
-            multIO.input1.next  = self.io.input1
-            multIO.input2.next  = self.io.input2
-            multIO.cmd.next     = (modbv(MultiplierOP.OP_SS)[MultiplierOP.SZ_OP:] if mult_ss else
-                                   (modbv(MultiplierOP.OP_SU)[MultiplierOP.SZ_OP:] if mult_su else
-                                    (modbv(MultiplierOP.OP_UU)[MultiplierOP.SZ_OP:] if mult_uu else
-                                     modbv(MultiplierOP.OP_IDLE)[MultiplierOP.SZ_OP:])))
-            multIO.enable.next  = (mult_ss or mult_su or mult_uu) and not multIO.active
-            multIO.stall.next   = self.io.stall != io.req_stall
-            multIO.kill.next    = self.io.kill
-            mult_l.next         = multIO.output[32:0]
-            mult_h.next         = multIO.output[64:32]
+    @always_comb
+    def _assignments2():
+        io.req_stall.next   = (divIO.divs or divIO.divu or (divIO.active != divIO.ready)) or (multIO.enable or (multIO.active != multIO.ready))
 
-            divIO.dividend.next = self.io.input1
-            divIO.divisor.next  = self.io.input2
-            divIO.divs.next     = (io.function == ALUOp.OP_DIV or io.function == ALUOp.OP_REM) and not divIO.active
-            divIO.divu.next     = (io.function == ALUOp.OP_DIVU or io.function == ALUOp.OP_REMU) and not divIO.active
-            quotient.next       = divIO.quotient
-            remainder.next      = divIO.remainder
+    @always_comb
+    def rtl():
+        if io.function == ALUOp.OP_ADD:
+            io.output.next = io.input1 + io.input2
+        elif io.function == ALUOp.OP_SLL:
+            io.output.next = io.input1 << io.input2[5:0]
+        elif io.function == ALUOp.OP_XOR:
+            io.output.next = io.input1 ^ io.input2
+        elif io.function == ALUOp.OP_SRL:
+            io.output.next = io.input1 >> io.input2[5:0]
+        elif io.function == ALUOp.OP_OR:
+            io.output.next = io.input1 | io.input2
+        elif io.function == ALUOp.OP_AND:
+            io.output.next = io.input1 & io.input2
+        elif io.function == ALUOp.OP_SUB:
+            io.output.next = io.input1 - io.input2
+        elif io.function == ALUOp.OP_SRA:
+            io.output.next = io.input1.signed() >> io.input2[5:0]
+        elif io.function == ALUOp.OP_SLT:
+            io.output.next = concat(modbv(0)[31:], io.input1.signed() < io.input2.signed())
+        elif io.function == ALUOp.OP_SLTU:
+            io.output.next = concat(modbv(0)[31:], io.input1 < io.input2)
+        elif io.function == ALUOp.OP_MUL:
+            io.output.next = mult_l
+        elif io.function == ALUOp.OP_MULH:
+            io.output.next = mult_h
+        elif io.function == ALUOp.OP_MULHSU:
+            io.output.next = mult_h
+        elif io.function == ALUOp.OP_MULHU:
+            io.output.next = mult_h
+        elif io.function == ALUOp.OP_DIV:
+            io.output.next = quotient
+        elif io.function == ALUOp.OP_DIVU:
+            io.output.next = quotient
+        elif io.function == ALUOp.OP_REM:
+            io.output.next = remainder
+        elif io.function == ALUOp.OP_REMU:
+            io.output.next = remainder
+        else:
+            io.output.next = 0
 
-        @always_comb
-        def _assignments2():
-            io.req_stall.next   = (divIO.divs or divIO.divu or (divIO.active != divIO.ready)) or (multIO.enable or (multIO.active != multIO.ready))
+    mult = Multiplier(clk,
+                      rst,
+                      multIO)
 
-        @always_comb
-        def rtl():
-            if io.function == ALUOp.OP_ADD:
-                io.output.next = io.input1 + io.input2
-            elif io.function == ALUOp.OP_SLL:
-                io.output.next = io.input1 << io.input2[5:0]
-            elif io.function == ALUOp.OP_XOR:
-                io.output.next = io.input1 ^ io.input2
-            elif io.function == ALUOp.OP_SRL:
-                io.output.next = io.input1 >> io.input2[5:0]
-            elif io.function == ALUOp.OP_OR:
-                io.output.next = io.input1 | io.input2
-            elif io.function == ALUOp.OP_AND:
-                io.output.next = io.input1 & io.input2
-            elif io.function == ALUOp.OP_SUB:
-                io.output.next = io.input1 - io.input2
-            elif io.function == ALUOp.OP_SRA:
-                io.output.next = io.input1.signed() >> io.input2[5:0]
-            elif io.function == ALUOp.OP_SLT:
-                io.output.next = concat(modbv(0)[31:], io.input1.signed() < io.input2.signed())
-            elif io.function == ALUOp.OP_SLTU:
-                io.output.next = concat(modbv(0)[31:], io.input1 < io.input2)
-            elif io.function == ALUOp.OP_MUL:
-                io.output.next = mult_l
-            elif io.function == ALUOp.OP_MULH:
-                io.output.next = mult_h
-            elif io.function == ALUOp.OP_MULHSU:
-                io.output.next = mult_h
-            elif io.function == ALUOp.OP_MULHU:
-                io.output.next = mult_h
-            elif io.function == ALUOp.OP_DIV:
-                io.output.next = quotient
-            elif io.function == ALUOp.OP_DIVU:
-                io.output.next = quotient
-            elif io.function == ALUOp.OP_REM:
-                io.output.next = remainder
-            elif io.function == ALUOp.OP_REMU:
-                io.output.next = remainder
-            else:
-                io.output.next = 0
+    div = Divider(clk,
+                  rst,
+                  divIO)
 
-        mult = Multiplier(self.clk,
-                          self.rst,
-                          multIO).GetRTL()
-
-        div = Divider(self.clk,
-                      self.rst,
-                      divIO).GetRTL()
-
-        return rtl, mult, div, _assignments, _mult_ops, _assignments2
+    return rtl, mult, div, _assignments, _mult_ops, _assignments2
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200
