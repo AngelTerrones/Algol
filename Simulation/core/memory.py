@@ -28,7 +28,6 @@ from myhdl import always
 from myhdl import instances
 from myhdl import concat
 from Core.memIO import MemOp
-from Core.memIO import MemPortIO
 
 
 def LoadMemory(size_mem: int,
@@ -52,13 +51,13 @@ def LoadMemory(size_mem: int,
         memory[addr] = Signal(modbv(data)[32:])
 
 
-def Memory(clk:          Signal,
-           rst:          Signal,
-           imem:         MemPortIO,
-           dmem:         MemPortIO,
-           SIZE:         int,
-           HEX:          str,
-           BYTES_X_LINE: int):
+def Memory(clk,
+           rst,
+           imem,
+           dmem,
+           SIZE,
+           HEX,
+           BYTES_X_LINE):
     """
     Test memory.
     """
