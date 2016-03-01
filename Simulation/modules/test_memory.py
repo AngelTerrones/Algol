@@ -20,13 +20,11 @@
 # THE SOFTWARE.
 
 from Simulation.core.memory import Memory
-from Core.memIO import MemOp
 from Core.memIO import MemPortIO
+from Simulation.modules.ram_bus import RamBus
 import random
-from myhdl import always
 from myhdl import instance
 from myhdl import Signal
-from myhdl import delay
 from myhdl import Simulation
 from myhdl import StopSimulation
 import pytest
@@ -35,47 +33,6 @@ import pytest
 MEM_SIZE      = 2**15  # Bytes
 MEM_TEST_FILE = 'Simulation/modules/mem.hex'
 BYTES_X_LINE  = 16
-
-
-class RamBus:
-    def __init__(self, memory_size):
-        ns = memory_size  # in words
-        self.depth = ns
-        self.clk = Signal(False)
-        self.rst = Signal(False)
-        self.imem = MemPortIO()
-        self.dmem = MemPortIO()
-
-        self.mirror_mem = [None for _ in range(ns)]
-
-    def gen_clocks(self):
-        @always(delay(3))
-        def rambusclk():
-            self.clk.next = not self.clk
-
-        return rambusclk
-
-    def write(self, addr, data):
-        yield self.clk.posedge
-        self.dmem.addr.next = addr
-        self.dmem.wdata.next = data
-        self.dmem.wr.next = 0b1111
-        self.dmem.fcn.next = MemOp.M_WR
-        self.dmem.valid.next = True
-        self.mirror_mem[addr >> 2] = data
-        yield self.dmem.ready.posedge
-        yield self.clk.negedge
-        self.dmem.valid.next = False
-
-    def read(self, addr):
-        yield self.clk.posedge
-        self.dmem.addr.next = addr
-        self.dmem.wr.next = 0b0000
-        self.dmem.fcn.next = MemOp.M_RD
-        self.dmem.valid.next = True
-        yield self.dmem.ready.posedge
-        yield self.clk.negedge
-        self.dmem.valid.next = False
 
 
 def _testbench():
@@ -102,8 +59,8 @@ def _testbench():
             yield rb.read(addr << 2)  # Address in bytes
             data = int(lines[addr], 16)
             assert rb.dmem.rdata == data, "Data loading: Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
-                                                                                                                 hex(rb.dmem.rdata),
-                                                                                                                 data)
+                                                                                                             hex(rb.dmem.rdata),
+                                                                                                             data)
 
         # Testing R/W
         for addr in range(rb.depth):
@@ -168,7 +125,7 @@ def test_memory_assertions():
                SIZE=MEM_SIZE,
                HEX='ERROR',
                BYTES_X_LINE=BYTES_X_LINE)
-1
+
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
