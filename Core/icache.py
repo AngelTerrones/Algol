@@ -24,9 +24,12 @@ from myhdl import always
 from myhdl import always_comb
 from myhdl import enum
 from myhdl import modbv
+from myhdl import concat
+from myhdl import instances
 from ram_dp import RAM_DP
 from ram_dp import RAMIOPort
 from memIO import MemOp
+from cache_lru import CacheLRU
 from functools import reduce
 
 
@@ -95,16 +98,33 @@ def ICache(clk,
     final_flush       = Signal(False)
 
     lru_select        = Signal(modbv(0)[WAYS:])
+    current_lru       = Signal(modbv(0)[TAG_LRU_WIDTH:])
+    update_lru        = Signal(modbv(0)[TAG_LRU_WIDTH:])
+    access_lru        = Signal(modbv(0)[WAYS:])
+    lru_pre           = Signal(modbv(0)[WAYS:])
+    lru_post          = Signal(modbv(0)[WAYS:])
 
     # tag in/out signals: For data assignment
     tag_in            = [Signal(modbv(0))[TAGMEM_WAY_WIDTH:] for _ in range(0, WAYS)]
     tag_out           = [Signal(modbv(0))[TAGMEM_WAY_WIDTH:] for _ in range(0, WAYS)]
     lru_in            = Signal(modbv(0))[TAG_LRU_WIDTH:]
     lru_out           = Signal(modbv(0))[TAG_LRU_WIDTH:]
+    tag_we            = Signal(False)
 
     # refill signals
     refill_addr       = Signal(0)[LIMIT_WIDTH:]
     refill_valid      = Signal(False)
+    n_refill_addr     = Signal(0)[LIMIT_WIDTH:]
+    n_refill_valid    = Signal(False)
+
+    @always_comb
+    def assignments():
+        tag_rw_port.clk.next    = clk
+        tag_flush_port.clk.next = clk
+        final_fetch.next        = refill_addr[BLOCK_WIDTH:] == modbv(~0x3)[BLOCK_WIDTH:]
+        lru_select.next         = lru_pre
+        current_lru.next        = lru_out
+        access_lru.next         = ~miss_w
 
     @always_comb
     def miss_check():
@@ -167,6 +187,64 @@ def ICache(clk,
             state.next = n_state
 
     @always_comb
+    def fetch_fsm():
+        n_refill_addr.next  = refill_addr
+        n_refill_valid.next = False  # refill_valid
+
+        if state == ic_states.CHECK:
+            if flush or invalidate:
+                n_refill_valid.next = False
+            elif miss:
+                n_refill_addr.next  = concat(cpu.addr[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH:])
+                n_refill_valid.next = True  # not mem.ready?
+        elif state == ic_states.FETCH:
+            n_refill_valid.next = not mem.ready
+            if not refill_valid and mem.ready:
+                if final_fetch:
+                    n_refill_valid.next = False
+                else:
+                    n_refill_addr.next  = refill_addr + 4
+
+    @always(clk.posedge)
+    def update_fetch():
+        if rst:
+            refill_addr.next  = 0
+            refill_valid.next = False
+        else:
+            refill_addr.next  = n_refill_addr
+            refill_valid.next = n_refill_valid
+
+    @always_comb
+    def tag_write():
+        """
+        Update the tag and lru field.
+        Tag: update when failure.
+        lru: update after refilling or hit.
+        """
+        for i in range(0, WAYS):
+            tag_in[i].next = tag_out[i]
+        tag_we.next = False
+        lru_in.next = lru_out
+
+        if state == ic_states.CHECK:
+            if flush or invalidate:
+                tag_we.next = False
+            if miss:
+                for i in range(0, WAYS):
+                    if lru_select[i]:
+                        tag_in[i][TAG_WIDTH:0].next      = cpu.addr[LIMIT_WIDTH:WAY_WIDTH]
+                        tag_in[i][TAGMEM_WAY_VALID].next = True
+                tag_we.next = True
+            else:
+                lru_in.next = update_lru
+                tag_we.next = True
+
+    @always_comb
+    def tag_port_assign():
+        tag_rw_port.we.next    = False
+        tag_flush_port.we.next = False
+
+    @always_comb
     def cpu_port_assign():
         """
         Assignments to the cpu interface.
@@ -188,13 +266,30 @@ def ICache(clk,
     @always_comb
     def mem_port_assign():
         """
-        Assignments to the mem interface
+        Assignments to the mem interface for refill operations.
         """
         mem.addr.next  = refill_addr
         mem.wdata.next = 0x0BADF00D
         mem.wr.next    = modbv(0)[4:]
         mem.fcn.next   = MemOp.M_RD
         mem.valid.next = refill_valid
+
+    @always_comb
+    def chache_mem_r():
+        for i in range(0, WAYS):
+            cache_read_port[i].clk.next    = clk
+            cache_read_port[i].addr.next   = cpu.addr[WAY_WIDTH:]
+            cache_read_port[i].data_i.next = 0xAABBCCDD
+
+    @always_comb
+    def cache_mem_update():
+        # Connect the mem data_i port to the cache memories.
+        for i in range(0, WAYS):
+            # ignore data_o from update port
+            cache_update_port[i].clk.next = clk
+            cache_update_port[i].addr.next = 0
+            cache_update_port[i].data_i.next = mem.rdata
+            cache_update_port[i].we.next = lru_select[i]
 
     @always_comb
     def no_cache():
@@ -220,9 +315,15 @@ def ICache(clk,
                         D_WIDTH=D_WIDTH)
                  for i in range(0, WAYS)]
 
+    lru_m = CacheLRU(current_lru,
+                     access_lru,
+                     update_lru,
+                     lru_pre,
+                     lru_post)
+
     # Bypass the cache if this module is disabled.
     if ENABLE:
-        return tag_mem, cache_mem
+        return tag_mem, cache_mem, lru_m, instances()
     else:
         return no_cache
 
