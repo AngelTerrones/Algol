@@ -26,10 +26,10 @@ from myhdl import enum
 from myhdl import modbv
 from myhdl import concat
 from myhdl import instances
-from ram_dp import RAM_DP
-from ram_dp import RAMIOPort
-from memIO import MemOp
-from cache_lru import CacheLRU
+from Core.ram_dp import RAM_DP
+from Core.ram_dp import RAMIOPort
+from Core.memIO import MemOp
+from Core.cache_lru import CacheLRU
 from functools import reduce
 
 
