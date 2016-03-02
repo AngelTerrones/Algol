@@ -94,6 +94,9 @@ def _testbench():
 
     @instance
     def stimulus():
+        rb.rst.next = True
+        yield delay(10)
+        rb.rst.next = False
         # Read data from memory: first round
         for addr in range(rb.depth >> 5):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
@@ -101,6 +104,9 @@ def _testbench():
             assert rb.dmem.rdata == data, "Data loading (1): Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
                                                                                                                  hex(rb.dmem.rdata),
                                                                                                                  data)
+        invalidate.next = True
+        yield delay(10)
+        invalidate.next = False
         # Read data from memory: second round.
         # This time, depending in the cache configuration, should
         # make each access a hit (big cache)
