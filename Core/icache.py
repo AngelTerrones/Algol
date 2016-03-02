@@ -205,7 +205,7 @@ def ICache(clk,
         @always(clk.posedge)
         def update_state():
             if rst:
-                state.next = ic_states.CHECK
+                state.next = ic_states.FLUSH
             else:
                 state.next = n_state
 
