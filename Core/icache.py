@@ -92,7 +92,6 @@ def ICache(clk,
         miss              = Signal(False)
         miss_w            = Signal(modbv(0)[WAYS:])
         miss_w_and        = Signal(False)
-        flush             = Signal(False)
         final_fetch       = Signal(False)
         final_flush       = Signal(False)
 
@@ -116,17 +115,24 @@ def ICache(clk,
         n_refill_addr     = Signal(modbv(0)[LIMIT_WIDTH:])
         n_refill_valid    = Signal(False)
 
+        # flush signals
+        flush             = Signal(False)
+        flush_addr        = Signal(modbv(0)[SET_WIDTH:])
+        flush_we          = Signal(False)
+        n_flush_addr      = Signal(modbv(0)[SET_WIDTH:])
+        n_flush_we        = Signal(False)
+        n_flush           = Signal(False)
+
         valid_q           = Signal(False)
 
         @always_comb
         def assignments():
-            tag_rw_port.clk.next    = clk
-            tag_flush_port.clk.next = clk
             final_fetch.next        = (refill_addr[BLOCK_WIDTH:] == modbv(~3)[BLOCK_WIDTH:]) and mem.ready and not mem.valid
             lru_select.next         = lru_pre
             current_lru.next        = lru_out
             access_lru.next         = ~miss_w
             busy.next               = state != ic_states.CHECK
+            final_flush.next        = flush_addr == 0
 
         @always(clk.posedge)
         def reg_read():
@@ -170,8 +176,10 @@ def ICache(clk,
 
                 temp[TAGMEM_WAY_WIDTH * (i + 1):TAGMEM_WAY_WIDTH * i] = tag_in[i]
                 temp[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)]          = lru_in
+            tag_rw_port.clk.next    = clk
             tag_rw_port.data_i.next = temp
-            tag_rw_port.addr.next = cpu.addr[WAY_WIDTH:BLOCK_WIDTH]
+            tag_rw_port.addr.next   = cpu.addr[WAY_WIDTH:BLOCK_WIDTH]
+            tag_rw_port.we.next     = tag_we
 
         @always_comb
         def next_state_logic():
@@ -263,9 +271,41 @@ def ICache(clk,
                     tag_we.next = True
 
         @always_comb
+        def flush_next_state():
+            n_flush_we.next   = False
+            n_flush_addr.next = flush_addr
+            n_flush.next      = flush
+
+            if state == ic_states.CHECK:
+                if flush or invalidate:
+                    n_flush.next      = False
+                    n_flush_addr.next = modbv(-1)[SET_WIDTH:]
+                    n_flush_we.next   = True
+            elif state == ic_states.FLUSH:
+                n_flush_addr.next = flush_addr - modbv(1)[SET_WIDTH:]
+                n_flush_we.next   = True
+            elif state == ic_states.FLUSH_LAST:
+                n_flush_we.next = False
+            else:
+                n_flush.next = invalidate
+
+        @always(clk.posedge)
+        def update_flush():
+            if rst:
+                flush_addr.next = modbv(-1)[SET_WIDTH:]
+                flush_we.next   = False
+                flush.next      = False
+            else:
+                flush_addr.next = n_flush_addr
+                flush_we.next   = n_flush_we
+                flush.next      = n_flush
+
+        @always_comb
         def tag_port_assign():
-            tag_rw_port.we.next    = tag_we
-            tag_flush_port.we.next = False
+            tag_flush_port.clk.next    = clk
+            tag_flush_port.addr.next   = flush_addr
+            tag_flush_port.data_i.next = modbv(0)[TAGMEM_WAY_WIDTH:]
+            tag_flush_port.we.next     = flush_we
 
         @always_comb
         def cpu_port_assign():
@@ -344,7 +384,7 @@ def ICache(clk,
                 miss_check_3, tag_rport, next_state_logic, update_state, fetch_fsm,
                 update_fetch, tag_write, tag_port_assign, cpu_port_assign,
                 cpu_ready_assign, mem_port_assign, cache_mem_r, cache_mem_update,
-                reg_read)
+                reg_read, flush_next_state, update_flush)
 
     def no_cache():
         @always_comb
