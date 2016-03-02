@@ -62,8 +62,13 @@ class RamBus:
         self.dmem.wr.next = 0b0000
         self.dmem.fcn.next = MemOp.M_RD
         self.dmem.valid.next = True
-        yield self.dmem.ready.posedge
-        yield self.clk.negedge
+        # insert a delay waiting for stable signals.
+        # Also, insert a loop to check for a stable signal,
+        # and ignore glitches.
+        yield delay(1)
+        while not self.dmem.ready:
+            yield self.dmem.ready.posedge
+            yield self.clk.negedge
         self.dmem.valid.next = False
 
 
