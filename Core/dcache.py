@@ -91,7 +91,7 @@ def DCache(clk,
                          'FLUSH3',
                          'FLUSH4',
                          encoding='binary')
-
+        # ports to memory
         tag_rw_port       = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)
         tag_flush_port    = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)
         cache_read_port   = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
@@ -127,6 +127,12 @@ def DCache(clk,
         n_flush           = Signal(False)
         flush_single      = Signal(False)
 
+        # refill signals
+        refill_addr       = Signal(modbv(0)[LIMIT_WIDTH:])
+        refill_valid      = Signal(False)
+        n_refill_addr     = Signal(modbv(0)[LIMIT_WIDTH:])
+        n_refill_valid    = Signal(False)
+
         # main FSM
         state             = Signal(ic_states.IDLE)
         n_state           = Signal(ic_states.IDLE)
@@ -143,57 +149,6 @@ def DCache(clk,
         final_evict       = Signal(False)
 
         use_cache         = Signal(False)
-
-        @always(clk.posedge)
-        def miss_check():
-            """
-            For each way, check tag and valid flag, and reduce the vector using AND.
-            If the vector is full of ones, the data is not in the cache: assert the miss flag.
-
-            MISS: data not in cache and the memory operation is a valid read. Ignore this if
-            the module is flushing data.
-            """
-            value = modbv(0)[WAYS:]
-            for i in range(0, WAYS):
-                value[i] = (not tag_out[i][TAGMEM_WAY_VALID] or tag_out[i][TAG_WIDTH:0] != cpu.addr[LIMIT_WIDTH:WAY_WIDTH])
-            miss_w.next = value
-
-        @always_comb
-        def miss_check_2():
-            value = True
-            for i in range(0, WAYS):
-                value = value and miss_w[i]
-            miss_w_and.next = value
-
-        @always_comb
-        def miss_check_3():
-            miss.next = miss_w_and and (cpu.fcn == MemOp.M_RD) and not flush and not req_flush
-
-        @always_comb
-        def dirty_assign():
-            """
-            Get the dirty bit from the selected way, in case of hit
-            In case of miss, use the LRU.
-            """
-            dirty.next = False
-            if not miss:
-                for i in range(0, WAYS):
-                    if not miss_w[i]:
-                        dirty.next = tag_out[i][TAGMEM_WAY_DIRTY]
-            else:
-                for i in range(0, WAYS):
-                    if lru_select[i]:
-                        dirty.next = tag_out[i][TAGMEM_WAY_DIRTY]
-
-        @always_comb
-        def valid_lru():
-            """
-            Get the valid bit of the LRU way.
-            """
-            valid.next = False
-            for i in range(0, WAYS):
-                if lru_select[i]:
-                    valid.next = tag_out[i][TAGMEM_WAY_VALID]
 
         @always_comb
         def next_state_logic():
@@ -295,8 +250,28 @@ def DCache(clk,
             else:
                 state.next = n_state
 
-        return (miss_check, miss_check_2, miss_check_3, next_state_logic, update_state,
-                dirty_assign)
+        # Instantiate tag memory
+        tag_mem = RAM_DP(tag_rw_port,
+                         tag_flush_port,
+                         A_WIDTH=SET_WIDTH,
+                         D_WIDTH=TAGMEM_WIDTH)
+
+        # Instantiate main memory (Cache)
+        cache_mem = [RAM_DP(cache_read_port[i],
+                            cache_update_port[i],
+                            A_WIDTH=WAY_WIDTH - 2,
+                            D_WIDTH=D_WIDTH)
+                     for i in range(0, WAYS)]
+
+        # LRU memory
+        lru_m = CacheLRU(current_lru,
+                         access_lru,
+                         update_lru,
+                         lru_pre,
+                         lru_post,
+                         NUMWAYS=WAYS)
+
+        return (tag_mem, cache_mem, lru_m)
 
     def no_cache():
         @always_comb
