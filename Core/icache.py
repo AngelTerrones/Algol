@@ -172,10 +172,10 @@ def ICache(clk,
             # for each way, assign tags
             for i in range(0, WAYS):
                 tag_out[i].next = tag_rw_port.data_o[TAGMEM_WAY_WIDTH * (i + 1):TAGMEM_WAY_WIDTH * i]
-                lru_out.next    = tag_rw_port.data_o[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)]
-
                 temp[TAGMEM_WAY_WIDTH * (i + 1):TAGMEM_WAY_WIDTH * i] = tag_in[i]
-                temp[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)]          = lru_in
+
+            temp[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)]          = lru_in
+            lru_out.next    = tag_rw_port.data_o[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)]
             tag_rw_port.clk.next    = clk
             tag_rw_port.data_i.next = temp
             tag_rw_port.addr.next   = cpu.addr[WAY_WIDTH:BLOCK_WIDTH]
