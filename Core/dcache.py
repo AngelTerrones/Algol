@@ -76,7 +76,7 @@ def DCache(clk,
         # Size of tag memory
         TAGMEM_WIDTH         = (TAGMEM_WAY_WIDTH * WAYS) + TAG_LRU_WIDTH  # width of one tag line.
         # --------------------------------------------------------------------------
-        ic_states = enum('IDLE'
+        dc_states = enum('IDLE'
                          'SINGLE',
                          'CHECK',
                          'FETCH',
@@ -134,8 +134,8 @@ def DCache(clk,
         n_refill_valid    = Signal(False)
 
         # main FSM
-        state             = Signal(ic_states.IDLE)
-        n_state           = Signal(ic_states.IDLE)
+        state             = Signal(dc_states.IDLE)
+        n_state           = Signal(dc_states.IDLE)
 
         miss              = Signal(False)
         miss_w            = Signal(modbv(0)[WAYS:])
@@ -153,100 +153,100 @@ def DCache(clk,
         @always_comb
         def next_state_logic():
             n_state.next = state
-            if state == ic_states.IDLE:
+            if state == dc_states.IDLE:
                 if req_flush or flush:
                     # flush request
-                    n_state.next = ic_states.FLUSH2
+                    n_state.next = dc_states.FLUSH2
                 elif cpu.valid and not cpu.fcn and not use_cache:
                     # read (uncached)
-                    n_state.next = ic_states.SINGLE
+                    n_state.next = dc_states.SINGLE
                 elif cpu.valid and not cpu.fcn:
                     # read (cached)
-                    n_state.next = ic_states.CHECK
+                    n_state.next = dc_states.CHECK
                 elif cpu.valid and cpu.fcn and not use_cache:
                     # write (uncached)
-                    n_state.next = ic_states.SINGLE
+                    n_state.next = dc_states.SINGLE
                 elif cpu.valid and cpu.fcn:
                     # write (cached)
-                    n_state.next = ic_states.WRITE
-            elif state == ic_states.WRITE:
+                    n_state.next = dc_states.WRITE
+            elif state == dc_states.WRITE:
                 if not miss and dirty:
                     # Hit and line is dirty
-                    n_state.next = ic_states.IDLE
+                    n_state.next = dc_states.IDLE
                 elif not miss and not dirty:
                     # Hit and make line dirty
-                    n_state.next = ic_states.WAIT2
+                    n_state.next = dc_states.WAIT2
                 elif valid and dirty:
                     # Cache is dirty: write back
-                    n_state.next = ic_states.EVICTING
+                    n_state.next = dc_states.EVICTING
                 else:
                     # Refill line
-                    n_state.next = ic_states.UPDATE
-            elif state == ic_states.EVICTING:
+                    n_state.next = dc_states.UPDATE
+            elif state == dc_states.EVICTING:
                 if done:
                     if not cpu.fcn:
                         # write back for read
-                        n_state.next = ic_states.FETCH
+                        n_state.next = dc_states.FETCH
                     else:
                         # write for write
-                        n_state.next = ic_states.UPDATE
-            elif state == ic_states.UPDATE:
+                        n_state.next = dc_states.UPDATE
+            elif state == dc_states.UPDATE:
                 if done:
-                    n_state.next = ic_states.WAIT2
-            elif state == ic_states.CHECK:
+                    n_state.next = dc_states.WAIT2
+            elif state == dc_states.CHECK:
                 if not miss:
                     # cache hit
-                    n_state.next = ic_states.IDLE
+                    n_state.next = dc_states.IDLE
                 elif valid and dirty:
                     # cache is valid but dirty
-                    n_state.next = ic_states.EVICTING
+                    n_state.next = dc_states.EVICTING
                 else:
                     # cache miss
-                    n_state.next = ic_states.FETCH
-            elif state == ic_states.SINGLE:
+                    n_state.next = dc_states.FETCH
+            elif state == dc_states.SINGLE:
                 if done:
                     if cpu.fcn:
-                        n_state.next = ic_states.SINGLE_READY
+                        n_state.next = dc_states.SINGLE_READY
                     elif not miss and dirty:
-                        n_state.next = ic_states.FLUSH4
+                        n_state.next = dc_states.FLUSH4
                     elif not miss:
-                        n_state.next = ic_states.SINGLE_READY
+                        n_state.next = dc_states.SINGLE_READY
                     else:
-                        n_state.next = ic_states.SINGLE_READY
-            elif state == ic_states.FETCH:
+                        n_state.next = dc_states.SINGLE_READY
+            elif state == dc_states.FETCH:
                 if done:
-                    n_state.next = ic_states.WAIT
-            elif state == ic_states.WAIT:
-                n_state.next = ic_states.WAIT2
-            elif state == ic_states.WAIT2:
-                n_state.next = ic_states.IDLE
-            elif state == ic_states.SINGLE_READY:
-                n_state.next = ic_states.IDLE
-            elif state == ic_states.FLUSH1:
+                    n_state.next = dc_states.WAIT
+            elif state == dc_states.WAIT:
+                n_state.next = dc_states.WAIT2
+            elif state == dc_states.WAIT2:
+                n_state.next = dc_states.IDLE
+            elif state == dc_states.SINGLE_READY:
+                n_state.next = dc_states.IDLE
+            elif state == dc_states.FLUSH1:
                 if final_flush:
-                    n_state.next = ic_states.WAIT
+                    n_state.next = dc_states.WAIT
                 else:
-                    n_state.next = ic_states.FLUSH2
-            elif state == ic_states.FLUSH2:
-                n_state.next = ic_states.FLUSH3
-            elif state == ic_states.FLUSH3:
+                    n_state.next = dc_states.FLUSH2
+            elif state == dc_states.FLUSH2:
+                n_state.next = dc_states.FLUSH3
+            elif state == dc_states.FLUSH3:
                 if dirty:
-                    n_state.next = ic_states.FLUSH4
+                    n_state.next = dc_states.FLUSH4
                 elif flush_single:
-                    n_state.next = ic_states.WAIT
+                    n_state.next = dc_states.WAIT
                 else:
-                    n_state.next = ic_states.FLUSH1
-            elif state == ic_states.FLUSH4:
+                    n_state.next = dc_states.FLUSH1
+            elif state == dc_states.FLUSH4:
                 if done:
                     if flush_single:
-                        n_state.next = ic_states.SINGLE_READY
+                        n_state.next = dc_states.SINGLE_READY
                     else:
-                        n_state.next = ic_states.FLUSH1
+                        n_state.next = dc_states.FLUSH1
 
         @always(clk.posedge)
         def update_state():
             if rst:
-                state.next = ic_states.IDLE
+                state.next = dc_states.IDLE
             else:
                 state.next = n_state
 
