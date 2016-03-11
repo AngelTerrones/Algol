@@ -30,10 +30,10 @@ from myhdl import concat
 from Core.memIO import MemOp
 
 
-def LoadMemory(size_mem: int,
-               bin_file: str,
-               bytes_x_line: int,
-               memory: list):
+def LoadMemory(size_mem,
+               bin_file,
+               bytes_x_line,
+               memory):
     """
     Load a HEX file. The file have (2 * NBYTES + 1) por line.
     """
