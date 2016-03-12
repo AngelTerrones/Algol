@@ -84,6 +84,9 @@ def Memory(clk,
     _imem_addr   = Signal(modbv(0)[30:])
     _dmem_addr   = Signal(modbv(0)[30:])
 
+    imem_s = WishboneSlave(imem)
+    dmem_s = WishboneSlave(dmem)
+
     LoadMemory(SIZE, HEX, bytes_x_line, _memory)
 
     @always(clk.posedge)
@@ -91,38 +94,38 @@ def Memory(clk,
         """
         Assert the ack signal one clock cycle.
         """
-        imem.ack_o.next = False if rst else imem.stb_i and imem.cyc_i and not imem.ack_o
-        dmem.ack_o.next = False if rst else dmem.stb_i and dmem.cyc_i and not dmem.ack_o
+        imem_s.ack_o.next = False if rst else imem_s.stb_i and imem_s.cyc_i and not imem_s.ack_o
+        dmem_s.ack_o.next = False if rst else dmem_s.stb_i and dmem_s.cyc_i and not dmem_s.ack_o
 
     @always_comb
     def assignment_data_o():
-        imem.dat_o.next = i_data_o if imem.ack_o else 0xDEADF00D
-        dmem.dat_o.next = d_data_o if dmem.ack_o else 0xDEADF00D
+        imem_s.dat_o.next = i_data_o if imem_s.ack_o else 0xDEADF00D
+        dmem_s.dat_o.next = d_data_o if dmem_s.ack_o else 0xDEADF00D
 
     @always(clk.posedge)
     def set_fault():
-        imem.err_o.next = False
-        dmem.err_o.next = False
+        imem_s.err_o.next = False
+        dmem_s.err_o.next = False
 
     @always(clk.posedge)
     def set_stall():
-        imem.stall_o.next = False
-        dmem.stall_o.next = False
+        imem_s.stall_o.next = False
+        dmem_s.stall_o.next = False
 
     @always_comb
     def assignment_addr():
         # This memory is addressed by word, not byte. Ignore the 2 LSB.
-        _imem_addr.next = imem.addr_i[aw:2]
-        _dmem_addr.next = dmem.addr_i[aw:2]
+        _imem_addr.next = imem_s.addr_i[aw:2]
+        _dmem_addr.next = dmem_s.addr_i[aw:2]
 
     @always(clk.posedge)
     def imem_rtl():
         i_data_o.next = _memory[_imem_addr]
 
-        if imem.we_i and imem.stb_i:
-            we            = imem.sel_i
-            data          = imem.dat_i
-            i_data_o.next = imem.dat_i
+        if imem_s.we_i and imem_s.stb_i:
+            we            = imem_s.sel_i
+            data          = imem_s.dat_i
+            i_data_o.next = imem_s.dat_i
             _memory[_imem_addr].next = concat(data[32:24] if we[3] else _memory[_imem_addr][32:24],
                                               data[24:16] if we[2] else _memory[_imem_addr][24:16],
                                               data[16:8] if we[1] else _memory[_imem_addr][16:8],
@@ -132,10 +135,10 @@ def Memory(clk,
     def dmem_rtl():
         d_data_o.next = _memory[_dmem_addr]
 
-        if dmem.we_i and dmem.stb_i:
-            we            = dmem.sel_i
-            data          = dmem.dat_i
-            d_data_o.next = dmem.dat_i
+        if dmem_s.we_i and dmem_s.stb_i:
+            we            = dmem_s.sel_i
+            data          = dmem_s.dat_i
+            d_data_o.next = dmem_s.dat_i
             _memory[_dmem_addr].next = concat(data[32:24] if we[3] else _memory[_dmem_addr][32:24],
                                               data[24:16] if we[2] else _memory[_dmem_addr][24:16],
                                               data[16:8] if we[1] else _memory[_dmem_addr][16:8],

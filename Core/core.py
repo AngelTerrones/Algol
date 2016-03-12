@@ -90,40 +90,37 @@ def CoreHDL(clk,
 
     imem = WishboneIntercon()
     dmem = WishboneIntercon()
-    imem_m = WishboneMaster(imem)
-    dmem_m = WishboneMaster(dmem)
     core = Core(clk=clk,
                 rst=rst,
                 toHost=toHost,
-                imem=imem_m,
-                dmem=dmem_m)
+                imem=imem,
+                dmem=dmem)
 
     @always_comb
     def assign():
-        imem_addr_o.next    = imem_m.addr_o
-        imem_dat_o.next     = imem_m.dat_o
-        imem_sel_o.next     = imem_m.sel_o
-        imem_cti_o.next     = imem_m.cti_o
-        imem_cyc_o.next     = imem_m.cyc_o
-        imem_we_o.next      = imem_m.we_o
-        imem_stb_o.next     = imem_m.stb_o
-        imem_m.dat_i.next   = imem_dat_i
-        imem_m.stall_i.next = imem_stall_i
-        imem_m.ack_i.next   = imem_ack_i
-        imem_m.err_i.next   = imem_err_i
+        imem_addr_o.next = imem.addr
+        imem_dat_o.next  = imem.dat_o
+        imem_sel_o.next  = imem.sel
+        imem_cti_o.next  = imem.cti
+        imem_cyc_o.next  = imem.cyc
+        imem_we_o.next   = imem.we
+        imem_stb_o.next  = imem.stb
+        imem.dat_i.next  = imem_dat_i
+        imem.stall.next  = imem_stall_i
+        imem.ack.next    = imem_ack_i
+        imem.err.next    = imem_err_i
 
-        dmem_addr_o.next    = dmem_m.addr_o
-        dmem_dat_o.next     = dmem_m.dat_o
-        dmem_sel_o.next     = dmem_m.sel_o
-        dmem_cti_o.next     = dmem_m.cti_o
-        dmem_cyc_o.next     = dmem_m.cyc_o
-        dmem_we_o.next      = dmem_m.we_o
-        dmem_stb_o.next     = dmem_m.stb_o
-        dmem_m.dat_i.next   = dmem_dat_i
-        dmem_m.stall_i.next = dmem_stall_i
-        dmem_m.ack_i.next   = dmem_ack_i
-        dmem_m.err_i.next   = dmem_err_i
-
+        dmem_addr_o.next = dmem.addr
+        dmem_dat_o.next  = dmem.dat_o
+        dmem_sel_o.next  = dmem.sel
+        dmem_cti_o.next  = dmem.cti
+        dmem_cyc_o.next  = dmem.cyc
+        dmem_we_o.next   = dmem.we
+        dmem_stb_o.next  = dmem.stb
+        dmem.dat_i.next  = dmem_dat_i
+        dmem.stall.next  = dmem_stall_i
+        dmem.ack.next    = dmem_ack_i
+        dmem.err.next    = dmem_err_i
     return core, assign
 
 # Local Variables:

@@ -38,12 +38,10 @@ BYTES_X_LINE  = 16
 
 def _testbench():
     rb = RamBus(memory_size=MEM_SIZE >> 2)
-    imem = WishboneSlave(rb.imem_intercon)
-    dmem = WishboneSlave(rb.dmem_intercon)
     dut = Memory(clk=rb.clk,
                  rst=rb.rst,
-                 imem=imem,
-                 dmem=dmem,
+                 imem=rb.imem_intercon,
+                 dmem=rb.dmem_intercon,
                  SIZE=MEM_SIZE,
                  HEX=MEM_TEST_FILE,
                  BYTES_X_LINE=BYTES_X_LINE)

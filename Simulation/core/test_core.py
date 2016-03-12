@@ -22,8 +22,6 @@
 from Core.core import Core
 from Simulation.core.memory import Memory
 from Core.wishbone import WishboneIntercon
-from Core.wishbone import WishboneMaster
-from Core.wishbone import WishboneSlave
 from myhdl import instance
 from myhdl import always
 from myhdl import Signal
@@ -44,22 +42,18 @@ def core_testbench(mem_size, hex_file, bytes_line):
     rst = Signal(False)
     imem = WishboneIntercon()
     dmem = WishboneIntercon()
-    imem_m = WishboneMaster(imem)
-    dmem_m = WishboneMaster(dmem)
-    imem_s = WishboneSlave(imem)
-    dmem_s = WishboneSlave(dmem)
 
     toHost = Signal(modbv(0)[32:])
 
     dut_core = Core(clk=clk,
                     rst=rst,
-                    imem=imem_m,
-                    dmem=dmem_m,
+                    imem=imem,
+                    dmem=dmem,
                     toHost=toHost)
     memory = Memory(clk=clk,
                     rst=rst,
-                    imem=imem_s,
-                    dmem=dmem_s,
+                    imem=imem,
+                    dmem=dmem,
                     SIZE=mem_size,
                     HEX=hex_file,
                     BYTES_X_LINE=bytes_line)

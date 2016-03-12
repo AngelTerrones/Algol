@@ -30,6 +30,7 @@ from Core.alu import ALUOp
 from Core.csr import CSRCMD
 from Core.csr import CSRExceptionCode
 from Core.csr import CSRModes
+from Core.wishbone import WishboneMaster
 from Core.instructions import Opcodes
 from Core.instructions import BranchFunct3
 from Core.instructions import LoadFunct3
@@ -251,6 +252,9 @@ def Ctrlpath(clk,
     :param imem: Wishbone master (instruction port)
     :param dmem: Wishbone master (data port)
     """
+    imem_m = WishboneMaster(imem)
+    dmem_m = WishboneMaster(dmem)
+
     id_br_type            = Signal(modbv(0)[Consts.SZ_BR:])
     id_eq                 = Signal(False)
     id_lt                 = Signal(False)
@@ -533,15 +537,15 @@ def Ctrlpath(clk,
         - E_AMO_ACCESS_FAULT
         """
         if_imem_misalign.next = if_misalign
-        if_imem_fault.next    = imem.err_i
+        if_imem_fault.next    = imem_m.err_i
         mem_ld_misalign.next  = (io.dmem_pipeline.valid and
                                  io.dmem_pipeline.fcn == Consts.M_RD and
                                  mem_misalign)
-        mem_ld_fault.next     = dmem.err_i
+        mem_ld_fault.next     = dmem_m.err_i
         mem_st_misalign.next  = (io.dmem_pipeline.valid and
                                  io.dmem_pipeline.fcn == Consts.M_WR and
                                  mem_misalign)
-        mem_st_fault.next     = dmem.err_i
+        mem_st_fault.next     = dmem_m.err_i
 
     @always(clk.posedge)
     def _ifid_register():
@@ -729,8 +733,8 @@ def Ctrlpath(clk,
         """
         Set control signals for pipeline registers.
         """
-        imem_stall            = io.imem_pipeline.valid and not imem.ack_i and not io.csr_exception
-        dmem_stall            = io.dmem_pipeline.valid and not dmem.ack_i and not io.csr_exception
+        imem_stall            = io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
+        dmem_stall            = io.dmem_pipeline.valid and not dmem_m.ack_i and not io.csr_exception
         io.if_kill.next       = io.pc_select != Consts.PC_4
         io.id_stall.next      = (((io.id_fwd1_select == Consts.FWD_EX or io.id_fwd2_select == Consts.FWD_EX) and
                                   ((ex_mem_funct == Consts.M_RD and ex_mem_valid) or ex_csr_cmd != CSRCMD.CSR_IDLE)) or
@@ -750,38 +754,38 @@ def Ctrlpath(clk,
     @always_comb
     def _imem_assignment():
         """
-        Connect the pipeline imem port to the control imem port.
+        Connect the pipeline imem_m port to the control imem_m port.
         """
-        imem.addr_o.next          = io.imem_pipeline.addr
-        imem.dat_o.next           = io.imem_pipeline.wdata
-        imem.we_o.next            = io.imem_pipeline.fcn
-        imem.sel_o.next           = 0b0000  # always read
-        imem.cti_o.next           = 0b000
-        io.imem_pipeline.rdata.next = imem.dat_i
+        imem_m.addr_o.next          = io.imem_pipeline.addr
+        imem_m.dat_o.next           = io.imem_pipeline.wdata
+        imem_m.we_o.next            = io.imem_pipeline.fcn
+        imem_m.sel_o.next           = 0b0000  # always read
+        imem_m.cti_o.next           = 0b000
+        io.imem_pipeline.rdata.next = imem_m.dat_i
 
     @always(clk.posedge)
     def _imem_control():
-        control = (io.imem_pipeline.valid and not imem.ack_i and not io.csr_exception) or imem.stall_i
+        control = (io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception) or imem_m.stall_i
         if rst:
-            imem.stb_o.next = False
-            imem.cyc_o.next = False
+            imem_m.stb_o.next = False
+            imem_m.cyc_o.next = False
         else:
-            imem.stb_o.next = control
-            imem.cyc_o.next = control
+            imem_m.stb_o.next = control
+            imem_m.cyc_o.next = control
 
     @always_comb
     def _dmem_assignment():
         """
-        Connect the pipeline dmem port to the control dmem port.
+        Connect the pipeline dmem_m port to the control dmem_m port.
         """
-        dmem.addr_o.next = io.dmem_pipeline.addr
-        dmem.we_o.next   = io.dmem_pipeline.fcn
-        dmem.cti_o.next  = 0b000
+        dmem_m.addr_o.next = io.dmem_pipeline.addr
+        dmem_m.we_o.next   = io.dmem_pipeline.fcn
+        dmem_m.cti_o.next  = 0b000
 
     @always_comb
     def _dmem_read_data():
         """
-        Data convertion from dmem to pipeline.
+        Data convertion from dmem_m to pipeline.
 
         Generate the correct data type:
         - Signed byte.
@@ -792,25 +796,25 @@ def Ctrlpath(clk,
         """
         if io.dmem_pipeline.typ[2:0] == Consts.MT_B:
             if io.dmem_pipeline.addr[2:0] == 0:
-                io.dmem_pipeline.rdata.next = dmem.dat_i[8:0].signed() if not io.dmem_pipeline.typ[2] else dmem.dat_i[8:0]
+                io.dmem_pipeline.rdata.next = dmem_m.dat_i[8:0].signed() if not io.dmem_pipeline.typ[2] else dmem_m.dat_i[8:0]
             elif io.dmem_pipeline.addr[2:0] == 1:
-                io.dmem_pipeline.rdata.next = dmem.dat_i[16:8].signed() if not io.dmem_pipeline.typ[2] else dmem.dat_i[16:8]
+                io.dmem_pipeline.rdata.next = dmem_m.dat_i[16:8].signed() if not io.dmem_pipeline.typ[2] else dmem_m.dat_i[16:8]
             elif io.dmem_pipeline.addr[2:0] == 2:
-                io.dmem_pipeline.rdata.next = dmem.dat_i[24:16].signed() if not io.dmem_pipeline.typ[2] else dmem.dat_i[24:16]
+                io.dmem_pipeline.rdata.next = dmem_m.dat_i[24:16].signed() if not io.dmem_pipeline.typ[2] else dmem_m.dat_i[24:16]
             else:
-                io.dmem_pipeline.rdata.next = dmem.dat_i[32:24].signed() if not io.dmem_pipeline.typ[2] else dmem.dat_i[32:24]
+                io.dmem_pipeline.rdata.next = dmem_m.dat_i[32:24].signed() if not io.dmem_pipeline.typ[2] else dmem_m.dat_i[32:24]
         elif io.dmem_pipeline.typ[2:0] == Consts.MT_H:
             if not io.dmem_pipeline.addr[1]:
-                io.dmem_pipeline.rdata.next = dmem.dat_i[16:0].signed() if not io.dmem_pipeline.typ[2] else dmem.dat_i[16:0]
+                io.dmem_pipeline.rdata.next = dmem_m.dat_i[16:0].signed() if not io.dmem_pipeline.typ[2] else dmem_m.dat_i[16:0]
             else:
-                io.dmem_pipeline.rdata.next = dmem.dat_i[32:16].signed() if not io.dmem_pipeline.typ[2] else dmem.dat_i[32:16]
+                io.dmem_pipeline.rdata.next = dmem_m.dat_i[32:16].signed() if not io.dmem_pipeline.typ[2] else dmem_m.dat_i[32:16]
         else:
-            io.dmem_pipeline.rdata.next = dmem.dat_i
+            io.dmem_pipeline.rdata.next = dmem_m.dat_i
 
     @always_comb
     def _dmem_write_data():
         """
-        Data convertion from pipeline to dmem.
+        Data convertion from pipeline to dmem_m.
 
         Generate a pattern to write to memory:
         - Byte: [b, b, b, b]
@@ -826,36 +830,36 @@ def Ctrlpath(clk,
         """
         # set WR
         if io.dmem_pipeline.fcn == Consts.M_WR:
-            dmem.sel_o.next = (concat(io.dmem_pipeline.addr[2:0] == 3,
-                                      io.dmem_pipeline.addr[2:0] == 2,
-                                      io.dmem_pipeline.addr[2:0] == 1,
-                                      io.dmem_pipeline.addr[2:0] == 0) if io.dmem_pipeline.typ[2:0] == Consts.MT_B else
-                               (concat(io.dmem_pipeline.addr[2:0] == 2,
-                                       io.dmem_pipeline.addr[2:0] == 2,
-                                       io.dmem_pipeline.addr[2:0] == 0,
-                                       io.dmem_pipeline.addr[2:0] == 0) if io.dmem_pipeline.typ[2:0] == Consts.MT_H else
-                                modbv(0b1111)[4:]))
+            dmem_m.sel_o.next = (concat(io.dmem_pipeline.addr[2:0] == 3,
+                                        io.dmem_pipeline.addr[2:0] == 2,
+                                        io.dmem_pipeline.addr[2:0] == 1,
+                                        io.dmem_pipeline.addr[2:0] == 0) if io.dmem_pipeline.typ[2:0] == Consts.MT_B else
+                                 (concat(io.dmem_pipeline.addr[2:0] == 2,
+                                         io.dmem_pipeline.addr[2:0] == 2,
+                                         io.dmem_pipeline.addr[2:0] == 0,
+                                         io.dmem_pipeline.addr[2:0] == 0) if io.dmem_pipeline.typ[2:0] == Consts.MT_H else
+                                 modbv(0b1111)[4:]))
         else:
-            dmem.sel_o.next = 0b0000
+            dmem_m.sel_o.next = 0b0000
 
         # Data to memory
-        dmem.dat_o.next = (concat(io.dmem_pipeline.wdata[8:0],
-                                  io.dmem_pipeline.wdata[8:0],
-                                  io.dmem_pipeline.wdata[8:0],
-                                  io.dmem_pipeline.wdata[8:0]) if io.dmem_pipeline.typ[2:0] == Consts.MT_B else
-                           (concat(io.dmem_pipeline.wdata[16:0],
-                                   io.dmem_pipeline.wdata[16:0]) if io.dmem_pipeline.typ[2:0] == Consts.MT_H else
-                            (io.dmem_pipeline.wdata)))
+        dmem_m.dat_o.next = (concat(io.dmem_pipeline.wdata[8:0],
+                                    io.dmem_pipeline.wdata[8:0],
+                                    io.dmem_pipeline.wdata[8:0],
+                                    io.dmem_pipeline.wdata[8:0]) if io.dmem_pipeline.typ[2:0] == Consts.MT_B else
+                             (concat(io.dmem_pipeline.wdata[16:0],
+                                     io.dmem_pipeline.wdata[16:0]) if io.dmem_pipeline.typ[2:0] == Consts.MT_H else
+                              (io.dmem_pipeline.wdata)))
 
     @always(clk.posedge)
     def _dmem_control():
-        control = io.dmem_pipeline.valid and (not dmem.ack_i) and not io.csr_exception or dmem.stall_i
+        control = io.dmem_pipeline.valid and (not dmem_m.ack_i) and not io.csr_exception or dmem_m.stall_i
         if rst:
-            dmem.stb_o.next = False
-            dmem.cyc_o.next = False
+            dmem_m.stb_o.next = False
+            dmem_m.cyc_o.next = False
         else:
-            dmem.stb_o.next = control
-            dmem.cyc_o.next = control
+            dmem_m.stb_o.next = control
+            dmem_m.cyc_o.next = control
 
     return instances()
 
