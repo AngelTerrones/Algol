@@ -66,6 +66,9 @@ class WishboneMaster:
         """
         Initializes the IO ports.
         """
+        if not isinstance(intercon, WishboneIntercon):
+            raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
+
         self.addr_o  = intercon.addr
         self.dat_o   = intercon.dat_o
         self.dat_i   = intercon.dat_i
@@ -89,6 +92,9 @@ class WishboneSlave:
         """
         Initializes the IO ports.
         """
+        if not isinstance(intercon, WishboneIntercon):
+            raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
+
         self.addr_i  = intercon.addr
         self.dat_o   = intercon.dat_i
         self.dat_i   = intercon.dat_o
