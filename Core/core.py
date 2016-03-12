@@ -23,7 +23,6 @@ from myhdl import always_comb
 from Core.dpath import Datapath
 from Core.cpath import Ctrlpath
 from Core.cpath import CtrlIO
-from Core.wishbone import WishboneMaster
 from Core.wishbone import WishboneIntercon
 
 
