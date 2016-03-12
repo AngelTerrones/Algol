@@ -27,7 +27,7 @@ from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
 from myhdl import concat
-from Core.memIO import MemOp
+from Core.wishbone import WishboneSlave
 
 
 def LoadMemory(size_mem,
@@ -60,6 +60,14 @@ def Memory(clk,
            BYTES_X_LINE):
     """
     Test memory.
+
+    :param clk:          System clock
+    :param rst:          System reset
+    :param imem:         Instruction memory wishbone Interconnect
+    :param dmem:         Data memory wishbone Interconnect
+    :param SIZE:         Mmeory size (bytes)
+    :param HEX:          Hex file to load
+    :param BYTES_X_LINE: Data width in bytes
     """
     assert SIZE >= 2**12, "Memory depth must be a positive number. Min value= 4 KB."
     assert not (SIZE & (SIZE - 1)), "Memory size must be a power of 2"
@@ -79,51 +87,59 @@ def Memory(clk,
     LoadMemory(SIZE, HEX, bytes_x_line, _memory)
 
     @always(clk.posedge)
-    def set_ready_signal():
-        imem.ready.next = False if rst else imem.valid
-        dmem.ready.next = False if rst else dmem.valid
+    def set_ack_signal():
+        """
+        Assert the ack signal one clock cycle.
+        """
+        imem.ack_o.next = False if rst else imem.stb_i and imem.cyc_i and not imem.ack_o
+        dmem.ack_o.next = False if rst else dmem.stb_i and dmem.cyc_i and not dmem.ack_o
 
     @always_comb
     def assignment_data_o():
-        imem.rdata.next = i_data_o if imem.ready else 0xDEADF00D
-        dmem.rdata.next = d_data_o if dmem.ready else 0xDEADF00D
+        imem.dat_o.next = i_data_o if imem.ack_o else 0xDEADF00D
+        dmem.dat_o.next = d_data_o if dmem.ack_o else 0xDEADF00D
 
     @always(clk.posedge)
     def set_fault():
-        imem.fault.next = False
-        dmem.fault.next = False
+        imem.err_o.next = False
+        dmem.err_o.next = False
+
+    @always(clk.posedge)
+    def set_stall():
+        imem.stall_o.next = False
+        dmem.stall_o.next = False
 
     @always_comb
     def assignment_addr():
         # This memory is addressed by word, not byte. Ignore the 2 LSB.
-        _imem_addr.next = imem.addr[aw:2]
-        _dmem_addr.next = dmem.addr[aw:2]
+        _imem_addr.next = imem.addr_i[aw:2]
+        _dmem_addr.next = dmem.addr_i[aw:2]
 
     @always(clk.posedge)
     def imem_rtl():
         i_data_o.next = _memory[_imem_addr]
 
-        if imem.fcn == MemOp.M_WR:
-            we            = imem.wr
-            data          = imem.wdata
-            i_data_o.next = imem.wdata
-            _memory[_imem_addr].next = concat(data[8:0] if we[0] and imem.valid else _memory[_imem_addr][8:0],
-                                              data[16:8] if we[1] and imem.valid else _memory[_imem_addr][16:8],
-                                              data[24:16] if we[2] and imem.valid else _memory[_imem_addr][24:16],
-                                              data[32:24] if we[3] and imem.valid else _memory[_imem_addr][32:24])
+        if imem.we_i and imem.stb_i:
+            we            = imem.sel_i
+            data          = imem.dat_i
+            i_data_o.next = imem.dat_i
+            _memory[_imem_addr].next = concat(data[32:24] if we[3] else _memory[_imem_addr][32:24],
+                                              data[24:16] if we[2] else _memory[_imem_addr][24:16],
+                                              data[16:8] if we[1] else _memory[_imem_addr][16:8],
+                                              data[8:0] if we[0] else _memory[_imem_addr][8:0])
 
     @always(clk.posedge)
     def dmem_rtl():
         d_data_o.next = _memory[_dmem_addr]
 
-        if dmem.fcn == MemOp.M_WR:
-            we            = dmem.wr
-            data          = dmem.wdata
-            d_data_o.next = dmem.wdata
-            _memory[_dmem_addr].next = concat(data[8:0] if we[0] and dmem.valid else _memory[_dmem_addr][8:0],
-                                              data[16:8] if we[1] and dmem.valid else _memory[_dmem_addr][16:8],
-                                              data[24:16] if we[2] and dmem.valid else _memory[_dmem_addr][24:16],
-                                              data[32:24] if we[3] and dmem.valid else _memory[_dmem_addr][32:24])
+        if dmem.we_i and dmem.stb_i:
+            we            = dmem.sel_i
+            data          = dmem.dat_i
+            d_data_o.next = dmem.dat_i
+            _memory[_dmem_addr].next = concat(data[32:24] if we[3] else _memory[_dmem_addr][32:24],
+                                              data[24:16] if we[2] else _memory[_dmem_addr][24:16],
+                                              data[16:8] if we[1] else _memory[_dmem_addr][16:8],
+                                              data[8:0] if we[0] else _memory[_dmem_addr][8:0])
 
     return instances()
 

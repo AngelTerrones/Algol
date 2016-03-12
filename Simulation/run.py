@@ -27,7 +27,8 @@ from myhdl import toVerilog
 from myhdl import Signal
 from myhdl import modbv
 from Core.core import Core
-from Core.memIO import MemPortIO
+from Core.wishbone import WishboneIntercon
+from Core.wishbone import WishboneMaster
 
 
 def run_module(args):
@@ -81,11 +82,11 @@ def clean_tests(args):
 def convert_to_verilog(args):
     clk = Signal(False)
     rst = Signal(False)
-    imem = MemPortIO()
-    dmem = MemPortIO()
+    imem_m = WishboneMaster(WishboneIntercon())
+    dmem_m = WishboneMaster(WishboneIntercon())
     toHost = Signal(modbv(0)[32:])
 
-    toVerilog(Core, clk, rst, imem, dmem, toHost)
+    toVerilog(Core, clk, rst, imem_m, dmem_m, toHost)
 
 
 def main():

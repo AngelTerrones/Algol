@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from myhdl import Signal
-from Core.memIO import MemPortIO
 from Core.dpath import Datapath
 from Core.cpath import Ctrlpath
 from Core.cpath import CtrlIO
@@ -36,8 +34,8 @@ def Core(clk,
 
     :param clk:    System clock
     :param rst:    System reset
-    :param imem:   Instruction memory port
-    :paran dmem:   Data memory port
+    :param imem:   Instruction memory port (Wishbone master)
+    :paran dmem:   Data memory port (Wishbone master)
     :param toHost: CSR's mtohost register. For simulation purposes.
     """
     ctrl_dpath = CtrlIO()
