@@ -51,9 +51,7 @@ def LoadMemory(size_mem,
         memory[addr] = Signal(modbv(data)[32:])
 
 
-def Memory(clk,
-           rst,
-           imem,
+def Memory(imem,
            dmem,
            SIZE,
            HEX,
@@ -61,8 +59,6 @@ def Memory(clk,
     """
     Test memory.
 
-    :param clk:          System clock
-    :param rst:          System reset
     :param imem:         Instruction memory wishbone Interconnect
     :param dmem:         Data memory wishbone Interconnect
     :param SIZE:         Mmeory size (bytes)
@@ -89,28 +85,28 @@ def Memory(clk,
 
     LoadMemory(SIZE, HEX, bytes_x_line, _memory)
 
-    @always(clk.posedge)
-    def set_ack_signal():
+    @always(imem_s.clk_i.posedge)
+    def imem_sync_assign():
         """
         Assert the ack signal one clock cycle.
         """
-        imem_s.ack_o.next = False if rst else imem_s.stb_i and imem_s.cyc_i and not imem_s.ack_o
-        dmem_s.ack_o.next = False if rst else dmem_s.stb_i and dmem_s.cyc_i and not dmem_s.ack_o
+        imem_s.ack_o.next = False if imem_s.rst_i else imem_s.stb_i and imem_s.cyc_i and not imem_s.ack_o
+        imem_s.err_o.next = False
+        imem_s.stall_o.next = False
+
+    @always(dmem_s.clk_i.posedge)
+    def dmem_sync_assign():
+        """
+        Assert the ack signal one clock cycle.
+        """
+        dmem_s.ack_o.next = False if dmem_s.rst_i else dmem_s.stb_i and dmem_s.cyc_i and not dmem_s.ack_o
+        dmem_s.err_o.next = False
+        dmem_s.stall_o.next = False
 
     @always_comb
     def assignment_data_o():
         imem_s.dat_o.next = i_data_o if imem_s.ack_o else 0xDEADF00D
         dmem_s.dat_o.next = d_data_o if dmem_s.ack_o else 0xDEADF00D
-
-    @always(clk.posedge)
-    def set_fault():
-        imem_s.err_o.next = False
-        dmem_s.err_o.next = False
-
-    @always(clk.posedge)
-    def set_stall():
-        imem_s.stall_o.next = False
-        dmem_s.stall_o.next = False
 
     @always_comb
     def assignment_addr():
@@ -118,7 +114,7 @@ def Memory(clk,
         _imem_addr.next = imem_s.addr_i[aw:2]
         _dmem_addr.next = dmem_s.addr_i[aw:2]
 
-    @always(clk.posedge)
+    @always(imem_s.clk_i.posedge)
     def imem_rtl():
         i_data_o.next = _memory[_imem_addr]
 
@@ -131,7 +127,7 @@ def Memory(clk,
                                               data[16:8] if we[1] else _memory[_imem_addr][16:8],
                                               data[8:0] if we[0] else _memory[_imem_addr][8:0])
 
-    @always(clk.posedge)
+    @always(dmem_s.clk_i.posedge)
     def dmem_rtl():
         d_data_o.next = _memory[_dmem_addr]
 

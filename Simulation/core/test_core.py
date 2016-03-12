@@ -50,9 +50,7 @@ def core_testbench(mem_size, hex_file, bytes_line):
                     imem=imem,
                     dmem=dmem,
                     toHost=toHost)
-    memory = Memory(clk=clk,
-                    rst=rst,
-                    imem=imem,
+    memory = Memory(imem=imem,
                     dmem=dmem,
                     SIZE=mem_size,
                     HEX=hex_file,

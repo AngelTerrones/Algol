@@ -23,7 +23,6 @@ from Core.consts import Consts
 from Core.wishbone import WishboneMaster
 from Core.wishbone import WishboneIntercon
 from myhdl import always
-from myhdl import Signal
 from myhdl import delay
 
 
@@ -31,8 +30,6 @@ class RamBus:
     def __init__(self, memory_size):
         ns                 = memory_size  # in words
         self.depth         = ns
-        self.clk           = Signal(False)
-        self.rst           = Signal(False)
         self.imem_intercon = WishboneIntercon()
         self.dmem_intercon = WishboneIntercon()
         self.imem          = WishboneMaster(self.imem_intercon)
@@ -43,12 +40,13 @@ class RamBus:
     def gen_clocks(self):
         @always(delay(5))
         def rambusclk():
-            self.clk.next = not self.clk
+            self.imem_intercon.clk.next = not self.imem_intercon.clk
+            self.dmem_intercon.clk.next = not self.dmem_intercon.clk
 
         return rambusclk
 
     def write(self, addr, data):
-        yield self.clk.posedge
+        yield self.dmem.clk_i.posedge
         self.dmem.addr_o.next      = addr
         self.dmem.dat_o.next       = data
         self.dmem.sel_o.next       = 0b1111
@@ -58,13 +56,13 @@ class RamBus:
         self.dmem.cti_o.next       = 0
         self.mirror_mem[addr >> 2] = data
         yield self.dmem.ack_i.posedge
-        yield self.clk.posedge
+        yield self.dmem.clk_i.posedge
         self.dmem.we_o.next        = Consts.M_RD
         self.dmem.cyc_o.next       = False
         self.dmem.stb_o.next       = False
 
     def read(self, addr):
-        yield self.clk.posedge
+        yield self.dmem.clk_i.posedge
         self.dmem.addr_o.next = addr
         self.dmem.sel_o.next  = 0b0000
         self.dmem.we_o.next   = Consts.M_RD
@@ -72,7 +70,7 @@ class RamBus:
         self.dmem.stb_o.next  = True
         self.dmem.cti_o.next  = 0
         yield self.dmem.ack_i.posedge
-        yield self.clk.posedge
+        yield self.dmem.clk_i.posedge
         self.dmem.cyc_o.next  = False
         self.dmem.stb_o.next  = False
 

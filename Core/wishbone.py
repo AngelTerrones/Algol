@@ -27,6 +27,8 @@ class WishboneIntercon:
     """
     Defines an Wishbone IO interface.
 
+    :ivar clk.    System clock
+    :ivar rst:    System reset
     :ivar addr:   Address
     :ivar data_o: Data output
     :ivar data_i: Data input
@@ -43,6 +45,8 @@ class WishboneIntercon:
         """
         Initializes the IO ports.
         """
+        self.clk   = Signal(False)
+        self.rst   = Signal(False)
         self.addr  = Signal(modbv(0)[32:])
         self.dat_o = Signal(modbv(0)[32:])
         self.dat_i = Signal(modbv(0)[32:])
@@ -69,6 +73,8 @@ class WishboneMaster:
         if not isinstance(intercon, WishboneIntercon):
             raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
 
+        self.clk_i   = intercon.clk
+        self.rst_i   = intercon.rst
         self.addr_o  = intercon.addr
         self.dat_o   = intercon.dat_o
         self.dat_i   = intercon.dat_i
@@ -95,6 +101,8 @@ class WishboneSlave:
         if not isinstance(intercon, WishboneIntercon):
             raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
 
+        self.clk_i   = intercon.clk
+        self.rst_i   = intercon.rst
         self.addr_i  = intercon.addr
         self.dat_o   = intercon.dat_i
         self.dat_i   = intercon.dat_o

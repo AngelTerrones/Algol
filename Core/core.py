@@ -59,6 +59,8 @@ def Core(clk,
 def CoreHDL(clk,
             rst,
             toHost,
+            imem_clk_i,
+            imem_rst_i,
             imem_addr_o,
             imem_dat_o,
             imem_sel_o,
@@ -70,6 +72,8 @@ def CoreHDL(clk,
             imem_stall_i,
             imem_ack_i,
             imem_err_i,
+            dmem_clk_i,
+            dmem_rst_i,
             dmem_addr_o,
             dmem_dat_o,
             dmem_sel_o,
@@ -108,6 +112,8 @@ def CoreHDL(clk,
         imem.stall.next  = imem_stall_i
         imem.ack.next    = imem_ack_i
         imem.err.next    = imem_err_i
+        imem.clk.next    = imem_clk_i
+        imem.rst.next    = imem_rst_i
 
         dmem_addr_o.next = dmem.addr
         dmem_dat_o.next  = dmem.dat_o
@@ -120,6 +126,9 @@ def CoreHDL(clk,
         dmem.stall.next  = dmem_stall_i
         dmem.ack.next    = dmem_ack_i
         dmem.err.next    = dmem_err_i
+        dmem.clk.next    = dmem_clk_i
+        dmem.rst.next    = dmem_rst_i
+
     return core, assign
 
 # Local Variables:
