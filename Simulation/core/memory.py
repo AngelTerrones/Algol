@@ -99,7 +99,6 @@ def Memory(imem,
 
     # For state machine
     mem_states_t = enum('IDLE',
-                        'WAIT',
                         'ACK')
 
     imem_state = Signal(mem_states_t.IDLE)
@@ -112,11 +111,9 @@ def Memory(imem,
         else:
             if imem_state.next == mem_states_t.IDLE:
                 if imem_s.cyc_i and imem_s.stb_i:
-                    imem_state.next = mem_states_t.WAIT
+                    imem_state.next = mem_states_t.ACK
                 else:
                     imem_state.next = mem_states_t.IDLE
-            elif imem_state.next == mem_states_t.WAIT:
-                imem_state.next = mem_states_t.ACK
             elif imem_state.next == mem_states_t.ACK:
                 imem_state.next = mem_states_t.IDLE
 
@@ -127,29 +124,27 @@ def Memory(imem,
         else:
             if dmem_state.next == mem_states_t.IDLE:
                 if dmem_s.cyc_i and dmem_s.stb_i:
-                    dmem_state.next = mem_states_t.WAIT
+                    dmem_state.next = mem_states_t.ACK
                 else:
                     dmem_state.next = mem_states_t.IDLE
-            elif dmem_state.next == mem_states_t.WAIT:
-                dmem_state.next = mem_states_t.ACK
             elif dmem_state.next == mem_states_t.ACK:
                 dmem_state.next = mem_states_t.IDLE
 
     @always_comb
     def imem_assign():
-        if imem_state == mem_states_t.WAIT:
-            im_flagwait.next = True
-        else:
+        if imem_state == mem_states_t.ACK:
             im_flagwait.next = False
+        else:
+            im_flagwait.next = True
         im_flagbusy.next = False
         im_flagerr.next  = False
 
     @always_comb
     def dmem_assign():
-        if dmem_state == mem_states_t.WAIT:
-            dm_flagwait.next = True
-        else:
+        if dmem_state == mem_states_t.ACK:
             dm_flagwait.next = False
+        else:
+            dm_flagwait.next = True
         dm_flagbusy.next = False
         dm_flagerr.next  = False
 
