@@ -27,6 +27,9 @@ import random
 from myhdl import instance
 from myhdl import Simulation
 from myhdl import StopSimulation
+from myhdl import Error
+from myhdl import delay
+from myhdl import traceSignals
 import pytest
 
 
@@ -51,6 +54,11 @@ def _testbench():
         lines        = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(words_x_line - 1, -1, -1)]
 
     @instance
+    def timeout():
+        yield delay(1000000)
+        raise Error("Test failed: Timeout")
+
+    @instance
     def stimulus():
         # Testing the file loading
         for addr in range(rb.depth):  # Address in words
@@ -71,7 +79,7 @@ def _testbench():
 
         raise StopSimulation
 
-    return dut, tb_clk, stimulus
+    return dut, tb_clk, stimulus, timeout
 
 
 def gen_test_file():
@@ -91,7 +99,11 @@ def test_memory():
     Memory: Test load and R/W operations.
     """
     gen_test_file()
-    sim = Simulation(_testbench())
+    trace = False
+    if trace:
+        sim = Simulation(traceSignals(_testbench))
+    else:
+        sim = Simulation(_testbench())
     sim.run()
 
 
