@@ -27,7 +27,9 @@ from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
 from myhdl import concat
+from myhdl import enum
 from Core.wishbone import WishboneSlave
+from Core.wishbone import WishboneSlaveGenerator
 
 
 def LoadMemory(size_mem,
@@ -80,28 +82,76 @@ def Memory(imem,
     _imem_addr   = Signal(modbv(0)[30:])
     _dmem_addr   = Signal(modbv(0)[30:])
 
+    im_flagbusy  = Signal(False)
+    im_flagerr   = Signal(False)
+    im_flagwait  = Signal(False)
+    dm_flagbusy  = Signal(False)
+    dm_flagerr   = Signal(False)
+    dm_flagwait  = Signal(False)
+
     imem_s = WishboneSlave(imem)
     dmem_s = WishboneSlave(dmem)
 
+    imem_wbs = WishboneSlaveGenerator(imem_s, im_flagbusy, im_flagerr, im_flagwait).gen_wbs()
+    dmem_wbs = WishboneSlaveGenerator(dmem_s, dm_flagbusy, dm_flagerr, dm_flagwait).gen_wbs()
+
     LoadMemory(SIZE, HEX, bytes_x_line, _memory)
 
-    @always(imem_s.clk_i.posedge)
-    def imem_sync_assign():
-        """
-        Assert the ack signal one clock cycle.
-        """
-        imem_s.ack_o.next = False if imem_s.rst_i else imem_s.stb_i and imem_s.cyc_i and not imem_s.ack_o
-        imem_s.err_o.next = False
-        imem_s.stall_o.next = False
+    # For state machine
+    mem_states_t = enum('IDLE',
+                        'WAIT',
+                        'ACK')
 
-    @always(dmem_s.clk_i.posedge)
-    def dmem_sync_assign():
-        """
-        Assert the ack signal one clock cycle.
-        """
-        dmem_s.ack_o.next = False if dmem_s.rst_i else dmem_s.stb_i and dmem_s.cyc_i and not dmem_s.ack_o
-        dmem_s.err_o.next = False
-        dmem_s.stall_o.next = False
+    imem_state = Signal(mem_states_t.IDLE)
+    dmem_state = Signal(mem_states_t.IDLE)
+
+    @always(imem_s.clk_i.posedge)
+    def imem_fsm():
+        if imem_s.rst_i:
+            imem_state.next = mem_states_t.IDLE
+        else:
+            if imem_state.next == mem_states_t.IDLE:
+                if imem_s.cyc_i and imem_s.stb_i:
+                    imem_state.next = mem_states_t.WAIT
+                else:
+                    imem_state.next = mem_states_t.IDLE
+            elif imem_state.next == mem_states_t.WAIT:
+                imem_state.next = mem_states_t.ACK
+            elif imem_state.next == mem_states_t.ACK:
+                imem_state.next = mem_states_t.IDLE
+
+    @always(imem_s.clk_i.posedge)
+    def dmem_fsm():
+        if dmem_s.rst_i:
+            dmem_state.next = mem_states_t.IDLE
+        else:
+            if dmem_state.next == mem_states_t.IDLE:
+                if dmem_s.cyc_i and dmem_s.stb_i:
+                    dmem_state.next = mem_states_t.WAIT
+                else:
+                    dmem_state.next = mem_states_t.IDLE
+            elif dmem_state.next == mem_states_t.WAIT:
+                dmem_state.next = mem_states_t.ACK
+            elif dmem_state.next == mem_states_t.ACK:
+                dmem_state.next = mem_states_t.IDLE
+
+    @always_comb
+    def imem_assign():
+        if imem_state == mem_states_t.WAIT:
+            im_flagwait.next = True
+        else:
+            im_flagwait.next = False
+        im_flagbusy.next = False
+        im_flagerr.next  = False
+
+    @always_comb
+    def dmem_assign():
+        if dmem_state == mem_states_t.WAIT:
+            dm_flagwait.next = True
+        else:
+            dm_flagwait.next = False
+        dm_flagbusy.next = False
+        dm_flagerr.next  = False
 
     @always_comb
     def assignment_data_o():
