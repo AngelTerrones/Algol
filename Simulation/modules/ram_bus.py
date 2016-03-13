@@ -55,7 +55,13 @@ class RamBus:
         self.dmem.stb_o.next       = True
         self.dmem.cti_o.next       = 0
         self.mirror_mem[addr >> 2] = data
-        yield self.dmem.ack_i.posedge
+        # insert a delay waiting for stable signals.
+        # Also, insert a loop to check for a stable signal,
+        # and ignore glitches.
+        yield delay(1)
+        while not self.dmem.ack_i:
+            yield self.dmem.ack_i.posedge
+            yield self.dmem.clk_i.negedge
         yield self.dmem.clk_i.posedge
         self.dmem.we_o.next        = Consts.M_RD
         self.dmem.cyc_o.next       = False
@@ -69,7 +75,13 @@ class RamBus:
         self.dmem.cyc_o.next  = True
         self.dmem.stb_o.next  = True
         self.dmem.cti_o.next  = 0
-        yield self.dmem.ack_i.posedge
+        # insert a delay waiting for stable signals.
+        # Also, insert a loop to check for a stable signal,
+        # and ignore glitches.
+        yield delay(1)
+        while not self.dmem.ack_i:
+            yield self.dmem.ack_i.posedge
+            yield self.dmem.clk_i.negedge
         yield self.dmem.clk_i.posedge
         self.dmem.cyc_o.next  = False
         self.dmem.stb_o.next  = False
