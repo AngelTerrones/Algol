@@ -146,16 +146,14 @@ class WishboneMasterGenerator():
                                  'WBM_RMW_WR_WAIT')
         self.wbm_state = Signal(self.wbm_states_t.WBM_IDLE)
 
-        self.list_trig_signals = []
-        for i in zip(('trig_rd', 'trig_wr', 'trig_rmw'), self.wbm_states_t._names[2:5], (self.flagread, self.flagwrite, self.flagrmw)):
-            self.list_trig_signals.append({"name": i[0], "initstate": getattr(self.wbm_states_t, i[1]), "trig": i[2]})
-
-        trig_vector = Signal(modbv(0)[len(self.list_trig_signals):])
-        ack_vector     = Signal(modbv(0)[2:])
+        trig_vector = Signal(modbv(0)[3:])
+        ack_vector  = Signal(modbv(0)[2:])
 
         @always_comb
         def concat_trig_vector():
-            trig_vector.next = concat(self.flagread, self.flagwrite, self.flagrmw)
+            trig_vector.next = concat(self.flagread,
+                                      self.flagwrite,
+                                      self.flagrmw)
 
         @always_comb
         def concat_ack_vector():
@@ -173,18 +171,24 @@ class WishboneMasterGenerator():
                     if trig_vector == 0:
                         self.wbm_state.next = self.wbm_states_t.WBM_IDLE
                     else:
-                        for i in self.list_trig_signals:
-                            if i['trig']:
-                                self.wbm_state.next = i['initstate']
+                        if self.flagread:
+                            self.wbm_state.next = self.wbm_states_t.WBM_READ_WAIT
+                        elif self.flagwrite:
+                            self.wbm_state.next = self.wbm_states_t.WBM_WRITE_WAIT
+                        elif self.flagrmw:
+                            self.wbm_state.next = self.wbm_states_t.WBM_RMW_RD_WAIT
                 elif self.wbm_state == self.wbm_states_t.WBM_INCYCLE:
                     # Current cycle in progress, but inactive.
                     # CYC_O is asserted, and STB_O is deasserted.
                     if trig_vector == 0:
                         self.wbm_state.next = self.wbm_states_t.WBM_IDLE
                     else:
-                        for i in self.list_trig_signals:
-                            if i['trig']:
-                                self.wbm_state.next = i['initstate']
+                        if self.flagread:
+                            self.wbm_state.next = self.wbm_states_t.WBM_READ_WAIT
+                        elif self.flagwrite:
+                            self.wbm_state.next = self.wbm_states_t.WBM_WRITE_WAIT
+                        elif self.flagrmw:
+                            self.wbm_state.next = self.wbm_states_t.WBM_RMW_RD_WAIT
                 elif self.wbm_state == self.wbm_states_t.WBM_READ_WAIT:
                     # Read operaton in the bus
                     if ack_vector == 0:
