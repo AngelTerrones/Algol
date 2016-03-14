@@ -151,12 +151,11 @@ class WishboneMasterGenerator():
             self.list_trig_signals.append({"name": i[0], "initstate": getattr(self.wbm_states_t, i[1]), "trig": i[2]})
 
         trig_vector = Signal(modbv(0)[len(self.list_trig_signals):])
-        trig_list   = (x['trig'] for x in self.list_trig_signals)
         ack_vector     = Signal(modbv(0)[2:])
 
         @always_comb
         def concat_trig_vector():
-            trig_vector.next = concat(*trig_list)
+            trig_vector.next = concat(self.flagread, self.flagwrite, self.flagrmw)
 
         @always_comb
         def concat_ack_vector():
