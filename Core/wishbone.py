@@ -68,12 +68,12 @@ class WishboneIntercon:
 class WishboneMaster:
     """
     Defines the wishbone master signals.
-
-    :param intercon: the intercon bus.
     """
     def __init__(self, intercon):
         """
-        Initializes the IO ports.
+        Initializes the IO ports, using the intercon.
+
+        :param intercon: the intercon bus.
         """
         if not isinstance(intercon, WishboneIntercon):
             raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
@@ -96,12 +96,12 @@ class WishboneMaster:
 class WishboneSlave:
     """
     Defines the wishbone slave signals
-
-    :param intercon: the intercon bus.
     """
     def __init__(self, intercon):
         """
-        Initializes the IO ports.
+        Initializes the IO ports using the intercon signals.
+
+        :param intercon: the intercon bus.
         """
         if not isinstance(intercon, WishboneIntercon):
             raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
@@ -122,7 +122,21 @@ class WishboneSlave:
 
 
 class WishboneMasterGenerator():
+    """
+    Wishbone Master generator.
+
+    This clase generates the state machine for a master device.
+    The class requires trigger signals to start a wishbone cycle access.
+    """
     def __init__(self, master_signals, flagread, flagwrite, flagrmw):
+        """
+        Initializes the class.
+
+        :param master_signals: Wishbone master signals to drive.
+        :param flagread:       Initiates a read cycle.
+        :param flagwrite:      Initiates a write cycle.
+        :param flagrmw:        Initiates a read-modify-write access.
+        """
         if isinstance(master_signals, WishboneMaster):
             self.wbmsig = master_signals
         else:
@@ -135,7 +149,7 @@ class WishboneMasterGenerator():
     def gen_wbm(self):
         """
         State machine for master.
-        Generates the state signals for the master.
+        Creates the state machine for a master device.
         """
         self.wbm_states_t = enum('WBM_IDLE',
                                  'WBM_INCYCLE',
@@ -270,7 +284,21 @@ class WishboneMasterGenerator():
 
 
 class WishboneSlaveGenerator():
+    """
+    Wishbone Slave generator.
+
+    This clase generates the state machine for a slave device.
+    The class requires trigger signals to responde a wishbone cycle access.
+    """
     def __init__(self, slave_signals, flagbusy, flagerr, flagwait):
+        """
+        Initializes the class.
+
+        :param slave_signals: Wishbone slave signals to drive.
+        :param flagbusy:      Slave is not able to accept a transfer.
+        :param flagerr:       Slave indicates a transaction error.
+        :param flagwait:      Slave is working.
+        """
         if isinstance(slave_signals, WishboneSlave):
             self.wbssig = slave_signals
         else:
@@ -283,7 +311,7 @@ class WishboneSlaveGenerator():
     def gen_wbs(self):
         """
         State machine for slave.
-        Generates the state signals for the slave.
+        Creates the state machine for a slave device.
         """
         self.wbs_states_t = enum('WBS_IDLE',
                                  'WBS_INCYCLE',
