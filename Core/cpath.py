@@ -31,6 +31,7 @@ from Core.csr import CSRCMD
 from Core.csr import CSRExceptionCode
 from Core.csr import CSRModes
 from Core.wishbone import WishboneMaster
+from Core.wishbone import WishboneMasterGenerator
 from Core.instructions import Opcodes
 from Core.instructions import BranchFunct3
 from Core.instructions import LoadFunct3
@@ -758,20 +759,8 @@ def Ctrlpath(clk,
         """
         imem_m.addr_o.next          = io.imem_pipeline.addr
         imem_m.dat_o.next           = io.imem_pipeline.wdata
-        imem_m.we_o.next            = io.imem_pipeline.fcn
         imem_m.sel_o.next           = 0b0000  # always read
-        imem_m.cti_o.next           = 0b000
         io.imem_pipeline.rdata.next = imem_m.dat_i
-
-    @always(clk.posedge)
-    def _imem_control():
-        control = (io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception) or imem_m.stall_i
-        if rst:
-            imem_m.stb_o.next = False
-            imem_m.cyc_o.next = False
-        else:
-            imem_m.stb_o.next = control
-            imem_m.cyc_o.next = control
 
     @always_comb
     def _dmem_assignment():
@@ -779,8 +768,6 @@ def Ctrlpath(clk,
         Connect the pipeline dmem_m port to the control dmem_m port.
         """
         dmem_m.addr_o.next = io.dmem_pipeline.addr
-        dmem_m.we_o.next   = io.dmem_pipeline.fcn
-        dmem_m.cti_o.next  = 0b000
 
     @always_comb
     def _dmem_read_data():
@@ -851,15 +838,26 @@ def Ctrlpath(clk,
                                      io.dmem_pipeline.wdata[16:0]) if io.dmem_pipeline.typ[2:0] == Consts.MT_H else
                               (io.dmem_pipeline.wdata)))
 
-    @always(clk.posedge)
-    def _dmem_control():
-        control = io.dmem_pipeline.valid and (not dmem_m.ack_i) and not io.csr_exception or dmem_m.stall_i
-        if rst:
-            dmem_m.stb_o.next = False
-            dmem_m.cyc_o.next = False
-        else:
-            dmem_m.stb_o.next = control
-            dmem_m.cyc_o.next = control
+    im_flagread  = Signal(False)
+    im_flagwrite = Signal(False)
+    im_flagrmw   = Signal(False)
+    imem_wbm     = WishboneMasterGenerator(imem_m, im_flagread, im_flagwrite, im_flagrmw).gen_wbm()  # NOQA for unused variable
+    dm_flagread  = Signal(False)
+    dm_flagwrite = Signal(False)
+    dm_flagrmw   = Signal(False)
+    dmem_wbm     = WishboneMasterGenerator(dmem_m, dm_flagread, dm_flagwrite, dm_flagrmw).gen_wbm()  # NOQA for unused variable
+
+    @always_comb
+    def iwbm_trigger():
+        im_flagread.next  = not io.imem_pipeline.fcn and io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
+        im_flagwrite.next = io.imem_pipeline.fcn and io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
+        im_flagrmw.next   = False
+
+    @always_comb
+    def dwbm_trigger():
+        dm_flagread.next  = not io.dmem_pipeline.fcn and io.dmem_pipeline.valid and not dmem_m.ack_i and not io.csr_exception
+        dm_flagwrite.next = io.dmem_pipeline.fcn and io.dmem_pipeline.valid and not dmem_m.ack_i and not io.csr_exception
+        dm_flagrmw.next   = False
 
     return instances()
 
