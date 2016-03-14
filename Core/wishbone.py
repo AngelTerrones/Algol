@@ -147,8 +147,8 @@ class WishboneMasterGenerator():
         self.wbm_state = Signal(self.wbm_states_t.WBM_IDLE)
 
         self.list_trig_signals = []
-        for i in zip(('trig_rd', 'trig_wr', 'trig_rmw'), self.wbm_states_t._names[2:5], (self.flagread, self.flagwrite, self.flagrw)):
-            self.list_trig_signals.append({"name": i[0], "initstate": i[1], "trig": i[2]})
+        for i in zip(('trig_rd', 'trig_wr', 'trig_rmw'), self.wbm_states_t._names[2:5], (self.flagread, self.flagwrite, self.flagrmw)):
+            self.list_trig_signals.append({"name": i[0], "initstate": getattr(self.wbm_states_t, i[1]), "trig": i[2]})
 
         trig_vector = Signal(modbv(0)[len(self.list_trig_signals):])
         trig_list   = (x['trig'] for x in self.list_trig_signals)
