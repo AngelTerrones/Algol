@@ -123,7 +123,7 @@ class WishboneSlave:
 
 class WishboneMasterGenerator():
     def __init__(self, master_signals, flagread, flagwrite, flagrmw):
-        if isinstance(master_signals, WishboneSlave):
+        if isinstance(master_signals, WishboneMaster):
             self.wbmsig = master_signals
         else:
             raise AttributeError("Argument slave_signals must be of type WishboneSlave. Argument: {0}".format(str(master_signals)))
