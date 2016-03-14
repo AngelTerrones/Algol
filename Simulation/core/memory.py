@@ -92,8 +92,8 @@ def Memory(imem,
     imem_s = WishboneSlave(imem)
     dmem_s = WishboneSlave(dmem)
 
-    imem_wbs = WishboneSlaveGenerator(imem_s, im_flagbusy, im_flagerr, im_flagwait).gen_wbs()
-    dmem_wbs = WishboneSlaveGenerator(dmem_s, dm_flagbusy, dm_flagerr, dm_flagwait).gen_wbs()
+    imem_wbs = WishboneSlaveGenerator(imem_s, im_flagbusy, im_flagerr, im_flagwait).gen_wbs()  # NOQA for unused variable
+    dmem_wbs = WishboneSlaveGenerator(dmem_s, dm_flagbusy, dm_flagerr, dm_flagwait).gen_wbs()  # NOQA for unused variable
 
     LoadMemory(SIZE, HEX, bytes_x_line, _memory)
 
