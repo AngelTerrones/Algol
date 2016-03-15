@@ -35,8 +35,8 @@ class WishboneIntercon:
     :ivar clk.    System clock
     :ivar rst:    System reset
     :ivar addr:   Address
-    :ivar data_o: Data output
-    :ivar data_i: Data input
+    :ivar data_o: Data output (from master)
+    :ivar data_i: Data input (to master)
     :ivar sel:    Select byte to write
     :ivar cti:    Cycle Type Identifier
     :ivar cyc:    Valid bus cycle in progress
