@@ -26,8 +26,7 @@ import subprocess
 from myhdl import toVerilog
 from myhdl import Signal
 from myhdl import modbv
-from Core.core import Core
-from Core.memIO import MemPortIO
+from Core.core import CoreHDL
 
 
 def run_module(args):
@@ -79,13 +78,39 @@ def clean_tests(args):
 
 
 def convert_to_verilog(args):
-    clk = Signal(False)
-    rst = Signal(False)
-    imem = MemPortIO()
-    dmem = MemPortIO()
-    toHost = Signal(modbv(0)[32:])
+    clk          = Signal(False)
+    rst          = Signal(False)
+    imem_clk_i   = Signal(False)
+    imem_rst_i   = Signal(False)
+    imem_addr_o  = Signal(modbv(0)[32:])
+    imem_dat_o   = Signal(modbv(0)[32:])
+    imem_sel_o   = Signal(modbv(0)[4:])
+    imem_cti_o   = Signal(modbv(0)[3:])
+    imem_cyc_o   = Signal(False)
+    imem_we_o    = Signal(False)
+    imem_stb_o   = Signal(False)
+    imem_dat_i   = Signal(modbv(0)[32:])
+    imem_stall_i = Signal(False)
+    imem_ack_i   = Signal(False)
+    imem_err_i   = Signal(False)
+    dmem_clk_i   = Signal(False)
+    dmem_rst_i   = Signal(False)
+    dmem_addr_o  = Signal(modbv(0)[32:])
+    dmem_dat_o   = Signal(modbv(0)[32:])
+    dmem_sel_o   = Signal(modbv(0)[4:])
+    dmem_cti_o   = Signal(modbv(0)[3:])
+    dmem_cyc_o   = Signal(False)
+    dmem_we_o    = Signal(False)
+    dmem_stb_o   = Signal(False)
+    dmem_dat_i   = Signal(modbv(0)[32:])
+    dmem_stall_i = Signal(False)
+    dmem_ack_i   = Signal(False)
+    dmem_err_i   = Signal(False)
+    toHost       = Signal(modbv(0)[32:])
 
-    toVerilog(Core, clk, rst, imem, dmem, toHost)
+    toVerilog(CoreHDL, clk, rst, toHost, imem_clk_i, imem_rst_i, imem_addr_o, imem_dat_o, imem_sel_o, imem_cti_o, imem_cyc_o, imem_we_o,
+              imem_stb_o, imem_dat_i, imem_stall_i, imem_ack_i, imem_err_i, dmem_clk_i, dmem_rst_i, dmem_addr_o, dmem_dat_o, dmem_sel_o,
+              dmem_cti_o, dmem_cyc_o, dmem_we_o, dmem_stb_o, dmem_dat_i, dmem_stall_i, dmem_ack_i, dmem_err_i)
 
 
 def main():

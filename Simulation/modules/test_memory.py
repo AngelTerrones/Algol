@@ -20,13 +20,16 @@
 # THE SOFTWARE.
 
 from Simulation.core.memory import Memory
-from Core.memIO import MemPortIO
+from Core.wishbone import WishboneSlave
+from Core.wishbone import WishboneIntercon
 from Simulation.modules.ram_bus import RamBus
 import random
 from myhdl import instance
-from myhdl import Signal
 from myhdl import Simulation
 from myhdl import StopSimulation
+from myhdl import Error
+from myhdl import delay
+from myhdl import traceSignals
 import pytest
 
 
@@ -37,10 +40,8 @@ BYTES_X_LINE  = 16
 
 def _testbench():
     rb = RamBus(memory_size=MEM_SIZE >> 2)
-    dut = Memory(clk=rb.clk,
-                 rst=rb.rst,
-                 imem=rb.imem,
-                 dmem=rb.dmem,
+    dut = Memory(imem=rb.imem_intercon,
+                 dmem=rb.dmem_intercon,
                  SIZE=MEM_SIZE,
                  HEX=MEM_TEST_FILE,
                  BYTES_X_LINE=BYTES_X_LINE)
@@ -49,8 +50,13 @@ def _testbench():
 
     with open(MEM_TEST_FILE) as f:
         words_x_line = BYTES_X_LINE >> 2
-        lines_f = [line.strip() for line in f]
-        lines = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(words_x_line - 1, -1, -1)]
+        lines_f      = [line.strip() for line in f]
+        lines        = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(words_x_line - 1, -1, -1)]
+
+    @instance
+    def timeout():
+        yield delay(1000000)
+        raise Error("Test failed: Timeout")
 
     @instance
     def stimulus():
@@ -58,8 +64,8 @@ def _testbench():
         for addr in range(rb.depth):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
             data = int(lines[addr], 16)
-            assert rb.dmem.rdata == data, "Data loading: Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
-                                                                                                             hex(rb.dmem.rdata),
+            assert rb.dmem.dat_i == data, "Data loading: Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
+                                                                                                             hex(rb.dmem.dat_i),
                                                                                                              data)
 
         # Testing R/W
@@ -69,11 +75,11 @@ def _testbench():
 
         for addr in range(rb.depth):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
-            assert rb.dmem.rdata == rb.mirror_mem[addr], "R/W: Data mismatch! Addr = {0:#x}".format(addr << 2)
+            assert rb.dmem.dat_i == rb.mirror_mem[addr], "R/W: Data mismatch! Addr = {0:#x}".format(addr << 2)
 
         raise StopSimulation
 
-    return dut, tb_clk, stimulus
+    return dut, tb_clk, stimulus, timeout
 
 
 def gen_test_file():
@@ -93,7 +99,11 @@ def test_memory():
     Memory: Test load and R/W operations.
     """
     gen_test_file()
-    sim = Simulation(_testbench())
+    trace = False
+    if trace:
+        sim = Simulation(traceSignals(_testbench))
+    else:
+        sim = Simulation(_testbench())
     sim.run()
 
 
@@ -101,16 +111,14 @@ def test_memory_assertions():
     """
     Memory: Test assertions
     """
-    clk = Signal(False)
-    rst = Signal(False)
-    imem = MemPortIO()
-    dmem = MemPortIO()
+    imem_intercon = WishboneIntercon()
+    dmem_intercon = WishboneIntercon()
+    imem = WishboneSlave(imem_intercon)
+    dmem = WishboneSlave(dmem_intercon)
 
     # Test minimun size
     with pytest.raises(AssertionError):
-        Memory(clk=clk,
-               rst=rst,
-               imem=imem,
+        Memory(imem=imem,
                dmem=dmem,
                SIZE=20,
                HEX=MEM_TEST_FILE,
@@ -118,9 +126,7 @@ def test_memory_assertions():
 
     # test valid filename
     with pytest.raises(AssertionError):
-        Memory(clk=clk,
-               rst=rst,
-               imem=imem,
+        Memory(imem=imem,
                dmem=dmem,
                SIZE=MEM_SIZE,
                HEX='ERROR',

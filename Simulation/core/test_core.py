@@ -21,9 +21,10 @@
 
 from Core.core import Core
 from Simulation.core.memory import Memory
-from Core.memIO import MemPortIO
+from Core.wishbone import WishboneIntercon
 from myhdl import instance
 from myhdl import always
+from myhdl import always_comb
 from myhdl import Signal
 from myhdl import delay
 from myhdl import modbv
@@ -40,8 +41,9 @@ TIMEOUT = 10000
 def core_testbench(mem_size, hex_file, bytes_line):
     clk = Signal(False)
     rst = Signal(False)
-    imem = MemPortIO()
-    dmem = MemPortIO()
+    imem = WishboneIntercon()
+    dmem = WishboneIntercon()
+
     toHost = Signal(modbv(0)[32:])
 
     dut_core = Core(clk=clk,
@@ -49,9 +51,7 @@ def core_testbench(mem_size, hex_file, bytes_line):
                     imem=imem,
                     dmem=dmem,
                     toHost=toHost)
-    memory = Memory(clk=clk,
-                    rst=rst,
-                    imem=imem,
+    memory = Memory(imem=imem,
                     dmem=dmem,
                     SIZE=mem_size,
                     HEX=hex_file,
@@ -60,6 +60,16 @@ def core_testbench(mem_size, hex_file, bytes_line):
     @always(delay(int(TICK_PERIOD / 2)))
     def gen_clock():
         clk.next = not clk
+
+    @always_comb
+    def wb_clk_rst():
+        """
+        Assign the clock to wishbone interconnect.
+        """
+        imem.clk.next = clk
+        imem.rst.next = rst
+        dmem.clk.next = clk
+        dmem.rst.next = rst
 
     @always(toHost)
     def toHost_check():
@@ -75,7 +85,7 @@ def core_testbench(mem_size, hex_file, bytes_line):
         yield delay(TIMEOUT * TICK_PERIOD)
         raise Error("Test failed: Timeout")
 
-    return dut_core, memory, gen_clock, timeout, toHost_check
+    return dut_core, memory, gen_clock, timeout, toHost_check, wb_clk_rst
 
 
 def test_core(mem_size, hex_file, bytes_line, vcd):

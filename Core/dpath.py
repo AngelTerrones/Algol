@@ -23,7 +23,6 @@ from myhdl import Signal
 from myhdl import always_comb
 from myhdl import modbv
 from Core.consts import Consts
-from Core.memIO import MemOp
 from Core.regfile import RegisterFile
 from Core.regfile import RFReadPort
 from Core.regfile import RFWritePort
@@ -89,7 +88,7 @@ def Datapath(clk,
     ex_data_out      = Signal(modbv(0)[32:])
     ex_alu_funct     = Signal(modbv(0)[ALUOp.SZ_OP:])
     ex_mem_wdata     = Signal(modbv(0)[32:])
-    ex_mem_type      = Signal(modbv(0)[MemOp.SZ_MT:])
+    ex_mem_type      = Signal(modbv(0)[Consts.SZ_MT:])
     ex_mem_funct     = Signal(False)
     ex_mem_valid     = Signal(False)
     ex_mem_data_sel  = Signal(modbv(0)[Consts.SZ_WB:])
@@ -107,7 +106,7 @@ def Datapath(clk,
     mem_pc           = Signal(modbv(0)[32:])
     mem_alu_out      = Signal(modbv(0)[32:])
     mem_mem_wdata    = Signal(modbv(0)[32:])
-    mem_mem_type     = Signal(modbv(0)[MemOp.SZ_MT:])
+    mem_mem_type     = Signal(modbv(0)[Consts.SZ_MT:])
     mem_mem_funct    = Signal(False)
     mem_mem_valid    = Signal(False)
     mem_mem_data_sel = Signal(modbv(0)[Consts.SZ_WB:])
@@ -157,8 +156,8 @@ def Datapath(clk,
         if_instruction.next             = ctrlIO.imem_pipeline.rdata
         # --
         ctrlIO.imem_pipeline.wdata.next = 0xDEADC0DE
-        ctrlIO.imem_pipeline.typ.next   = MemOp.MT_W
-        ctrlIO.imem_pipeline.fcn.next   = MemOp.M_RD
+        ctrlIO.imem_pipeline.typ.next   = Consts.MT_W
+        ctrlIO.imem_pipeline.fcn.next   = Consts.M_RD
         ctrlIO.imem_pipeline.valid.next = True
 
     # ID stage

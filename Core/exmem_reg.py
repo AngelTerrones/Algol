@@ -21,7 +21,6 @@
 
 from myhdl import always
 from myhdl import modbv
-from Core.memIO import MemOp
 from Core.consts import Consts
 from Core.csr import CSRCMD
 
@@ -61,8 +60,8 @@ def EXMEMReg(clk,
             mem_mem_valid.next    = False
             mem_alu_out.next      = 0
             mem_mem_wdata.next    = 0
-            mem_mem_type.next     = MemOp.MT_X
-            mem_mem_funct.next    = MemOp.M_X
+            mem_mem_type.next     = Consts.MT_X
+            mem_mem_funct.next    = Consts.M_X
             mem_mem_data_sel.next = Consts.WB_X
             mem_wb_addr.next      = 0
             mem_wb_we.next        = False
