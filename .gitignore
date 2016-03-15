@@ -67,3 +67,6 @@ target/
 # VCD files
 *.vcd*
 *.gtkw
+
+# KDE
+.directory

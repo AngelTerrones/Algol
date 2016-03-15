@@ -23,7 +23,6 @@ from myhdl import always
 from myhdl import modbv
 from Core.consts import Consts
 from Core.alu import ALUOp
-from Core.memIO import MemOp
 from Core.csr import CSRCMD
 
 
@@ -68,8 +67,8 @@ def IDEXReg(clk,
             ex_op1_data.next     = 0
             ex_op2_data.next     = 0
             ex_alu_funct.next    = ALUOp.OP_ADD
-            ex_mem_type.next     = MemOp.MT_X
-            ex_mem_funct.next    = MemOp.M_X
+            ex_mem_type.next     = Consts.MT_X
+            ex_mem_funct.next    = Consts.M_X
             ex_mem_valid.next    = False
             ex_mem_wdata.next    = 0
             ex_mem_data_sel.next = Consts.WB_X
@@ -91,7 +90,7 @@ def IDEXReg(clk,
             ex_csr_addr.next     = (ex_csr_addr if (id_stall or full_stall) else (id_csr_addr))
             ex_csr_wdata.next    = (ex_csr_wdata if (id_stall or full_stall) else (id_csr_wdata))
             ex_mem_funct.next    = (ex_mem_funct if full_stall else
-                                    (MemOp.M_X if (pipeline_kill or id_kill or (id_stall and not full_stall)) else
+                                    (Consts.M_X if (pipeline_kill or id_kill or (id_stall and not full_stall)) else
                                      (id_mem_funct)))
             ex_mem_valid.next    = (ex_mem_valid if full_stall else
                                     (False if (pipeline_kill or id_kill or (id_stall and not full_stall)) else

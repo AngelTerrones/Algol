@@ -27,13 +27,15 @@ from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
 from myhdl import concat
-from Core.memIO import MemOp
+from myhdl import enum
+from Core.wishbone import WishboneSlave
+from Core.wishbone import WishboneSlaveGenerator
 
 
-def LoadMemory(size_mem: int,
-               bin_file: str,
-               bytes_x_line: int,
-               memory: list):
+def LoadMemory(size_mem,
+               bin_file,
+               bytes_x_line,
+               memory):
     """
     Load a HEX file. The file have (2 * NBYTES + 1) por line.
     """
@@ -51,15 +53,19 @@ def LoadMemory(size_mem: int,
         memory[addr] = Signal(modbv(data)[32:])
 
 
-def Memory(clk,
-           rst,
-           imem,
+def Memory(imem,
            dmem,
            SIZE,
            HEX,
            BYTES_X_LINE):
     """
     Test memory.
+
+    :param imem:         Instruction memory wishbone Interconnect
+    :param dmem:         Data memory wishbone Interconnect
+    :param SIZE:         Mmeory size (bytes)
+    :param HEX:          Hex file to load
+    :param BYTES_X_LINE: Data width in bytes
     """
     assert SIZE >= 2**12, "Memory depth must be a positive number. Min value= 4 KB."
     assert not (SIZE & (SIZE - 1)), "Memory size must be a power of 2"
@@ -76,54 +82,108 @@ def Memory(clk,
     _imem_addr   = Signal(modbv(0)[30:])
     _dmem_addr   = Signal(modbv(0)[30:])
 
+    im_flagbusy  = Signal(False)
+    im_flagerr   = Signal(False)
+    im_flagwait  = Signal(False)
+    dm_flagbusy  = Signal(False)
+    dm_flagerr   = Signal(False)
+    dm_flagwait  = Signal(False)
+
+    imem_s = WishboneSlave(imem)
+    dmem_s = WishboneSlave(dmem)
+
+    imem_wbs = WishboneSlaveGenerator(imem_s, im_flagbusy, im_flagerr, im_flagwait).gen_wbs()  # NOQA for unused variable
+    dmem_wbs = WishboneSlaveGenerator(dmem_s, dm_flagbusy, dm_flagerr, dm_flagwait).gen_wbs()  # NOQA for unused variable
+
     LoadMemory(SIZE, HEX, bytes_x_line, _memory)
 
-    @always(clk.posedge)
-    def set_ready_signal():
-        imem.ready.next = False if rst else imem.valid
-        dmem.ready.next = False if rst else dmem.valid
+    # For state machine
+    mem_states_t = enum('IDLE',
+                        'ACK')
+
+    imem_state = Signal(mem_states_t.IDLE)
+    dmem_state = Signal(mem_states_t.IDLE)
+
+    @always(imem_s.clk_i.posedge)
+    def imem_fsm():
+        if imem_s.rst_i:
+            imem_state.next = mem_states_t.IDLE
+        else:
+            if imem_state.next == mem_states_t.IDLE:
+                if imem_s.cyc_i and imem_s.stb_i:
+                    imem_state.next = mem_states_t.ACK
+                else:
+                    imem_state.next = mem_states_t.IDLE
+            elif imem_state.next == mem_states_t.ACK:
+                imem_state.next = mem_states_t.IDLE
+
+    @always(imem_s.clk_i.posedge)
+    def dmem_fsm():
+        if dmem_s.rst_i:
+            dmem_state.next = mem_states_t.IDLE
+        else:
+            if dmem_state.next == mem_states_t.IDLE:
+                if dmem_s.cyc_i and dmem_s.stb_i:
+                    dmem_state.next = mem_states_t.ACK
+                else:
+                    dmem_state.next = mem_states_t.IDLE
+            elif dmem_state.next == mem_states_t.ACK:
+                dmem_state.next = mem_states_t.IDLE
+
+    @always_comb
+    def imem_assign():
+        if imem_state == mem_states_t.ACK:
+            im_flagwait.next = False
+        else:
+            im_flagwait.next = True
+        im_flagbusy.next = False
+        im_flagerr.next  = False
+
+    @always_comb
+    def dmem_assign():
+        if dmem_state == mem_states_t.ACK:
+            dm_flagwait.next = False
+        else:
+            dm_flagwait.next = True
+        dm_flagbusy.next = False
+        dm_flagerr.next  = False
 
     @always_comb
     def assignment_data_o():
-        imem.rdata.next = i_data_o if imem.ready else 0xDEADF00D
-        dmem.rdata.next = d_data_o if dmem.ready else 0xDEADF00D
-
-    @always(clk.posedge)
-    def set_fault():
-        imem.fault.next = False
-        dmem.fault.next = False
+        imem_s.dat_o.next = i_data_o if imem_s.ack_o else 0xDEADF00D
+        dmem_s.dat_o.next = d_data_o if dmem_s.ack_o else 0xDEADF00D
 
     @always_comb
     def assignment_addr():
         # This memory is addressed by word, not byte. Ignore the 2 LSB.
-        _imem_addr.next = imem.addr[aw:2]
-        _dmem_addr.next = dmem.addr[aw:2]
+        _imem_addr.next = imem_s.addr_i[aw:2]
+        _dmem_addr.next = dmem_s.addr_i[aw:2]
 
-    @always(clk.posedge)
+    @always(imem_s.clk_i.posedge)
     def imem_rtl():
         i_data_o.next = _memory[_imem_addr]
 
-        if imem.fcn == MemOp.M_WR:
-            we            = imem.wr
-            data          = imem.wdata
-            i_data_o.next = imem.wdata
-            _memory[_imem_addr].next = concat(data[8:0] if we[0] and imem.valid else _memory[_imem_addr][8:0],
-                                              data[16:8] if we[1] and imem.valid else _memory[_imem_addr][16:8],
-                                              data[24:16] if we[2] and imem.valid else _memory[_imem_addr][24:16],
-                                              data[32:24] if we[3] and imem.valid else _memory[_imem_addr][32:24])
+        if imem_s.we_i and imem_s.stb_i:
+            we            = imem_s.sel_i
+            data          = imem_s.dat_i
+            i_data_o.next = imem_s.dat_i
+            _memory[_imem_addr].next = concat(data[32:24] if we[3] else _memory[_imem_addr][32:24],
+                                              data[24:16] if we[2] else _memory[_imem_addr][24:16],
+                                              data[16:8] if we[1] else _memory[_imem_addr][16:8],
+                                              data[8:0] if we[0] else _memory[_imem_addr][8:0])
 
-    @always(clk.posedge)
+    @always(dmem_s.clk_i.posedge)
     def dmem_rtl():
         d_data_o.next = _memory[_dmem_addr]
 
-        if dmem.fcn == MemOp.M_WR:
-            we            = dmem.wr
-            data          = dmem.wdata
-            d_data_o.next = dmem.wdata
-            _memory[_dmem_addr].next = concat(data[8:0] if we[0] and dmem.valid else _memory[_dmem_addr][8:0],
-                                              data[16:8] if we[1] and dmem.valid else _memory[_dmem_addr][16:8],
-                                              data[24:16] if we[2] and dmem.valid else _memory[_dmem_addr][24:16],
-                                              data[32:24] if we[3] and dmem.valid else _memory[_dmem_addr][32:24])
+        if dmem_s.we_i and dmem_s.stb_i:
+            we            = dmem_s.sel_i
+            data          = dmem_s.dat_i
+            d_data_o.next = dmem_s.dat_i
+            _memory[_dmem_addr].next = concat(data[32:24] if we[3] else _memory[_dmem_addr][32:24],
+                                              data[24:16] if we[2] else _memory[_dmem_addr][24:16],
+                                              data[16:8] if we[1] else _memory[_dmem_addr][16:8],
+                                              data[8:0] if we[0] else _memory[_dmem_addr][8:0])
 
     return instances()
 
