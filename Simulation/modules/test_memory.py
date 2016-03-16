@@ -20,7 +20,6 @@
 # THE SOFTWARE.
 
 from Simulation.core.memory import Memory
-from Core.wishbone import WishboneSlave
 from Core.wishbone import WishboneIntercon
 from Simulation.modules.ram_bus import RamBus
 import random
@@ -113,21 +112,19 @@ def test_memory_assertions():
     """
     imem_intercon = WishboneIntercon()
     dmem_intercon = WishboneIntercon()
-    imem = WishboneSlave(imem_intercon)
-    dmem = WishboneSlave(dmem_intercon)
 
     # Test minimun size
     with pytest.raises(AssertionError):
-        Memory(imem=imem,
-               dmem=dmem,
+        Memory(imem=imem_intercon,
+               dmem=dmem_intercon,
                SIZE=20,
                HEX=MEM_TEST_FILE,
                BYTES_X_LINE=BYTES_X_LINE)
 
     # test valid filename
     with pytest.raises(AssertionError):
-        Memory(imem=imem,
-               dmem=dmem,
+        Memory(imem=imem_intercon,
+               dmem=dmem_intercon,
                SIZE=MEM_SIZE,
                HEX='ERROR',
                BYTES_X_LINE=BYTES_X_LINE)
