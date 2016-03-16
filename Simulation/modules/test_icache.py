@@ -20,13 +20,14 @@
 # THE SOFTWARE.
 
 from Simulation.core.memory import Memory
-from Core.memIO import MemPortIO
 from Core.icache import ICache
+from Core.wishbone import WishboneIntercon
 from Simulation.modules.ram_bus import RamBus
 import random
 from myhdl import instance
 from myhdl import always_comb
 from myhdl import Signal
+from myhdl import instances
 from myhdl import Simulation
 from myhdl import StopSimulation
 from myhdl import delay
@@ -41,31 +42,30 @@ BYTES_X_LINE  = 16
 
 
 def _testbench():
-    invalidate = Signal(False)
-    dmem = MemPortIO()
-
     rb = RamBus(memory_size=MEM_SIZE >> 2)
-    cpu = MemPortIO()
-    dut = ICache(clk=rb.clk,
-                 rst=rb.rst,
-                 invalidate=invalidate,
-                 cpu=cpu,
+    dmem = WishboneIntercon()
+    invalidate = Signal(False)
+    dut = ICache(clk_i=rb.clkb,               # noqa
+                 rst_i=False,
+                 cpu=rb.dmem_intercon,
                  mem=dmem,
-                 ENABLE=True,
+                 invalidate=invalidate,
                  D_WIDTH=32,
                  BLOCK_WIDTH=3,
                  SET_WIDTH=5,
                  WAYS=4,
                  LIMIT_WIDTH=32)
-    mem = Memory(clk=rb.clk,
-                 rst=rb.rst,
-                 imem=rb.imem,
+    mem = Memory(clka_i=rb.clka,              # noqa
+                 rsta_i=False,
+                 imem=rb.imem_intercon,
+                 clkb_i=rb.clkb,
+                 rstb_i=False,
                  dmem=dmem,
                  SIZE=MEM_SIZE,
                  HEX=MEM_TEST_FILE,
                  BYTES_X_LINE=BYTES_X_LINE)
 
-    tb_clk = rb.gen_clocks()
+    tb_clk = rb.gen_clocks()  # noqa
 
     # Load the test file. Used as reference.
     with open(MEM_TEST_FILE) as f:
@@ -76,33 +76,33 @@ def _testbench():
     @instance
     def timeout():
         # Avoid waiting until armageddon
-        yield delay(10000000)
+        yield delay(100000)
         raise Error("Test failed: Timeout")
 
-    @always_comb
-    def port_assign():
-        # This assignments are for the purpose of being able to watch this
-        # signal GTKWave.
-        cpu.addr.next      = rb.dmem.addr
-        cpu.wdata.next     = rb.dmem.wdata
-        cpu.wr.next        = rb.dmem.wr
-        cpu.fcn.next       = rb.dmem.fcn
-        cpu.valid.next     = rb.dmem.valid
-        rb.dmem.rdata.next = cpu.rdata
-        rb.dmem.ready.next = cpu.ready
-        rb.dmem.fault.next = cpu.fault
+    # @always_comb
+    # def port_assign():
+    #     # This assignments are for the purpose of being able to watch this
+    #     # signal GTKWave.
+    #     cpu.addr.next      = rb.dmem.addr
+    #     cpu.wdata.next     = rb.dmem.wdata
+    #     cpu.wr.next        = rb.dmem.wr
+    #     cpu.fcn.next       = rb.dmem.fcn
+    #     cpu.valid.next     = rb.dmem.valid
+    #     rb.dmem.rdata.next = cpu.rdata
+    #     rb.dmem.ready.next = cpu.ready
+    #     rb.dmem.fault.next = cpu.fault
 
     @instance
     def stimulus():
-        rb.rst.next = True
-        yield delay(10)
-        rb.rst.next = False
+        # rb.rst.next = True
+        # yield delay(10)
+        # rb.rst.next = False
         # Read data from memory: first round
         for addr in range(rb.depth >> 5):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
             data = int(lines[addr], 16)
-            assert rb.dmem.rdata == data, "Data loading (1): Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
-                                                                                                                 hex(rb.dmem.rdata),
+            assert rb.dmem.dat_i == data, "Data loading (1): Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
+                                                                                                                 hex(rb.dmem.dat_i),
                                                                                                                  data)
         invalidate.next = True
         yield delay(10)
@@ -113,12 +113,12 @@ def _testbench():
         for addr in range(rb.depth >> 5):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
             data = int(lines[addr], 16)
-            assert rb.dmem.rdata == data, "Data loading (2): Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
-                                                                                                                 hex(rb.dmem.rdata),
+            assert rb.dmem.dat_i == data, "Data loading (2): Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
+                                                                                                                 hex(rb.dmem.dat_i),
                                                                                                                  data)
         raise StopSimulation
 
-    return mem, dut, tb_clk, stimulus, timeout, port_assign
+    return instances()
 
 
 def gen_test_file():
@@ -149,17 +149,16 @@ def test_cache_assertions():
     clk = Signal(False)
     rst = Signal(False)
     invalidate = Signal(False)
-    cpu = MemPortIO()
-    mem = MemPortIO()
+    cpu = WishboneIntercon()
+    mem = WishboneIntercon()
 
     # Test data width size
     with pytest.raises(AssertionError):
         ICache(clk,
                rst,
-               invalidate,
                cpu,
                mem,
-               ENABLE=True,
+               invalidate,
                D_WIDTH=64,
                BLOCK_WIDTH=5,
                SET_WIDTH=9,
@@ -170,10 +169,9 @@ def test_cache_assertions():
     with pytest.raises(AssertionError):
         ICache(clk,
                rst,
-               invalidate,
                cpu,
                mem,
-               ENABLE=True,
+               invalidate,
                D_WIDTH=32,
                BLOCK_WIDTH=-4,
                SET_WIDTH=9,
@@ -184,10 +182,9 @@ def test_cache_assertions():
     with pytest.raises(AssertionError):
         ICache(clk,
                rst,
-               invalidate,
                cpu,
                mem,
-               ENABLE=True,
+               invalidate,
                D_WIDTH=32,
                BLOCK_WIDTH=6,
                SET_WIDTH=9,
