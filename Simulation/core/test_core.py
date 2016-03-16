@@ -51,7 +51,11 @@ def core_testbench(mem_size, hex_file, bytes_line):
                     imem=imem,
                     dmem=dmem,
                     toHost=toHost)
-    memory = Memory(imem=imem,
+    memory = Memory(clka_i=clk,
+                    rsta_i=rst,
+                    imem=imem,
+                    clkb_i=clk,
+                    rstb_i=rst,
                     dmem=dmem,
                     SIZE=mem_size,
                     HEX=hex_file,
@@ -60,16 +64,6 @@ def core_testbench(mem_size, hex_file, bytes_line):
     @always(delay(int(TICK_PERIOD / 2)))
     def gen_clock():
         clk.next = not clk
-
-    @always_comb
-    def wb_clk_rst():
-        """
-        Assign the clock to wishbone interconnect.
-        """
-        imem.clk.next = clk
-        imem.rst.next = rst
-        dmem.clk.next = clk
-        dmem.rst.next = rst
 
     @always(toHost)
     def toHost_check():
@@ -85,7 +79,7 @@ def core_testbench(mem_size, hex_file, bytes_line):
         yield delay(TIMEOUT * TICK_PERIOD)
         raise Error("Test failed: Timeout")
 
-    return dut_core, memory, gen_clock, timeout, toHost_check, wb_clk_rst
+    return dut_core, memory, gen_clock, timeout, toHost_check
 
 
 def test_core(mem_size, hex_file, bytes_line, vcd):

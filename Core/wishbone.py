@@ -32,8 +32,6 @@ class WishboneIntercon:
     """
     Defines an Wishbone IO interface.
 
-    :ivar clk.    System clock
-    :ivar rst:    System reset
     :ivar addr:   Address
     :ivar data_o: Data output (from master)
     :ivar data_i: Data input (to master)
@@ -50,8 +48,6 @@ class WishboneIntercon:
         """
         Initializes the IO ports.
         """
-        self.clk   = Signal(False)
-        self.rst   = Signal(False)
         self.addr  = Signal(modbv(0)[32:])
         self.dat_o = Signal(modbv(0)[32:])
         self.dat_i = Signal(modbv(0)[32:])
@@ -78,8 +74,6 @@ class WishboneMaster:
         if not isinstance(intercon, WishboneIntercon):
             raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
 
-        self.clk_i   = intercon.clk
-        self.rst_i   = intercon.rst
         self.addr_o  = intercon.addr
         self.dat_o   = intercon.dat_o
         self.dat_i   = intercon.dat_i
@@ -106,8 +100,6 @@ class WishboneSlave:
         if not isinstance(intercon, WishboneIntercon):
             raise AttributeError("Unknown intercon type for {0}".format(str(intercon)))
 
-        self.clk_i   = intercon.clk
-        self.rst_i   = intercon.rst
         self.addr_i  = intercon.addr
         self.dat_o   = intercon.dat_i
         self.dat_i   = intercon.dat_o
@@ -128,10 +120,12 @@ class WishboneMasterGenerator():
     This clase generates the state machine for a master device.
     The class requires trigger signals to start a wishbone cycle access.
     """
-    def __init__(self, master_signals, flagread, flagwrite, flagrmw):
+    def __init__(self, clk_i, rst_i, master_signals, flagread, flagwrite, flagrmw):
         """
         Initializes the class.
 
+        :param clk_i:          Wishbone clock
+        :param rst_i:          Wishbone reset
         :param master_signals: Wishbone master signals to drive.
         :param flagread:       Initiates a read cycle.
         :param flagwrite:      Initiates a write cycle.
@@ -142,6 +136,8 @@ class WishboneMasterGenerator():
         else:
             raise AttributeError("Argument slave_signals must be of type WishboneSlave. Argument: {0}".format(str(master_signals)))
 
+        self.clk       = clk_i
+        self.rst       = rst_i
         self.flagread  = flagread
         self.flagwrite = flagwrite
         self.flagrmw   = flagrmw
@@ -174,9 +170,9 @@ class WishboneMasterGenerator():
             ack_vector.next = concat(self.wbmsig.ack_i, self.wbmsig.err_i)
 
         # state machine
-        @always(self.wbmsig.clk_i.posedge)
+        @always(self.clk.posedge)
         def wbmstate_fsm():
-            if self.wbmsig.rst_i:
+            if self.rst:
                 self.wbm_state.next = self.wbm_states_t.WBM_IDLE
             else:
                 if self.wbm_state == self.wbm_states_t.WBM_IDLE:
@@ -290,10 +286,12 @@ class WishboneSlaveGenerator():
     This clase generates the state machine for a slave device.
     The class requires trigger signals to responde a wishbone cycle access.
     """
-    def __init__(self, slave_signals, flagbusy, flagerr, flagwait):
+    def __init__(self, clk_i, rst_i, slave_signals, flagbusy, flagerr, flagwait):
         """
         Initializes the class.
 
+        :param clk_i:         Wishbone clock
+        :param rst_i:         Wishbone reset
         :param slave_signals: Wishbone slave signals to drive.
         :param flagbusy:      Slave is not able to accept a transfer.
         :param flagerr:       Slave indicates a transaction error.
@@ -304,6 +302,8 @@ class WishboneSlaveGenerator():
         else:
             raise AttributeError("Argument slave_signals must be of type WishboneSlave. Argument: {0}".format(str(slave_signals)))
 
+        self.clk      = clk_i
+        self.rst      = rst_i
         self.flagbusy = flagbusy
         self.flagerr  = flagerr
         self.flagwait = flagwait
@@ -319,9 +319,9 @@ class WishboneSlaveGenerator():
                                  'WBS_WRITE_WAIT')
         self.wbs_state = Signal(self.wbs_states_t.WBS_IDLE)
 
-        @always(self.wbssig.clk_i.posedge)
+        @always(self.clk.posedge)
         def wbsstate_fsm():
-            if self.wbssig.rst_i:
+            if self.rst:
                 self.wbs_state.next = self.wbs_states_t.WBS_IDLE
             else:
                 # state transition

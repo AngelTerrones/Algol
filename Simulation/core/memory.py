@@ -53,7 +53,11 @@ def LoadMemory(size_mem,
         memory[addr] = Signal(modbv(data)[32:])
 
 
-def Memory(imem,
+def Memory(clka_i,
+           rsta_i,
+           imem,
+           clkb_i,
+           rstb_i,
            dmem,
            SIZE,
            HEX,
@@ -92,8 +96,8 @@ def Memory(imem,
     imem_s = WishboneSlave(imem)
     dmem_s = WishboneSlave(dmem)
 
-    imem_wbs = WishboneSlaveGenerator(imem_s, im_flagbusy, im_flagerr, im_flagwait).gen_wbs()  # NOQA for unused variable
-    dmem_wbs = WishboneSlaveGenerator(dmem_s, dm_flagbusy, dm_flagerr, dm_flagwait).gen_wbs()  # NOQA for unused variable
+    imem_wbs = WishboneSlaveGenerator(clka_i, rsta_i, imem_s, im_flagbusy, im_flagerr, im_flagwait).gen_wbs()  # NOQA for unused variable
+    dmem_wbs = WishboneSlaveGenerator(clkb_i, rstb_i, dmem_s, dm_flagbusy, dm_flagerr, dm_flagwait).gen_wbs()  # NOQA for unused variable
 
     LoadMemory(SIZE, HEX, bytes_x_line, _memory)
 
@@ -104,9 +108,9 @@ def Memory(imem,
     imem_state = Signal(mem_states_t.IDLE)
     dmem_state = Signal(mem_states_t.IDLE)
 
-    @always(imem_s.clk_i.posedge)
+    @always(clka_i.posedge)
     def imem_fsm():
-        if imem_s.rst_i:
+        if rsta_i:
             imem_state.next = mem_states_t.IDLE
         else:
             if imem_state.next == mem_states_t.IDLE:
@@ -117,9 +121,9 @@ def Memory(imem,
             elif imem_state.next == mem_states_t.ACK:
                 imem_state.next = mem_states_t.IDLE
 
-    @always(imem_s.clk_i.posedge)
+    @always(clkb_i.posedge)
     def dmem_fsm():
-        if dmem_s.rst_i:
+        if rstb_i:
             dmem_state.next = mem_states_t.IDLE
         else:
             if dmem_state.next == mem_states_t.IDLE:
@@ -159,7 +163,7 @@ def Memory(imem,
         _imem_addr.next = imem_s.addr_i[aw:2]
         _dmem_addr.next = dmem_s.addr_i[aw:2]
 
-    @always(imem_s.clk_i.posedge)
+    @always(clka_i.posedge)
     def imem_rtl():
         i_data_o.next = _memory[_imem_addr]
 
@@ -172,7 +176,7 @@ def Memory(imem,
                                               data[16:8] if we[1] else _memory[_imem_addr][16:8],
                                               data[8:0] if we[0] else _memory[_imem_addr][8:0])
 
-    @always(dmem_s.clk_i.posedge)
+    @always(clkb_i.posedge)
     def dmem_rtl():
         d_data_o.next = _memory[_dmem_addr]
 

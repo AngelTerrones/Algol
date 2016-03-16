@@ -24,12 +24,15 @@ from Core.wishbone import WishboneMaster
 from Core.wishbone import WishboneIntercon
 from myhdl import always
 from myhdl import delay
+from myhdl import Signal
 
 
 class RamBus:
     def __init__(self, memory_size):
         ns                 = memory_size  # in words
         self.depth         = ns
+        self.clka          = Signal(False)
+        self.clkb          = Signal(False)
         self.imem_intercon = WishboneIntercon()
         self.dmem_intercon = WishboneIntercon()
         self.imem          = WishboneMaster(self.imem_intercon)
@@ -40,13 +43,13 @@ class RamBus:
     def gen_clocks(self):
         @always(delay(5))
         def rambusclk():
-            self.imem_intercon.clk.next = not self.imem_intercon.clk
-            self.dmem_intercon.clk.next = not self.dmem_intercon.clk
+            self.clka.next = not self.clka
+            self.clkb.next = not self.clkb
 
         return rambusclk
 
     def write(self, addr, data):
-        yield self.dmem.clk_i.posedge
+        yield self.clkb.posedge
         self.dmem.addr_o.next      = addr
         self.dmem.dat_o.next       = data
         self.dmem.sel_o.next       = 0b1111
@@ -61,14 +64,14 @@ class RamBus:
         yield delay(1)
         while not self.dmem.ack_i:
             yield self.dmem.ack_i.posedge
-            yield self.dmem.clk_i.negedge
-        yield self.dmem.clk_i.posedge
+            yield self.clkb.negedge
+        yield self.clkb.posedge
         self.dmem.we_o.next        = Consts.M_RD
         self.dmem.cyc_o.next       = False
         self.dmem.stb_o.next       = False
 
     def read(self, addr):
-        yield self.dmem.clk_i.posedge
+        yield self.clkb.posedge
         self.dmem.addr_o.next = addr
         self.dmem.sel_o.next  = 0b0000
         self.dmem.we_o.next   = Consts.M_RD
@@ -81,8 +84,8 @@ class RamBus:
         yield delay(1)
         while not self.dmem.ack_i:
             yield self.dmem.ack_i.posedge
-            yield self.dmem.clk_i.negedge
-        yield self.dmem.clk_i.posedge
+            yield self.clkb.negedge
+        yield self.clkb.posedge
         self.dmem.cyc_o.next  = False
         self.dmem.stb_o.next  = False
 

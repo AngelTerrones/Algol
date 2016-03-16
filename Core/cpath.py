@@ -841,11 +841,11 @@ def Ctrlpath(clk,
     im_flagread  = Signal(False)
     im_flagwrite = Signal(False)
     im_flagrmw   = Signal(False)
-    imem_wbm     = WishboneMasterGenerator(imem_m, im_flagread, im_flagwrite, im_flagrmw).gen_wbm()  # NOQA for unused variable
+    imem_wbm     = WishboneMasterGenerator(clk, rst, imem_m, im_flagread, im_flagwrite, im_flagrmw).gen_wbm()  # NOQA for unused variable
     dm_flagread  = Signal(False)
     dm_flagwrite = Signal(False)
     dm_flagrmw   = Signal(False)
-    dmem_wbm     = WishboneMasterGenerator(dmem_m, dm_flagread, dm_flagwrite, dm_flagrmw).gen_wbm()  # NOQA for unused variable
+    dmem_wbm     = WishboneMasterGenerator(clk, rst, dmem_m, dm_flagread, dm_flagwrite, dm_flagrmw).gen_wbm()  # NOQA for unused variable
 
     @always_comb
     def iwbm_trigger():
