@@ -43,6 +43,7 @@ BYTES_X_LINE  = 16
 
 def _testbench():
     rb = RamBus(memory_size=MEM_SIZE >> 2)
+    cpu = WishboneIntercon()
     dmem = WishboneIntercon()
     invalidate = Signal(False)
     dut = ICache(clk_i=rb.clkb,               # noqa
@@ -79,18 +80,21 @@ def _testbench():
         yield delay(100000)
         raise Error("Test failed: Timeout")
 
-    # @always_comb
-    # def port_assign():
-    #     # This assignments are for the purpose of being able to watch this
-    #     # signal GTKWave.
-    #     cpu.addr.next      = rb.dmem.addr
-    #     cpu.wdata.next     = rb.dmem.wdata
-    #     cpu.wr.next        = rb.dmem.wr
-    #     cpu.fcn.next       = rb.dmem.fcn
-    #     cpu.valid.next     = rb.dmem.valid
-    #     rb.dmem.rdata.next = cpu.rdata
-    #     rb.dmem.ready.next = cpu.ready
-    #     rb.dmem.fault.next = cpu.fault
+    @always_comb
+    def port_assign():
+        # This assignments are for the purpose of being able to watch this
+        # signal GTKWave.
+        cpu.addr.next  = rb.dmem_intercon.addr
+        cpu.dat_o.next = rb.dmem_intercon.dat_o
+        cpu.dat_i.next = rb.dmem_intercon.dat_i
+        cpu.sel.next   = rb.dmem_intercon.sel
+        cpu.cti.next   = rb.dmem_intercon.cti
+        cpu.cyc.next   = rb.dmem_intercon.cyc
+        cpu.we.next    = rb.dmem_intercon.we
+        cpu.stb.next   = rb.dmem_intercon.stb
+        cpu.stall.next = rb.dmem_intercon.stall
+        cpu.ack.next   = rb.dmem_intercon.ack
+        cpu.err.next   = rb.dmem_intercon.err
 
     @instance
     def stimulus():
