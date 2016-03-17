@@ -378,24 +378,12 @@ def ICache(clk_i,
     wbm_mem = WishboneMasterGenerator(clk_i, rst_i, mem_wbm, mem_read, mem_write, mem_rmw).gen_wbm()  # noqa
 
     # Instantiate memory
-    tag_mem = RAM_DP(tag_rw_port,                           # noqa
-                     tag_flush_port,
-                     A_WIDTH=SET_WIDTH,
-                     D_WIDTH=TAGMEM_WIDTH)
+    tag_mem = RAM_DP(tag_rw_port, tag_flush_port, A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)  # noqa
 
     # instantiate main memory (cache)
-    cache_mem = [RAM_DP(cache_read_port[i],                 # noqa
-                        cache_update_port[i],
-                        A_WIDTH=WAY_WIDTH - 2,
-                        D_WIDTH=D_WIDTH)
-                 for i in range(0, WAYS)]
+    cache_mem = [RAM_DP(cache_read_port[i], cache_update_port[i], A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for i in range(0, WAYS)]  # noqa
 
-    lru_m = CacheLRU(current_lru,                           # noqa
-                     access_lru,
-                     update_lru,
-                     lru_pre,
-                     lru_post,
-                     NUMWAYS=WAYS)
+    lru_m = CacheLRU(current_lru, access_lru, update_lru, lru_pre, lru_post, NUMWAYS=WAYS)  # noqa
 
     return instances()
 
