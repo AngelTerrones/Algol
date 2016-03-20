@@ -53,7 +53,6 @@ def ICache(clk_i,
     :param invalidate:  Enable flush cache
     :param cpu:         CPU interface (Wishbone Interconnect to master port)
     :param mem:         Memory interface (Wishbone Interconnect to slave port)
-    :param ENABLE:      Enable generation of this module
     :param D_WIDTH:     Data width
     :param BLOCK_WIDTH: Address width for byte access inside a block line
     :param SET_WIDTH:   Address width for line access inside a block

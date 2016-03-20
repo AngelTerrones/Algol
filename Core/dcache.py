@@ -40,7 +40,6 @@ def DCache(clk_i,
            cpu,
            mem,
            invalidate,
-           ENABLE=True,
            D_WIDTH=32,
            BLOCK_WIDTH=5,
            SET_WIDTH=9,
@@ -54,7 +53,6 @@ def DCache(clk_i,
     :param req_flush:   Invalidate the cache
     :param cpu:         CPU interface
     :param mem:         Memory interface
-    :param ENABLE:      Enable generation of this module
     :param D_WIDTH:     Data width
     :param BLOCK_WIDTH: Address width for byte access inside a block line
     :param SET_WIDTH:   Address width for line access inside a block
