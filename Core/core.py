@@ -20,17 +20,26 @@
 # THE SOFTWARE.
 
 from myhdl import always_comb
+from myhdl import Signal
 from Core.dpath import Datapath
 from Core.cpath import Ctrlpath
 from Core.cpath import CtrlIO
 from Core.wishbone import WishboneIntercon
+from Core.icache import ICache
+from Core.dcache import DCache
 
 
 def Core(clk,
          rst,
          imem,
          dmem,
-         toHost):
+         toHost,
+         IC_BLOCK_WIDTH=4,
+         IC_SET_WIDTH=10,
+         IC_NUM_WAYS=2,
+         DC_BLOCK_WIDTH=4,
+         DC_SET_WIDTH=10,
+         DC_NUM_WAYS=2):
     """
     Core top module.
     This module use interfaces, for use in an integrated SoC.
@@ -41,7 +50,11 @@ def Core(clk,
     :paran dmem:   Data memory port (Wishbone master)
     :param toHost: CSR's mtohost register. For simulation purposes.
     """
-    ctrl_dpath = CtrlIO()
+    ctrl_dpath   = CtrlIO()
+    icache_flush = Signal(False)
+    dcache_flush = Signal(False)
+    cpu_intercon = WishboneIntercon()
+    mem_intercon = WishboneIntercon()
 
     dpath = Datapath(clk,
                      rst,
@@ -50,10 +63,32 @@ def Core(clk,
     cpath = Ctrlpath(clk,
                      rst,
                      ctrl_dpath,
-                     imem,
-                     dmem)
+                     icache_flush,
+                     dcache_flush,
+                     cpu_intercon,
+                     mem_intercon)
+    icache = ICache(clk_i=clk,
+                    rst_i=rst,
+                    cpu=cpu_intercon,
+                    mem=imem,
+                    invalidate=icache_flush,
+                    D_WIDTH=32,
+                    BLOCK_WIDTH=IC_BLOCK_WIDTH,
+                    SET_WIDTH=IC_SET_WIDTH,
+                    WAYS=IC_NUM_WAYS,
+                    LIMIT_WIDTH=32)
+    dcache = DCache(clk_i=clk,
+                    rst_i=rst,
+                    cpu=mem_intercon,
+                    mem=dmem,
+                    invalidate=dcache_flush,
+                    D_WIDTH=32,
+                    BLOCK_WIDTH=DC_BLOCK_WIDTH,
+                    SET_WIDTH=DC_SET_WIDTH,
+                    WAYS=DC_NUM_WAYS,
+                    LIMIT_WIDTH=32)
 
-    return dpath, cpath
+    return dpath, cpath, icache, dcache
 
 
 def CoreHDL(clk,
