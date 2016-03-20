@@ -242,16 +242,20 @@ class MemDpathIO:
 def Ctrlpath(clk,
              rst,
              io,
+             icache_flush,
+             dcache_flush,
              imem,
              dmem):
     """
     The decoder, exception, hazard detection, and control unit.
 
-    :param clk:  Main clock
-    :param rst:  Main reset
-    :param io:   Interface with dapath
-    :param imem: Wishbone master (instruction port)
-    :param dmem: Wishbone master (data port)
+    :param clk:          Main clock
+    :param rst:          Main reset
+    :param io:           Interface with dapath
+    :param icache_flush: Flush the I$
+    :param dcache_flush: Flush the D$
+    :param imem:         Wishbone master (instruction port)
+    :param dmem:         Wishbone master (data port)
     """
     imem_m = WishboneMaster(imem)
     dmem_m = WishboneMaster(dmem)
@@ -547,6 +551,11 @@ def Ctrlpath(clk,
                                  io.dmem_pipeline.fcn == Consts.M_WR and
                                  mem_misalign)
         mem_st_fault.next     = dmem_m.err_i
+
+    @always_comb
+    def flush_assign():
+        icache_flush.next = id_fence_i
+        dcache_flush.next = False
 
     @always(clk.posedge)
     def _ifid_register():
