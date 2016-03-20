@@ -96,6 +96,7 @@ def DCache(clk_i,
     cache_update_port = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
     data_cache        = [cache_read_port[i].data_o for i in range(0, WAYS)]
     data_cache2       = [cache_update_port[i].data_o for i in range(0, WAYS)]
+    tag_entry         = Signal(modbv(0)[TAG_WIDTH:])
 
     # tag in/out signals: For data assignment
     tag_in            = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
@@ -229,6 +230,12 @@ def DCache(clk_i,
         use_cache.next    = not cpu_wbs.addr_i[31]  # Address < 0x8000_0000 use the cache
 
     @always_comb
+    def tag_entry_assign():
+        for i in range(0, WAYS):
+            if lru_select[i]:
+                tag_entry.next = tag_out[i][TAG_WIDTH:]
+
+    @always_comb
     def done_fetch_evict_assign():
         fetch.next = state == dc_states.FETCH and not final_access
         evict.next = (state == dc_states.EVICTING or state == dc_states.FLUSH3) and not final_access
@@ -344,8 +351,13 @@ def DCache(clk_i,
             dc_update_addr.next  = 0
         else:
             if state == dc_states.READ or state == dc_states.WRITE:
-                if miss:
+                if miss and not dirty:
                     dc_update_addr.next = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH:])
+                elif miss and dirty:
+                    dc_update_addr.next = concat(tag_entry, cpu_wbs.addr_i[WAY_WIDTH:2], modbv(0)[2:])
+            elif state == dc_states.FLUSH2:
+                if dirty:
+                    dc_update_addr.next = concat(tag_entry, modbv(0)[BLOCK_WIDTH:])
             elif state == dc_states.EVICTING or state == dc_states.FETCH or state == dc_states.FLUSH3:
                 if final_access:
                     dc_update_addr.next = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH:])
