@@ -387,7 +387,7 @@ def DCache(clk_i,
 
     @always_comb
     def evict_data_assign():
-        tmp = 0x12345678
+        tmp = 0x87654321
         for i in range(0, WAYS):
             if lru_select[i]:
                 tmp = data_cache2[i]
