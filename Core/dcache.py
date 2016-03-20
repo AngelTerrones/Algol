@@ -408,7 +408,7 @@ def DCache(clk_i,
             cache_read_port[i].clk.next    = clk_i
             cache_read_port[i].addr.next   = cpu_wbs.addr_i[WAY_WIDTH:2]
             cache_read_port[i].data_i.next = cpu_wbs.dat_i
-            cache_read_port[i].we.next     = not miss_w[i] and not cpu_wbs.ack_o and cpu_wbs.we_i  # TODO: check for not ACK or ACK?
+            cache_read_port[i].we.next     = state == dc_states.WRITE and not miss_w[i] and cpu_wbs.ack_o and cpu_wbs.we_i  # TODO: check for not ACK or ACK?
 
     @always_comb
     def cache_mem_update():
@@ -417,7 +417,7 @@ def DCache(clk_i,
             cache_update_port[i].clk.next    = clk_i
             cache_update_port[i].addr.next   = dc_update_addr[WAY_WIDTH:2]
             cache_update_port[i].data_i.next = mem_wbm.dat_i
-            cache_update_port[i].we.next     = lru_select[i] and mem_wbm.ack_i
+            cache_update_port[i].we.next     = lru_select[i] and mem_wbm.ack_i and state == dc_states.FETCH
 
     @always_comb
     def wbs_cpu_flags():
