@@ -95,6 +95,7 @@ def DCache(clk_i,
     cache_read_port   = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
     cache_update_port = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
     data_cache        = [cache_read_port[i].data_o for i in range(0, WAYS)]
+    data_cache2       = [cache_update_port[i].data_o for i in range(0, WAYS)]
 
     # tag in/out signals: For data assignment
     tag_in            = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
@@ -377,7 +378,7 @@ def DCache(clk_i,
         tmp = 0x12345678
         for i in range(0, WAYS):
             if lru_select[i]:
-                tmp = cache_update_port[i].data_o
+                tmp = data_cache2[i]
         evict_data.next = tmp
 
     @always_comb
