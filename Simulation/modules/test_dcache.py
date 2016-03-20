@@ -77,7 +77,7 @@ def _testbench():
     @instance
     def timeout():
         # Avoid waiting until armageddon
-        yield delay(100000)
+        yield delay(1000000)
         raise Error("Test failed: Timeout")
 
     @always_comb
@@ -98,9 +98,6 @@ def _testbench():
 
     @instance
     def stimulus():
-        # rb.rst.next = True
-        # yield delay(10)
-        # rb.rst.next = False
         # Read data from memory: first round
         for addr in range(rb.depth >> 5):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
@@ -108,18 +105,31 @@ def _testbench():
             assert rb.dmem.dat_i == data, "Data loading (1): Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
                                                                                                                  hex(rb.dmem.dat_i),
                                                                                                                  data)
+        # Test invalidate
         invalidate.next = True
         yield delay(10)
         invalidate.next = False
-        # Read data from memory: second round.
-        # This time, depending in the cache configuration, should
-        # make each access a hit (big cache)
         for addr in range(rb.depth >> 5):  # Address in words
             yield rb.read(addr << 2)  # Address in bytes
             data = int(lines[addr], 16)
             assert rb.dmem.dat_i == data, "Data loading (2): Data mismatch! Addr = {0:#x}: {1} != {2:#x}".format(addr << 2,
                                                                                                                  hex(rb.dmem.dat_i),
                                                                                                                  data)
+        # Write the cache: mem[addr] = addr
+        for addr in range(rb.depth >> 4):
+            yield rb.write(addr << 2, addr)
+
+        for addr in range(rb.depth >> 4):
+            yield rb.read(addr << 2)
+            assert rb.dmem.dat_i == rb.mirror_mem[addr], "R/W: Data mismatch! Addr = {0:#x}".format(addr << 2)
+
+        # Read uncached area
+        for addr in range(rb.depth >> 4):
+            yield rb.read((addr << 2) | 0x80000000)
+            assert rb.dmem.dat_i == rb.mirror_mem[addr], "R/W: Data mismatch! Addr = {0:#x}".format(addr << 2)
+
+        # TODO: Test write uncached area
+
         raise StopSimulation
 
     return instances()
