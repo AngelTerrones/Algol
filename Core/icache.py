@@ -77,7 +77,11 @@ def ICache(clk_i,
     # Size of tag memory
     TAGMEM_WIDTH         = (TAGMEM_WAY_WIDTH * WAYS) + TAG_LRU_WIDTH  # width of one tag line.
     # --------------------------------------------------------------------------
-    ic_states = enum('CHECK', 'FETCH', 'WAIT', 'FLUSH', 'FLUSH_LAST', encoding='one_hot')
+    ic_states = enum('IDLE',
+                     'READ',
+                     'FETCH',
+                     'FLUSH',
+                     'FLUSH_LAST', encoding='one_hot')
 
     cpu_wbs = WishboneSlave(cpu)
     mem_wbm = WishboneMaster(mem)
@@ -94,8 +98,8 @@ def ICache(clk_i,
     cache_update_port = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
     data_cache        = [cache_read_port[i].data_o for i in range(0, WAYS)]
 
-    state             = Signal(ic_states.CHECK)
-    n_state           = Signal(ic_states.CHECK)
+    state             = Signal(ic_states.IDLE)
+    n_state           = Signal(ic_states.IDLE)
 
     busy              = Signal(False)
 
@@ -126,14 +130,10 @@ def ICache(clk_i,
     n_refill_valid    = Signal(False)
 
     # flush signals
-    flush             = Signal(False)
     flush_addr        = Signal(modbv(0)[SET_WIDTH:])
     flush_we          = Signal(False)
     n_flush_addr      = Signal(modbv(0)[SET_WIDTH:])
     n_flush_we        = Signal(False)
-    n_flush           = Signal(False)
-
-    valid_q           = Signal(False)
 
     @always_comb
     def assignments():
@@ -141,15 +141,8 @@ def ICache(clk_i,
         lru_select.next         = lru_pre
         current_lru.next        = lru_out
         access_lru.next         = ~miss_w
-        busy.next               = state != ic_states.CHECK
+        busy.next               = state != ic_states.IDLE
         final_flush.next        = flush_addr == 0
-
-    @always(clk_i.posedge)
-    def reg_read():
-        if rst_i:
-            valid_q.next = False
-        else:
-            valid_q.next = cpu_wbs.cyc_i and cpu_wbs.stb_i
 
     @always_comb
     def miss_check():
@@ -175,7 +168,7 @@ def ICache(clk_i,
     @always_comb
     def miss_check_3():
         valid_read = cpu_wbs.cyc_i and cpu_wbs.stb_i and not cpu_wbs.we_i
-        miss.next  = miss_w_and and valid_read and not flush and not invalidate
+        miss.next  = miss_w_and and valid_read and not invalidate
 
     @always_comb
     def tag_rport():
@@ -195,20 +188,23 @@ def ICache(clk_i,
     @always_comb
     def next_state_logic():
         n_state.next = state
-        if state == ic_states.CHECK:
-            if flush or invalidate:
+        if state == ic_states.IDLE:
+            if invalidate:
                 # cache flush
                 n_state.next = ic_states.FLUSH
-            elif miss:
+            elif cpu_wbs.cyc_i and not cpu_wbs.we_i:
                 # miss: refill line
-                n_state.next = ic_states.FETCH
+                n_state.next = ic_states.READ
+        elif state == ic_states.READ:
+            if not miss:
+                # miss: refill line
+                n_state.next = ic_states.IDLE
             else:
-                # Hit or read request
-                n_state.next = ic_states.CHECK
+                n_state.next = ic_states.FETCH
         elif state == ic_states.FETCH:
             # fetch a line from memory
             if final_fetch:
-                n_state.next = ic_states.WAIT
+                n_state.next = ic_states.IDLE
         elif state == ic_states.FLUSH:
             # invalidate tag memory
             if final_flush:
@@ -217,9 +213,7 @@ def ICache(clk_i,
                 n_state.next = ic_states.FLUSH
         elif state == ic_states.FLUSH_LAST:
             # last cycle for flush
-            n_state.next = ic_states.WAIT
-        elif state == ic_states.WAIT:
-            n_state.next = ic_states.CHECK
+            n_state.next = ic_states.IDLE
 
     @always(clk_i.posedge)
     def update_state():
@@ -233,10 +227,11 @@ def ICache(clk_i,
         n_refill_addr.next  = refill_addr
         n_refill_valid.next = False  # refill_valid
 
-        if state == ic_states.CHECK:
-            if flush or invalidate:
+        if state == ic_states.IDLE:
+            if invalidate:
                 n_refill_valid.next = False
-            elif miss:
+        elif state == ic_states.READ:
+            if miss:
                 n_refill_addr.next  = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH:])
                 n_refill_valid.next = True  # not mem_wbm.ready?
         elif state == ic_states.FETCH:
@@ -270,9 +265,10 @@ def ICache(clk_i,
         tag_we.next = False
         lru_in.next = lru_out
 
-        if state == ic_states.CHECK:
-            if flush or invalidate:
+        if state == ic_states.IDLE:
+            if invalidate:
                 tag_we.next = False
+        elif state == ic_states.READ:
             if miss:
                 for i in range(0, WAYS):
                     if lru_select[i]:
@@ -286,11 +282,9 @@ def ICache(clk_i,
     def flush_next_state():
         n_flush_we.next   = False
         n_flush_addr.next = flush_addr
-        n_flush.next      = flush
 
-        if state == ic_states.CHECK:
-            if flush or invalidate:
-                n_flush.next      = False
+        if state == ic_states.IDLE:
+            if invalidate:
                 n_flush_addr.next = modbv(-1)[SET_WIDTH:]
                 n_flush_we.next   = True
         elif state == ic_states.FLUSH:
@@ -298,19 +292,15 @@ def ICache(clk_i,
             n_flush_we.next   = True
         elif state == ic_states.FLUSH_LAST:
             n_flush_we.next = False
-        else:
-            n_flush.next = invalidate
 
     @always(clk_i.posedge)
     def update_flush():
         if rst_i:
             flush_addr.next = modbv(-1)[SET_WIDTH:]
             flush_we.next   = False
-            flush.next      = False
         else:
             flush_addr.next = n_flush_addr
             flush_we.next   = n_flush_we
-            flush.next      = n_flush
 
     @always_comb
     def tag_port_assign():
@@ -363,7 +353,7 @@ def ICache(clk_i,
     @always_comb
     def wbs_cpu_flags():
         cpu_err.next  = mem_wbm.err_i
-        cpu_wait.next = miss_w_and or not valid_q or busy
+        cpu_wait.next = miss_w_and or state != ic_states.READ
         cpu_busy.next = busy
 
     @always_comb
