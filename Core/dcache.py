@@ -74,8 +74,6 @@ def DCache(clk_i,
     TAGMEM_WAY_DIRTY     = TAGMEM_WAY_WIDTH - 1  # Dirty bit index
     # calculate the needed LRU bits (from mor1kx_icache.v)
     TAG_LRU_WIDTH        = (WAYS * (WAYS - 1)) >> 1  # (N*(N-1))/2
-    # Size of tag memory
-    TAGMEM_WIDTH         = (TAGMEM_WAY_WIDTH * WAYS) + TAG_LRU_WIDTH  # width of one tag line.
     # --------------------------------------------------------------------------
     dc_states = enum('IDLE',
                      'SINGLE',
@@ -85,11 +83,12 @@ def DCache(clk_i,
                      'EVICTING',
                      'FLUSH1',
                      'FLUSH2',
-                     'FLUSH3',
-                     encoding='binary')
+                     'FLUSH3')
     # ports to memory
-    tag_rw_port       = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)
-    tag_flush_port    = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)
+    tag_rw_port        = [RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]
+    tag_flush_port     = [RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]
+    tag_lru_rw_port    = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)
+    tag_lru_flush_port = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)
     cache_read_port   = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
     cache_update_port = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
     data_cache        = [cache_read_port[i].data_o for i in range(0, WAYS)]
@@ -271,20 +270,26 @@ def DCache(clk_i,
                 valid.next = tag_out[i][TAGMEM_WAY_VALID]
                 dirty.next = tag_out[i][TAGMEM_WAY_DIRTY]
 
+    trwp_clk    = [tag_rw_port[i].clk for i in range(WAYS)]
+    trwp_addr   = [tag_rw_port[i].addr for i in range(WAYS)]
+    trwp_data_i = [tag_rw_port[i].data_i for i in range(WAYS)]
+    trwp_data_o = [tag_rw_port[i].data_o for i in range(WAYS)]
+    trwp_we     = [tag_rw_port[i].we for i in range(WAYS)]
+
     @always_comb
     def tag_rport():
-        temp = modbv(0)[TAGMEM_WIDTH:]
-        # for each way, assign tags
-        for i in range(0, WAYS):
-            tag_out[i].next = tag_rw_port.data_o[TAGMEM_WAY_WIDTH * (i + 1):TAGMEM_WAY_WIDTH * i]
-            temp[TAGMEM_WAY_WIDTH * (i + 1):TAGMEM_WAY_WIDTH * i] = tag_in[i]
-
-        temp[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)] = lru_in
-        lru_out.next                                 = tag_rw_port.data_o[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)]
-        tag_rw_port.clk.next                         = clk_i
-        tag_rw_port.data_i.next                      = temp
-        tag_rw_port.addr.next                        = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
-        tag_rw_port.we.next                          = tag_we
+        for i in range(WAYS):
+            trwp_clk[i].next    = clk_i
+            trwp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
+            trwp_data_i[i].next = tag_in[i]
+            trwp_we[i].next     = tag_we
+            tag_out[i].next     = trwp_data_o[i]
+        # LRU memory
+        tag_lru_rw_port.clk.next    = clk_i
+        tag_lru_rw_port.data_i.next = lru_in
+        lru_out.next                = tag_lru_rw_port.data_o
+        tag_lru_rw_port.addr.next   = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
+        tag_lru_rw_port.we.next     = tag_we
 
     @always_comb
     def tag_write():
@@ -356,12 +361,23 @@ def DCache(clk_i,
             else:
                 dc_update_addr.next = 0
 
+    tfp_clk    = [tag_flush_port[i].clk for i in range(WAYS)]
+    tfp_addr   = [tag_flush_port[i].addr for i in range(WAYS)]
+    tfp_data_i = [tag_flush_port[i].data_i for i in range(WAYS)]
+    tfp_we     = [tag_flush_port[i].we for i in range(WAYS)]
+
     @always_comb
     def tag_port_assign():
-        tag_flush_port.clk.next    = clk_i
-        tag_flush_port.addr.next   = flush_addr
-        tag_flush_port.data_i.next = modbv(0)[TAGMEM_WAY_WIDTH:]
-        tag_flush_port.we.next     = flush_we
+        for i in range(WAYS):
+            tfp_clk[i].next    = clk_i
+            tfp_addr[i].next   = flush_addr
+            tfp_data_i[i].next = modbv(0)[TAGMEM_WAY_WIDTH:]
+            tfp_we[i].next     = flush_we
+        # connect to the LRU memory
+        tag_lru_flush_port.clk.next    = clk_i
+        tag_lru_flush_port.addr.next   = flush_addr
+        tag_lru_flush_port.data_i.next = modbv(0)[TAG_LRU_WIDTH:]
+        tag_lru_flush_port.we.next     = flush_we
 
     @always_comb
     def cpu_data_assign():
@@ -436,7 +452,8 @@ def DCache(clk_i,
     wbm_mem = WishboneMasterGenerator(clk_i, rst_i, mem_wbm, mem_read, mem_write, mem_rmw).gen_wbm()  # noqa
 
     # Instantiate tag memory
-    tag_mem = RAM_DP(tag_rw_port, tag_flush_port, A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)  # noqa
+    tag_mem = [RAM_DP(tag_rw_port[i], tag_flush_port[i], A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]  # noqa
+    tag_lru = RAM_DP(tag_lru_rw_port, tag_lru_flush_port, A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)  # noqa
 
     # Instantiate main memory (Cache)
     cache_mem = [RAM_DP(cache_read_port[i], cache_update_port[i], A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for i in range(0, WAYS)]  # noqa

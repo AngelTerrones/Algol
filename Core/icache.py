@@ -73,67 +73,66 @@ def ICache(clk_i,
     TAGMEM_WAY_VALID     = TAGMEM_WAY_WIDTH - 1  # Valid bit index
     # calculate the needed LRU bits (from mor1kx_icache.v)
     TAG_LRU_WIDTH        = (WAYS * (WAYS - 1)) >> 1  # (N*(N-1))/2
-    # TAG_LRU_WIDTH_BITS = TAG_LRU_WIDTH if WAYS >= 2 else 1
-    # Size of tag memory
-    TAGMEM_WIDTH         = (TAGMEM_WAY_WIDTH * WAYS) + TAG_LRU_WIDTH  # width of one tag line.
     # --------------------------------------------------------------------------
     ic_states = enum('IDLE',
                      'READ',
                      'FETCH',
                      'FLUSH',
-                     'FLUSH_LAST', encoding='one_hot')
+                     'FLUSH_LAST')
 
-    cpu_wbs = WishboneSlave(cpu)
-    mem_wbm = WishboneMaster(mem)
-    cpu_busy  = Signal(False)
-    cpu_err   = Signal(False)
-    cpu_wait  = Signal(False)
-    mem_read  = Signal(False)
-    mem_write = Signal(False)
-    mem_rmw   = Signal(False)
+    cpu_wbs            = WishboneSlave(cpu)
+    mem_wbm            = WishboneMaster(mem)
+    cpu_busy           = Signal(False)
+    cpu_err            = Signal(False)
+    cpu_wait           = Signal(False)
+    mem_read           = Signal(False)
+    mem_write          = Signal(False)
+    mem_rmw            = Signal(False)
 
-    tag_rw_port       = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)
-    tag_flush_port    = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)
-    cache_read_port   = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
-    cache_update_port = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
-    data_cache        = [cache_read_port[i].data_o for i in range(0, WAYS)]
+    tag_rw_port        = [RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]
+    tag_flush_port     = [RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]
+    tag_lru_rw_port    = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)
+    tag_lru_flush_port = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)
+    cache_read_port    = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
+    cache_update_port  = [RAMIOPort(A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for _ in range(0, WAYS)]
+    data_cache         = [cache_read_port[i].data_o for i in range(0, WAYS)]
 
-    state             = Signal(ic_states.IDLE)
-    n_state           = Signal(ic_states.IDLE)
+    state              = Signal(ic_states.IDLE)
+    n_state            = Signal(ic_states.IDLE)
 
-    busy              = Signal(False)
+    busy               = Signal(False)
 
-    miss              = Signal(False)
-    miss_w            = Signal(modbv(0)[WAYS:])
-    miss_w_and        = Signal(False)
-    final_fetch       = Signal(False)
-    final_flush       = Signal(False)
+    miss               = Signal(False)
+    miss_w             = Signal(modbv(0)[WAYS:])
+    miss_w_and         = Signal(False)
+    final_fetch        = Signal(False)
+    final_flush        = Signal(False)
 
-    lru_select        = Signal(modbv(0)[WAYS:])
-    current_lru       = Signal(modbv(0)[TAG_LRU_WIDTH:])
-    update_lru        = Signal(modbv(0)[TAG_LRU_WIDTH:])
-    access_lru        = Signal(modbv(0)[WAYS:])
-    lru_pre           = Signal(modbv(0)[WAYS:])
-    lru_post          = Signal(modbv(0)[WAYS:])
+    lru_select         = Signal(modbv(0)[WAYS:])
+    current_lru        = Signal(modbv(0)[TAG_LRU_WIDTH:])
+    update_lru         = Signal(modbv(0)[TAG_LRU_WIDTH:])
+    access_lru         = Signal(modbv(0)[WAYS:])
+    lru_pre            = Signal(modbv(0)[WAYS:])
+    lru_post           = Signal(modbv(0)[WAYS:])
 
     # tag in/out signals: For data assignment
-    tag_in            = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
-    tag_out           = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
-    lru_in            = Signal(modbv(0)[TAG_LRU_WIDTH:])
-    lru_out           = Signal(modbv(0)[TAG_LRU_WIDTH:])
-    tag_we            = Signal(False)
+    tag_in             = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
+    tag_out            = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
+    lru_in             = Signal(modbv(0)[TAG_LRU_WIDTH:])
+    lru_out            = Signal(modbv(0)[TAG_LRU_WIDTH:])
+    tag_we             = Signal(False)
 
     # refill signals
-    refill_addr       = Signal(modbv(0)[LIMIT_WIDTH:])
-    refill_valid      = Signal(False)
-    n_refill_addr     = Signal(modbv(0)[LIMIT_WIDTH:])
-    n_refill_valid    = Signal(False)
+    refill_addr        = Signal(modbv(0)[LIMIT_WIDTH:])
+    refill_valid       = Signal(False)
+    n_refill_addr      = Signal(modbv(0)[LIMIT_WIDTH:])
+    n_refill_valid     = Signal(False)
 
     # flush signals
-    flush_addr        = Signal(modbv(0)[SET_WIDTH:])
-    flush_we          = Signal(False)
-    n_flush_addr      = Signal(modbv(0)[SET_WIDTH:])
-    n_flush_we        = Signal(False)
+    flush_addr         = Signal(modbv(0)[SET_WIDTH:])
+    flush_we           = Signal(False)
+    n_flush_addr       = Signal(modbv(0)[SET_WIDTH:])
+    n_flush_we         = Signal(False)
 
     @always_comb
     def assignments():
@@ -170,20 +169,26 @@ def ICache(clk_i,
         valid_read = cpu_wbs.cyc_i and cpu_wbs.stb_i and not cpu_wbs.we_i
         miss.next  = miss_w_and and valid_read and not invalidate
 
+    trwp_clk    = [tag_rw_port[i].clk for i in range(WAYS)]
+    trwp_addr   = [tag_rw_port[i].addr for i in range(WAYS)]
+    trwp_data_i = [tag_rw_port[i].data_i for i in range(WAYS)]
+    trwp_data_o = [tag_rw_port[i].data_o for i in range(WAYS)]
+    trwp_we     = [tag_rw_port[i].we for i in range(WAYS)]
+
     @always_comb
     def tag_rport():
-        temp = modbv(0)[TAGMEM_WIDTH:]
-        # for each way, assign tags
-        for i in range(0, WAYS):
-            tag_out[i].next = tag_rw_port.data_o[TAGMEM_WAY_WIDTH * (i + 1):TAGMEM_WAY_WIDTH * i]
-            temp[TAGMEM_WAY_WIDTH * (i + 1):TAGMEM_WAY_WIDTH * i] = tag_in[i]
-
-        temp[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)] = lru_in
-        lru_out.next                                 = tag_rw_port.data_o[TAGMEM_WIDTH:(TAGMEM_WAY_WIDTH * WAYS)]
-        tag_rw_port.clk.next                         = clk_i
-        tag_rw_port.data_i.next                      = temp
-        tag_rw_port.addr.next                        = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
-        tag_rw_port.we.next                          = tag_we
+        for i in range(WAYS):
+            trwp_clk[i].next    = clk_i
+            trwp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
+            trwp_data_i[i].next = tag_in[i]
+            trwp_we[i].next     = tag_we
+            tag_out[i].next     = trwp_data_o[i]
+        # LRU memory
+        tag_lru_rw_port.clk.next    = clk_i
+        tag_lru_rw_port.data_i.next = lru_in
+        lru_out.next                = tag_lru_rw_port.data_o
+        tag_lru_rw_port.addr.next   = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
+        tag_lru_rw_port.we.next     = tag_we
 
     @always_comb
     def next_state_logic():
@@ -302,12 +307,23 @@ def ICache(clk_i,
             flush_addr.next = n_flush_addr
             flush_we.next   = n_flush_we
 
+    tfp_clk    = [tag_flush_port[i].clk for i in range(WAYS)]
+    tfp_addr   = [tag_flush_port[i].addr for i in range(WAYS)]
+    tfp_data_i = [tag_flush_port[i].data_i for i in range(WAYS)]
+    tfp_we     = [tag_flush_port[i].we for i in range(WAYS)]
+
     @always_comb
     def tag_port_assign():
-        tag_flush_port.clk.next    = clk_i
-        tag_flush_port.addr.next   = flush_addr
-        tag_flush_port.data_i.next = modbv(0)[TAGMEM_WAY_WIDTH:]
-        tag_flush_port.we.next     = flush_we
+        for i in range(WAYS):
+            tfp_clk[i].next    = clk_i
+            tfp_addr[i].next   = flush_addr
+            tfp_data_i[i].next = modbv(0)[TAGMEM_WAY_WIDTH:]
+            tfp_we[i].next     = flush_we
+        # connect to the LRU memory
+        tag_lru_flush_port.clk.next    = clk_i
+        tag_lru_flush_port.addr.next   = flush_addr
+        tag_lru_flush_port.data_i.next = modbv(0)[TAG_LRU_WIDTH:]
+        tag_lru_flush_port.we.next     = flush_we
 
     @always_comb
     def cpu_data_assign():
@@ -315,9 +331,11 @@ def ICache(clk_i,
         Assignments to the cpu interface.
         """
         # cpu data_in assignment: instruction.
+        temp = data_cache[0]
         for i in range(0, WAYS):
             if not miss_w[i]:
-                cpu_wbs.dat_o.next = data_cache[i]
+                temp = data_cache[i]
+        cpu_wbs.dat_o.next = temp
 
     @always_comb
     def mem_port_assign():
@@ -374,8 +392,9 @@ def ICache(clk_i,
     wbs_cpu = WishboneSlaveGenerator(clk_i, rst_i, cpu_wbs, cpu_busy, cpu_err, cpu_wait).gen_wbs()  # noqa
     wbm_mem = WishboneMasterGenerator(clk_i, rst_i, mem_wbm, mem_read, mem_write, mem_rmw).gen_wbm()  # noqa
 
-    # Instantiate memory
-    tag_mem = RAM_DP(tag_rw_port, tag_flush_port, A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WIDTH)  # noqa
+    # Instantiate tag memory
+    tag_mem = [RAM_DP(tag_rw_port[i], tag_flush_port[i], A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]  # noqa
+    tag_lru = RAM_DP(tag_lru_rw_port, tag_lru_flush_port, A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)  # noqa
 
     # instantiate main memory (cache)
     cache_mem = [RAM_DP(cache_read_port[i], cache_update_port[i], A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for i in range(0, WAYS)]  # noqa
