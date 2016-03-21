@@ -130,7 +130,6 @@ def DCache(clk_i,
     valid             = Signal(False)
     dirty             = Signal(False)
     done              = Signal(False)
-    cpu_active        = Signal(False)
 
     final_flush       = Signal(False)
     final_access      = Signal(False)
@@ -238,13 +237,6 @@ def DCache(clk_i,
         fetch.next = state == dc_states.FETCH and not final_access
         evict.next = (state == dc_states.EVICTING or state == dc_states.FLUSH3) and not final_access
         done.next  = final_access if use_cache else mem_wbm.ack_i
-
-    @always(clk_i.posedge)
-    def cpu_active_assign():
-        if rst_i:
-            cpu_active.next = True
-        else:
-            cpu_active.next = cpu_wbs.cyc_i and cpu_wbs.stb_i
 
     @always_comb
     def miss_check():
@@ -377,7 +369,7 @@ def DCache(clk_i,
         Assignments to the cpu interface.
         """
         # cpu data_in assignment: instruction.
-        temp = 0x12345678
+        temp = data_cache[0]
         for i in range(0, WAYS):
             if not miss_w[i]:
                 temp = data_cache[i]
@@ -385,11 +377,9 @@ def DCache(clk_i,
 
     @always_comb
     def evict_data_assign():
-        tmp = 0x87654321
         for i in range(0, WAYS):
             if lru_select[i]:
-                tmp = data_cache2[i]
-        evict_data.next = tmp
+                evict_data.next = data_cache2[i]
 
     @always_comb
     def mem_port_assign():
@@ -400,22 +390,34 @@ def DCache(clk_i,
         mem_wbm.dat_o.next  = evict_data if use_cache else cpu_wbs.dat_i
         mem_wbm.sel_o.next  = modbv(0b1111)[4:] if use_cache else cpu_wbs.sel_i
 
+    # To Verilog
+    crp_clk    = [cache_read_port[i].clk for i in range(0, WAYS)]
+    crp_addr   = [cache_read_port[i].addr for i in range(0, WAYS)]
+    crp_data_i = [cache_read_port[i].data_i for i in range(0, WAYS)]
+    crp_we     = [cache_read_port[i].we for i in range(0, WAYS)]
+
     @always_comb
     def cache_mem_rw():
         for i in range(0, WAYS):
-            cache_read_port[i].clk.next    = clk_i
-            cache_read_port[i].addr.next   = cpu_wbs.addr_i[WAY_WIDTH:2]
-            cache_read_port[i].data_i.next = cpu_wbs.dat_i
-            cache_read_port[i].we.next     = state == dc_states.WRITE and not miss_w[i] and cpu_wbs.ack_o and cpu_wbs.we_i  # TODO: check for not ACK or ACK?
+            crp_clk[i].next    = clk_i
+            crp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:2]
+            crp_data_i[i].next = cpu_wbs.dat_i
+            crp_we[i].next     = state == dc_states.WRITE and not miss_w[i] and cpu_wbs.ack_o and cpu_wbs.we_i  # TODO: check for not ACK or ACK?
+
+    # To Verilog
+    cup_clk    = [cache_update_port[i].clk for i in range(0, WAYS)]
+    cup_addr   = [cache_update_port[i].addr for i in range(0, WAYS)]
+    cup_data_i = [cache_update_port[i].data_i for i in range(0, WAYS)]
+    cup_we     = [cache_update_port[i].we for i in range(0, WAYS)]
 
     @always_comb
     def cache_mem_update():
         # Connect the mem_wbm data_i port to the cache memories.
         for i in range(0, WAYS):
-            cache_update_port[i].clk.next    = clk_i
-            cache_update_port[i].addr.next   = dc_update_addr[WAY_WIDTH:2]
-            cache_update_port[i].data_i.next = mem_wbm.dat_i
-            cache_update_port[i].we.next     = lru_select[i] and mem_wbm.ack_i and state == dc_states.FETCH
+            cup_clk[i].next    = clk_i
+            cup_addr[i].next   = dc_update_addr[WAY_WIDTH:2]
+            cup_data_i[i].next = mem_wbm.dat_i
+            cup_we[i].next     = lru_select[i] and mem_wbm.ack_i and state == dc_states.FETCH
 
     @always_comb
     def wbs_cpu_flags():
