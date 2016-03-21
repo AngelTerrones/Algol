@@ -34,11 +34,11 @@ def Core(clk,
          imem,
          dmem,
          toHost,
-         IC_BLOCK_WIDTH=4,
-         IC_SET_WIDTH=10,
+         IC_BLOCK_WIDTH=3,
+         IC_SET_WIDTH=8,
          IC_NUM_WAYS=2,
-         DC_BLOCK_WIDTH=4,
-         DC_SET_WIDTH=10,
+         DC_BLOCK_WIDTH=3,
+         DC_SET_WIDTH=8,
          DC_NUM_WAYS=2):
     """
     Core top module.
