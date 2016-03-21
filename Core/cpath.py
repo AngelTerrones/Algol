@@ -307,6 +307,9 @@ def Ctrlpath(clk,
     if_misalign           = Signal(False)
     mem_misalign          = Signal(False)
 
+    instruction_r         = Signal(modbv(0)[32:])
+    cyc_ended             = Signal(False)
+
     opcode                = Signal(modbv(0)[7:])
     funct3                = Signal(modbv(0)[3:])
     funct7                = Signal(modbv(0)[7:])
@@ -743,7 +746,7 @@ def Ctrlpath(clk,
         """
         Set control signals for pipeline registers.
         """
-        imem_stall            = io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
+        imem_stall            = io.imem_pipeline.valid and not cyc_ended and not imem_m.ack_i and not io.csr_exception
         dmem_stall            = io.dmem_pipeline.valid and not dmem_m.ack_i and not io.csr_exception
         io.if_kill.next       = io.pc_select != Consts.PC_4
         io.id_stall.next      = (((io.id_fwd1_select == Consts.FWD_EX or io.id_fwd2_select == Consts.FWD_EX) and
@@ -761,6 +764,32 @@ def Ctrlpath(clk,
         io.csr_exception.next      = mem_exception
         io.csr_exception_code.next = mem_exception_code
 
+    @always(clk.posedge)
+    def reg_instruction():
+        """
+        Register the instruction at the end of the wishbone cycle.
+        """
+        if rst:
+            instruction_r.next = Consts.NOP
+        else:
+            if imem_m.cyc_o and imem_m.ack_i:
+                instruction_r.next = imem_m.dat_i
+
+    @always(clk.posedge)
+    def cyc_ended_assign():
+        """
+        Lock the instruction fetch until all the memory accesses ends.
+        This will re-align the i-port and the d-port (ACK signals), until the
+        next cache miss.
+        """
+        if rst:
+            cyc_ended.next = False
+        else:
+            if imem_m.cyc_o and imem_m.ack_i:
+                cyc_ended.next = io.full_stall
+            else:
+                cyc_ended.next = False
+
     @always_comb
     def _imem_assignment():
         """
@@ -769,7 +798,7 @@ def Ctrlpath(clk,
         imem_m.addr_o.next          = io.imem_pipeline.addr
         imem_m.dat_o.next           = io.imem_pipeline.wdata
         imem_m.sel_o.next           = 0b0000  # always read
-        io.imem_pipeline.rdata.next = imem_m.dat_i
+        io.imem_pipeline.rdata.next = imem_m.dat_i if not cyc_ended else instruction_r
 
     @always_comb
     def _dmem_assignment():
@@ -858,7 +887,7 @@ def Ctrlpath(clk,
 
     @always_comb
     def iwbm_trigger():
-        im_flagread.next  = not io.imem_pipeline.fcn and io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
+        im_flagread.next  = not io.imem_pipeline.fcn and io.imem_pipeline.valid and not cyc_ended and not imem_m.ack_i and not io.csr_exception
         im_flagwrite.next = io.imem_pipeline.fcn and io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
         im_flagrmw.next   = False
 
