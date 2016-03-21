@@ -315,11 +315,9 @@ def ICache(clk_i,
         Assignments to the cpu interface.
         """
         # cpu data_in assignment: instruction.
-        temp = 0x12345678
         for i in range(0, WAYS):
             if not miss_w[i]:
-                temp = data_cache[i]
-        cpu_wbs.dat_o.next = temp
+                cpu_wbs.dat_o.next = data_cache[i]
 
     @always_comb
     def mem_port_assign():
@@ -329,26 +327,36 @@ def ICache(clk_i,
         mem_wbm.addr_o.next = refill_addr
         mem_wbm.dat_o.next  = 0x0BADF00D
         mem_wbm.sel_o.next  = modbv(0)[4:]
-        # mem_wbm.we_o.next   = False
-        # mem_wbm..next = refill_valid
+
+    # To Verilog
+    crp_clk    = [cache_read_port[i].clk for i in range(0, WAYS)]
+    crp_addr   = [cache_read_port[i].addr for i in range(0, WAYS)]
+    crp_data_i = [cache_read_port[i].data_i for i in range(0, WAYS)]
+    crp_we     = [cache_read_port[i].we for i in range(0, WAYS)]
 
     @always_comb
     def cache_mem_r():
         for i in range(0, WAYS):
-            cache_read_port[i].clk.next    = clk_i
-            cache_read_port[i].addr.next   = cpu_wbs.addr_i[WAY_WIDTH:2]
-            cache_read_port[i].data_i.next = 0xAABBCCDD
-            cache_read_port[i].we.next     = False
+            crp_clk[i].next    = clk_i
+            crp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:2]
+            crp_data_i[i].next = 0xAABBCCDD
+            crp_we[i].next     = False
+
+    # To Verilog
+    cup_clk    = [cache_update_port[i].clk for i in range(0, WAYS)]
+    cup_addr   = [cache_update_port[i].addr for i in range(0, WAYS)]
+    cup_data_i = [cache_update_port[i].data_i for i in range(0, WAYS)]
+    cup_we     = [cache_update_port[i].we for i in range(0, WAYS)]
 
     @always_comb
     def cache_mem_update():
         # Connect the mem_wbm data_i port to the cache memories.
         for i in range(0, WAYS):
             # ignore data_o from update port
-            cache_update_port[i].clk.next    = clk_i
-            cache_update_port[i].addr.next   = refill_addr[WAY_WIDTH:2]
-            cache_update_port[i].data_i.next = mem_wbm.dat_i
-            cache_update_port[i].we.next     = lru_select[i] & mem_wbm.ack_i
+            cup_clk[i].next    = clk_i
+            cup_addr[i].next   = refill_addr[WAY_WIDTH:2]
+            cup_data_i[i].next = mem_wbm.dat_i
+            cup_we[i].next     = lru_select[i] & mem_wbm.ack_i
 
     @always_comb
     def wbs_cpu_flags():
