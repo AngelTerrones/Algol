@@ -70,3 +70,6 @@ target/
 
 # KDE
 .directory
+
+# Verilog
+*.v
