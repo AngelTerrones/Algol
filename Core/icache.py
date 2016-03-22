@@ -336,7 +336,7 @@ def ICache(clk_i,
     tfp_we     = [tag_flush_port[i].we for i in range(WAYS)]
 
     @always_comb
-    def tag_port_assign():
+    def tag_flush_port_assign():
         """
         Connect to the Tag memory's flush port.
         This includes the lru data.
