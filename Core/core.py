@@ -34,6 +34,7 @@ def Core(clk_i,
          imem,
          dmem,
          toHost,
+         # Configuration parameters
          IC_BLOCK_WIDTH=3,
          IC_SET_WIDTH=8,
          IC_NUM_WAYS=2,
@@ -44,11 +45,17 @@ def Core(clk_i,
     Core top module.
     This module use interfaces, for use in an integrated SoC.
 
-    :param clk:    System clock
-    :param rst:    System reset
-    :param imem:   Instruction memory port (Wishbone master)
-    :paran dmem:   Data memory port (Wishbone master)
-    :param toHost: CSR's mtohost register. For simulation purposes.
+    :param clk:            System clock
+    :param rst:            System reset
+    :param imem:           Instruction memory port (Wishbone master)
+    :paran dmem:           Data memory port (Wishbone master)
+    :param toHost:         CSR's mtohost register. For simulation purposes
+    :param IC_BLOCK_WIDTH: Number of bits needed to address the bytes in a line (I$)
+    :param IC_SET_WIDTH:   Number of bits needed to address a cache line (I$)
+    :param IC_NUM_WAYS:    Cache associativity (I$)
+    :param DC_BLOCK_WIDTH: Number of bits needed to address the bytes in a line (D$)
+    :param DC_SET_WIDTH:   Number of bits needed to address a cache line (D$)
+    :param DC_NUM_WAYS:    Cache associativity (D$)
     """
     ctrl_dpath   = CtrlIO()
     icache_flush = Signal(False)
@@ -115,7 +122,13 @@ def CoreHDL(clk_i,
             dmem_dat_i,
             dmem_stall_i,
             dmem_ack_i,
-            dmem_err_i):
+            dmem_err_i,
+            IC_BLOCK_WIDTH=3,
+            IC_SET_WIDTH=8,
+            IC_NUM_WAYS=2,
+            DC_BLOCK_WIDTH=3,
+            DC_SET_WIDTH=8,
+            DC_NUM_WAYS=2):
     """
     Core top Module.
     This module use single ports, for verilog translation, and avoid
@@ -128,7 +141,13 @@ def CoreHDL(clk_i,
                 rst_i=rst_i,
                 toHost=toHost,
                 imem=imem,
-                dmem=dmem)
+                dmem=dmem,
+                IC_BLOCK_WIDTH=IC_BLOCK_WIDTH,
+                IC_SET_WIDTH=IC_SET_WIDTH,
+                IC_NUM_WAYS=IC_NUM_WAYS,
+                DC_BLOCK_WIDTH=DC_BLOCK_WIDTH,
+                DC_SET_WIDTH=DC_SET_WIDTH,
+                DC_NUM_WAYS=DC_NUM_WAYS)
 
     @always_comb
     def assign():
