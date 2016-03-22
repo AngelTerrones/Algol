@@ -50,13 +50,13 @@ def ICache(clk_i,
 
     :param clk:         System clock
     :param rst:         System reset
+    :param cpu:         CPU slave interface (Wishbone Interconnect to master port)
+    :param mem:         Memory master interface (Wishbone Interconnect to slave port)
     :param invalidate:  Enable flush cache
-    :param cpu:         CPU interface (Wishbone Interconnect to master port)
-    :param mem:         Memory interface (Wishbone Interconnect to slave port)
     :param D_WIDTH:     Data width
     :param BLOCK_WIDTH: Address width for byte access inside a block line
     :param SET_WIDTH:   Address width for line access inside a block
-    :param WAYS:        Number of ways for associative cache
+    :param WAYS:        Number of ways for associative cache (Minimum: 2)
     :param LIMIT_WIDTH: Maximum width for address
     """
     assert D_WIDTH == 32, "Error: Unsupported D_WIDTH. Supported values: {32}"
@@ -159,6 +159,9 @@ def ICache(clk_i,
 
     @always_comb
     def miss_check_2():
+        """
+        Vector reduce: check for full miss.
+        """
         value = True
         for i in range(0, WAYS):
             value = value and miss_w[i]
@@ -166,6 +169,9 @@ def ICache(clk_i,
 
     @always_comb
     def miss_check_3():
+        """
+        Check for valid wishbone cycle, and full miss.
+        """
         valid_read = cpu_wbs.cyc_i and cpu_wbs.stb_i and not cpu_wbs.we_i
         miss.next  = miss_w_and and valid_read and not invalidate
 
@@ -177,6 +183,10 @@ def ICache(clk_i,
 
     @always_comb
     def tag_rport():
+        """
+        Connect to the Tag memory's R/W port.
+        This includes the lru data.
+        """
         for i in range(WAYS):
             trwp_clk[i].next    = clk_i
             trwp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
@@ -192,6 +202,9 @@ def ICache(clk_i,
 
     @always_comb
     def next_state_logic():
+        """
+        Cache FSM. Set the next state.
+        """
         n_state.next = state
         if state == ic_states.IDLE:
             if invalidate:
@@ -222,6 +235,9 @@ def ICache(clk_i,
 
     @always(clk_i.posedge)
     def update_state():
+        """
+        Register the next state.
+        """
         if rst_i:
             state.next = ic_states.FLUSH
         else:
@@ -229,6 +245,10 @@ def ICache(clk_i,
 
     @always_comb
     def fetch_fsm():
+        """
+        FSM for fetching data from the cache.
+        This handles the fetch address.
+        """
         n_refill_addr.next  = refill_addr
         n_refill_valid.next = False  # refill_valid
 
@@ -285,6 +305,9 @@ def ICache(clk_i,
 
     @always_comb
     def flush_next_state():
+        """
+        Handles the address for flush operations.
+        """
         n_flush_we.next   = False
         n_flush_addr.next = flush_addr
 
@@ -314,6 +337,10 @@ def ICache(clk_i,
 
     @always_comb
     def tag_port_assign():
+        """
+        Connect to the Tag memory's flush port.
+        This includes the lru data.
+        """
         for i in range(WAYS):
             tfp_clk[i].next    = clk_i
             tfp_addr[i].next   = flush_addr
@@ -328,7 +355,7 @@ def ICache(clk_i,
     @always_comb
     def cpu_data_assign():
         """
-        Assignments to the cpu interface.
+        Assignments to the cpu interface: dat_o.
         """
         # cpu data_in assignment: instruction.
         temp = data_cache[0]
@@ -354,6 +381,9 @@ def ICache(clk_i,
 
     @always_comb
     def cache_mem_r():
+        """
+        Connect to the Cache memory's R/W port.
+        """
         for i in range(0, WAYS):
             crp_clk[i].next    = clk_i
             crp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:2]
@@ -368,7 +398,9 @@ def ICache(clk_i,
 
     @always_comb
     def cache_mem_update():
-        # Connect the mem_wbm data_i port to the cache memories.
+        """
+        Connect to the Cache memory's refill port.
+        """
         for i in range(0, WAYS):
             # ignore data_o from update port
             cup_clk[i].next    = clk_i
@@ -378,12 +410,18 @@ def ICache(clk_i,
 
     @always_comb
     def wbs_cpu_flags():
+        """
+        Wishbone slave trigger signals.
+        """
         cpu_err.next  = mem_wbm.err_i
         cpu_wait.next = miss_w_and or state != ic_states.READ
         cpu_busy.next = busy
 
     @always_comb
     def wbm_mem_flags():
+        """
+        Wishbone master trigger signals.
+        """
         mem_read.next  = refill_valid and not final_fetch
         mem_write.next = False
         mem_rmw.next   = False
@@ -392,13 +430,14 @@ def ICache(clk_i,
     wbs_cpu = WishboneSlaveGenerator(clk_i, rst_i, cpu_wbs, cpu_busy, cpu_err, cpu_wait).gen_wbs()  # noqa
     wbm_mem = WishboneMasterGenerator(clk_i, rst_i, mem_wbm, mem_read, mem_write, mem_rmw).gen_wbm()  # noqa
 
-    # Instantiate tag memory
+    # Instantiate tag memories
     tag_mem = [RAM_DP(tag_rw_port[i], tag_flush_port[i], A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]  # noqa
     tag_lru = RAM_DP(tag_lru_rw_port, tag_lru_flush_port, A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)  # noqa
 
     # instantiate main memory (cache)
     cache_mem = [RAM_DP(cache_read_port[i], cache_update_port[i], A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for i in range(0, WAYS)]  # noqa
 
+    # LRU unit.
     lru_m = CacheLRU(current_lru, access_lru, update_lru, lru_pre, lru_post, NUMWAYS=WAYS)  # noqa
 
     return instances()
