@@ -46,8 +46,8 @@ def core_testbench(mem_size, hex_file, bytes_line):
 
     toHost = Signal(modbv(0)[32:])
 
-    dut_core = Core(clk=clk,
-                    rst=rst,
+    dut_core = Core(clk_i=clk,
+                    rst_i=rst,
                     imem=imem,
                     dmem=dmem,
                     toHost=toHost)

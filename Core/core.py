@@ -29,8 +29,8 @@ from Core.icache import ICache
 from Core.dcache import DCache
 
 
-def Core(clk,
-         rst,
+def Core(clk_i,
+         rst_i,
          imem,
          dmem,
          toHost,
@@ -56,19 +56,19 @@ def Core(clk,
     cpu_intercon = WishboneIntercon()
     mem_intercon = WishboneIntercon()
 
-    dpath = Datapath(clk,
-                     rst,
+    dpath = Datapath(clk_i,
+                     rst_i,
                      ctrl_dpath,
                      toHost)
-    cpath = Ctrlpath(clk,
-                     rst,
+    cpath = Ctrlpath(clk_i,
+                     rst_i,
                      ctrl_dpath,
                      icache_flush,
                      dcache_flush,
                      cpu_intercon,
                      mem_intercon)
-    icache = ICache(clk_i=clk,
-                    rst_i=rst,
+    icache = ICache(clk_i=clk_i,
+                    rst_i=rst_i,
                     cpu=cpu_intercon,
                     mem=imem,
                     invalidate=icache_flush,
@@ -77,8 +77,8 @@ def Core(clk,
                     SET_WIDTH=IC_SET_WIDTH,
                     WAYS=IC_NUM_WAYS,
                     LIMIT_WIDTH=32)
-    dcache = DCache(clk_i=clk,
-                    rst_i=rst,
+    dcache = DCache(clk_i=clk_i,
+                    rst_i=rst_i,
                     cpu=mem_intercon,
                     mem=dmem,
                     invalidate=dcache_flush,
@@ -91,8 +91,8 @@ def Core(clk,
     return dpath, cpath, icache, dcache
 
 
-def CoreHDL(clk,
-            rst,
+def CoreHDL(clk_i,
+            rst_i,
             toHost,
             imem_addr_o,
             imem_dat_o,
@@ -124,14 +124,15 @@ def CoreHDL(clk,
 
     imem = WishboneIntercon()
     dmem = WishboneIntercon()
-    core = Core(clk=clk,
-                rst=rst,
+    core = Core(clk_i=clk_i,
+                rst_i=rst_i,
                 toHost=toHost,
                 imem=imem,
                 dmem=dmem)
 
     @always_comb
     def assign():
+        # Instruction memory
         imem_addr_o.next = imem.addr
         imem_dat_o.next  = imem.dat_o
         imem_sel_o.next  = imem.sel
@@ -143,7 +144,7 @@ def CoreHDL(clk,
         imem.stall.next  = imem_stall_i
         imem.ack.next    = imem_ack_i
         imem.err.next    = imem_err_i
-
+        # Data memory
         dmem_addr_o.next = dmem.addr
         dmem_dat_o.next  = dmem.dat_o
         dmem_sel_o.next  = dmem.sel
