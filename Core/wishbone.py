@@ -119,6 +119,8 @@ class WishboneMasterGenerator():
 
     This clase generates the state machine for a master device.
     The class requires trigger signals to start a wishbone cycle access.
+
+    Support for classic cycle only.
     """
     def __init__(self, clk_i, rst_i, master_signals, flagread, flagwrite, flagrmw):
         """
@@ -285,6 +287,8 @@ class WishboneSlaveGenerator():
 
     This clase generates the state machine for a slave device.
     The class requires trigger signals to responde a wishbone cycle access.
+
+    Support for classic cycle only.
     """
     def __init__(self, clk_i, rst_i, slave_signals, flagbusy, flagerr, flagwait):
         """
