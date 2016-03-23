@@ -107,7 +107,6 @@ def DCache(clk_i,
     update_lru        = Signal(modbv(0)[TAG_LRU_WIDTH:])
     access_lru        = Signal(modbv(0)[WAYS:])
     lru_pre           = Signal(modbv(0)[WAYS:])
-    lru_post          = Signal(modbv(0)[WAYS:])
 
     # flush signals
     flush_addr        = Signal(modbv(0)[SET_WIDTH:])
@@ -500,6 +499,11 @@ def DCache(clk_i,
         mem_write.next = evict if use_cache else cpu_wbs.we_i
         mem_rmw.next   = False
 
+    # Remove warnings: Signal is driven but not read
+    for i in range(WAYS):
+        tag_flush_port[i].data_o    = None
+        tag_lru_flush_port.data_o   = None
+
     # Generate the wishbone interfaces
     wbs_cpu = WishboneSlaveGenerator(clk_i, rst_i, cpu_wbs, cpu_busy, cpu_err, cpu_wait).gen_wbs()  # noqa
     wbm_mem = WishboneMasterGenerator(clk_i, rst_i, mem_wbm, mem_read, mem_write, mem_rmw).gen_wbm()  # noqa
@@ -512,7 +516,7 @@ def DCache(clk_i,
     cache_mem = [RAM_DP(cache_read_port[i], cache_update_port[i], A_WIDTH=WAY_WIDTH - 2, D_WIDTH=D_WIDTH) for i in range(0, WAYS)]  # noqa
 
     # LRU unit
-    lru_m = CacheLRU(current_lru, access_lru,  update_lru,  lru_pre,  lru_post, NUMWAYS=WAYS)  # noqa
+    lru_m = CacheLRU(current_lru, access_lru,  update_lru,  lru_pre, None, NUMWAYS=WAYS)  # noqa
 
     return instances()
 

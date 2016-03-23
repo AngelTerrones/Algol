@@ -60,21 +60,38 @@ def RAM_DP(portA,
     :param D_WITH: Data width
     """
     assert len(portA.addr) == len(portB.addr) == A_WIDTH, "Error: Address width mismatch."
-    assert len(portA.data_i) == len(portB.data_o) == D_WIDTH, "Error: Data width mismatch."
+    if portA.data_o is not None:
+        assert len(portA.data_i) == len(portA.data_o) == D_WIDTH, "Error: Data width mismatch in portA."
+    if portB.data_o is not None:
+        assert len(portB.data_i) == len(portB.data_o) == D_WIDTH, "Error: Data width mismatch in portB."
 
     _ram = [Signal(modbv(0)[D_WIDTH:]) for ii in range(0, 2**A_WIDTH)]
 
-    @always(portA.clk.posedge)
-    def rtl_port_a():
-        if portA.we:
-            _ram[portA.addr].next = portA.data_i
-        portA.data_o.next = _ram[portA.addr]
+    # Check if the output port is being used
+    if portA.data_o is not None:
+        @always(portA.clk.posedge)
+        def rtl_port_a():
+            if portA.we:
+                _ram[portA.addr].next = portA.data_i
+            portA.data_o.next = _ram[portA.addr]
+    else:
+        @always(portA.clk.posedge)
+        def rtl_port_a():
+            if portA.we:
+                _ram[portA.addr].next = portA.data_i
 
-    @always(portB.clk.posedge)
-    def rtl_port_b():
-        if portB.we:
-            _ram[portB.addr].next = portB.data_i
-        portB.data_o.next = _ram[portB.addr]
+    # Check if the output port is being used
+    if portB.data_o is not None:
+        @always(portB.clk.posedge)
+        def rtl_port_b():
+            if portB.we:
+                _ram[portB.addr].next = portB.data_i
+            portB.data_o.next = _ram[portB.addr]
+    else:
+        @always(portB.clk.posedge)
+        def rtl_port_b():
+            if portB.we:
+                _ram[portB.addr].next = portB.data_i
 
     return rtl_port_a, rtl_port_b
 
