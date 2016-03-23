@@ -369,7 +369,7 @@ def ICache(clk_i,
         Assignments to the mem_wbm interface for refill operations.
         """
         mem_wbm.addr_o.next = refill_addr
-        mem_wbm.dat_o.next  = 0x0BADF00D
+        mem_wbm.dat_o.next  = cpu_wbs.dat_i
         mem_wbm.sel_o.next  = modbv(0)[4:]
 
     # To Verilog
