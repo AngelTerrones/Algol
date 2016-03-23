@@ -461,7 +461,10 @@ def DCache(clk_i,
         for i in range(0, WAYS):
             crp_clk[i].next    = clk_i
             crp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:2]
-            crp_data_i[i].next = cpu_wbs.dat_i
+            crp_data_i[i].next = concat(cpu_wbs.dat_i[32:24] if cpu_wbs.sel_i[3] else data_cache[i][32:24],
+                                        cpu_wbs.dat_i[24:16] if cpu_wbs.sel_i[2] else data_cache[i][24:16],
+                                        cpu_wbs.dat_i[16:8] if cpu_wbs.sel_i[1] else data_cache[i][16:8],
+                                        cpu_wbs.dat_i[8:0] if cpu_wbs.sel_i[0] else data_cache[i][8:0])
             crp_we[i].next     = state == dc_states.WRITE and not miss_w[i] and cpu_wbs.ack_o and cpu_wbs.we_i  # TODO: check for not ACK or ACK?
 
     # To Verilog
