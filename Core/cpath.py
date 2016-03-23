@@ -265,7 +265,7 @@ def Ctrlpath(clk,
     id_lt                 = Signal(False)
     id_ltu                = Signal(False)
     id_fence_i            = Signal(False)
-    id_fence              = Signal(False)
+    # id_fence              = Signal(False)
 
     if_imem_misalign      = Signal(False)
     if_imem_fault         = Signal(False)
@@ -500,7 +500,7 @@ def Ctrlpath(clk,
         id_eret.next            = control[27]
         id_ebreak.next          = control[28]
         id_ecall.next           = control[29]
-        id_fence.next           = control[30]
+        # id_fence.next           = control[30]
         id_fence_i.next         = control[31]
 
     @always_comb
