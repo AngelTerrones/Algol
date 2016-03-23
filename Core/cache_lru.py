@@ -152,135 +152,180 @@ def CacheLRU(current,
     # update to 2>3>0>1 with LRU_pre=2 and LRU_post=1
     # **************************************************************************
 
-    @always_comb
-    def step_1():
-        expand   = [modbv(0)[NUMWAYS:] for i in range(NUMWAYS)]
-        offset = 0
+    if lru_post is not None:
+        # Use the lru_post signal
+        @always_comb
+        def step_1():
+            expand   = [modbv(0)[NUMWAYS:] for i in range(NUMWAYS)]
+            offset = 0
 
-        # 1. Fill the matrix (expand) with the values. The entry (i,i) is
-        #    statically one.
-        for i in range(0, NUMWAYS):
-            expand[i][i] = True
+            # 1. Fill the matrix (expand) with the values. The entry (i,i) is
+            #    statically one.
+            for i in range(0, NUMWAYS):
+                expand[i][i] = True
 
-            for j in range(i + 1, NUMWAYS):
-                expand[i][j] = current[offset + j - i - 1]
-            for j in range(0, i):
-                expand[i][j] = not expand[j][i]
+                for j in range(i + 1, NUMWAYS):
+                    expand[i][j] = current[offset + j - i - 1]
+                for j in range(0, i):
+                    expand[i][j] = not expand[j][i]
 
-            offset = offset + NUMWAYS - i - 1
+                offset = offset + NUMWAYS - i - 1
 
-        # **********************************************************************
-        # For the example expand is now:
-        # <    0      1      2      3        0 1 2 3
-        # 0    1    (0<1)  (0<2)  (0<3)    0 1 0 0 1
-        # 1  (1<0)    1    (1<2)  (1<3) => 1 1 1 0 1
-        # 2  (2<0)  (2<1)    1    (2<3)    2 1 1 1 1
-        # 3  (3<0)  (3<1)  (3<2)    1      3 0 0 0 1
-        # **********************************************************************
+            # **********************************************************************
+            # For the example expand is now:
+            # <    0      1      2      3        0 1 2 3
+            # 0    1    (0<1)  (0<2)  (0<3)    0 1 0 0 1
+            # 1  (1<0)    1    (1<2)  (1<3) => 1 1 1 0 1
+            # 2  (2<0)  (2<1)    1    (2<3)    2 1 1 1 1
+            # 3  (3<0)  (3<1)  (3<2)    1      3 0 0 0 1
+            # **********************************************************************
 
-        # **********************************************************************
-        #  2. The LRU_pre vector is the vector of the ANDs of the each
-        #     row.
-        # **********************************************************************
-        tmp0 = modbv(0)[NUMWAYS:]
-        for i in range(0, NUMWAYS):
-            value = True
-            for j in range(0, NUMWAYS):
-                value = value and expand[i][j]
-            tmp0[i] = value
-        lru_pre.next = tmp0
-
-        # **********************************************************************
-        # We derive why this is the case for the example here:
-        # lru_pre[2] is high when the following condition holds:
-        #
-        #  (2<0) & (2<1) & (2<3).
-        #
-        # Applying the negation transform we get:
-        #
-        #  !(0<2) & !(1<2) & (2<3)
-        #
-        # and this is exactly row [2], so that here
-        #
-        # lru_pre[2] = &expand[2] = 1'b1;
-        #
-        # At this point you can also see why we initialize the diagonal
-        # with 1.
-
-        #  3. Update the values with the access vector (if any) in the
-        #     following way: If access[i] is set, the values in row i
-        #     are set to 0. Similarly, the values in column i are set
-        #     to 1.
-        # **********************************************************************
-        for i in range(0, NUMWAYS):
-            if access[i]:
+            # **********************************************************************
+            #  2. The LRU_pre vector is the vector of the ANDs of the each
+            #     row.
+            # **********************************************************************
+            tmp0 = modbv(0)[NUMWAYS:]
+            for i in range(0, NUMWAYS):
+                value = True
                 for j in range(0, NUMWAYS):
-                    if i != j:
-                        expand[i][j] = False
+                    value = value and expand[i][j]
+                tmp0[i] = value
+            lru_pre.next = tmp0
+
+            # **********************************************************************
+            # We derive why this is the case for the example here:
+            # lru_pre[2] is high when the following condition holds:
+            #
+            #  (2<0) & (2<1) & (2<3).
+            #
+            # Applying the negation transform we get:
+            #
+            #  !(0<2) & !(1<2) & (2<3)
+            #
+            # and this is exactly row [2], so that here
+            #
+            # lru_pre[2] = &expand[2] = 1'b1;
+            #
+            # At this point you can also see why we initialize the diagonal
+            # with 1.
+
+            #  3. Update the values with the access vector (if any) in the
+            #     following way: If access[i] is set, the values in row i
+            #     are set to 0. Similarly, the values in column i are set
+            #     to 1.
+            # **********************************************************************
+            for i in range(0, NUMWAYS):
+                if access[i]:
+                    for j in range(0, NUMWAYS):
+                        if i != j:
+                            expand[i][j] = False
+                    for j in range(0, NUMWAYS):
+                        if i != j:
+                            expand[j][i] = True
+
+            # **********************************************************************
+            # Again this becomes obvious when you see what we do here.
+            # Accessing way 2 leads means now
+            #
+            # (0<2) = (1<2) = (3<2) = 1, and
+            # (2<0) = (2<1) = (2<3) = 0
+            #
+            # The matrix changes accordingly
+            #
+            #   0 1 2 3      0 1 2 3
+            # 0 1 0 0 1    0 1 0 1 1
+            # 1 1 1 0 1 => 1 1 1 1 1
+            # 2 1 1 1 1    2 0 0 1 0
+            # 3 0 0 0 1    3 0 0 1 1
+            # **********************************************************************
+
+            # **********************************************************************
+            # 4. The update vector of the lru history is then generated by
+            #    copying the upper half of the matrix back.
+            # **********************************************************************
+            offset = 0
+            tmp1 = modbv(0)[len(update):]
+            for i in range(0, NUMWAYS):
+                for j in range(i + 1, NUMWAYS):
+                    tmp1[offset + j - i - 1] = expand[i][j]
+                offset = offset + NUMWAYS - i - 1
+            update.next = tmp1
+
+            # **********************************************************************
+            # This is the opposite operation of step 1 and is clear now.
+            # Update becomes:
+            #
+            #  update = 6'b011110
+            #
+            # This is translated to
+            #
+            #  0<1 0<2 0<3 1<2 1<3 2<3
+            #   0   1   1   1   1   0
+            #
+            # which is: 2>3>0>1, which is what we expected.
+            # **********************************************************************
+
+            # **********************************************************************
+            # 5. The LRU_post vector is the vector of the ANDs of each row.
+            # **********************************************************************
+            temp = modbv(0)[len(lru_post):]
+            for i in range(0, NUMWAYS):
+                value = True
                 for j in range(0, NUMWAYS):
-                    if i != j:
-                        expand[j][i] = True
+                    value = value and expand[i][j]
+                temp[i] = value
+            lru_post.next = temp
 
-        # **********************************************************************
-        # Again this becomes obvious when you see what we do here.
-        # Accessing way 2 leads means now
-        #
-        # (0<2) = (1<2) = (3<2) = 1, and
-        # (2<0) = (2<1) = (2<3) = 0
-        #
-        # The matrix changes accordingly
-        #
-        #   0 1 2 3      0 1 2 3
-        # 0 1 0 0 1    0 1 0 1 1
-        # 1 1 1 0 1 => 1 1 1 1 1
-        # 2 1 1 1 1    2 0 0 1 0
-        # 3 0 0 0 1    3 0 0 1 1
-        # **********************************************************************
+            # **********************************************************************
+            # This final step is equal to step 2 and also clear now.
+            #
+            # lru_post[1] = &expand[1] = 1'b1;
+            #
+            # lru_post = 4'b0010 is what we expected.
+            # **********************************************************************
+    else:
+        # Ignore lru_post
+        @always_comb
+        def step_1():
+            expand   = [modbv(0)[NUMWAYS:] for i in range(NUMWAYS)]
+            offset = 0
 
-        # **********************************************************************
-        # 4. The update vector of the lru history is then generated by
-        #    copying the upper half of the matrix back.
-        # **********************************************************************
-        offset = 0
-        tmp1 = modbv(0)[len(update):]
-        for i in range(0, NUMWAYS):
-            for j in range(i + 1, NUMWAYS):
-                tmp1[offset + j - i - 1] = expand[i][j]
-            offset = offset + NUMWAYS - i - 1
-        update.next = tmp1
+            # 1. Fill the matrix (expand) with the values. The entry (i,i) is
+            #    statically one.
+            for i in range(0, NUMWAYS):
+                expand[i][i] = True
 
-        # **********************************************************************
-        # This is the opposite operation of step 1 and is clear now.
-        # Update becomes:
-        #
-        #  update = 6'b011110
-        #
-        # This is translated to
-        #
-        #  0<1 0<2 0<3 1<2 1<3 2<3
-        #   0   1   1   1   1   0
-        #
-        # which is: 2>3>0>1, which is what we expected.
-        # **********************************************************************
+                for j in range(i + 1, NUMWAYS):
+                    expand[i][j] = current[offset + j - i - 1]
+                for j in range(0, i):
+                    expand[i][j] = not expand[j][i]
 
-        # **********************************************************************
-        # 5. The LRU_post vector is the vector of the ANDs of each row.
-        # **********************************************************************
-        temp = modbv(0)[len(lru_post):]
-        for i in range(0, NUMWAYS):
-            value = True
-            for j in range(0, NUMWAYS):
-                value = value and expand[i][j]
-            temp[i] = value
-        lru_post.next = temp
+                offset = offset + NUMWAYS - i - 1
 
-        # **********************************************************************
-        # This final step is equal to step 2 and also clear now.
-        #
-        # lru_post[1] = &expand[1] = 1'b1;
-        #
-        # lru_post = 4'b0010 is what we expected.
-        # **********************************************************************
+            tmp0 = modbv(0)[NUMWAYS:]
+            for i in range(0, NUMWAYS):
+                value = True
+                for j in range(0, NUMWAYS):
+                    value = value and expand[i][j]
+                tmp0[i] = value
+            lru_pre.next = tmp0
+
+            for i in range(0, NUMWAYS):
+                if access[i]:
+                    for j in range(0, NUMWAYS):
+                        if i != j:
+                            expand[i][j] = False
+                    for j in range(0, NUMWAYS):
+                        if i != j:
+                            expand[j][i] = True
+
+            offset = 0
+            tmp1 = modbv(0)[len(update):]
+            for i in range(0, NUMWAYS):
+                for j in range(i + 1, NUMWAYS):
+                    tmp1[offset + j - i - 1] = expand[i][j]
+                offset = offset + NUMWAYS - i - 1
+            update.next = tmp1
 
     return instances()
 
