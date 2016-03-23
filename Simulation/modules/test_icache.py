@@ -88,11 +88,9 @@ def _testbench():
         cpu.dat_o.next = rb.dmem_intercon.dat_o
         cpu.dat_i.next = rb.dmem_intercon.dat_i
         cpu.sel.next   = rb.dmem_intercon.sel
-        cpu.cti.next   = rb.dmem_intercon.cti
         cpu.cyc.next   = rb.dmem_intercon.cyc
         cpu.we.next    = rb.dmem_intercon.we
         cpu.stb.next   = rb.dmem_intercon.stb
-        cpu.stall.next = rb.dmem_intercon.stall
         cpu.ack.next   = rb.dmem_intercon.ack
         cpu.err.next   = rb.dmem_intercon.err
 

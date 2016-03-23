@@ -56,7 +56,6 @@ class RamBus:
         self.dmem.we_o.next        = Consts.M_WR
         self.dmem.cyc_o.next       = True
         self.dmem.stb_o.next       = True
-        self.dmem.cti_o.next       = 0
         self.mirror_mem[addr >> 2] = data
         # insert a delay waiting for stable signals.
         # Also, insert a loop to check for a stable signal,
@@ -77,7 +76,6 @@ class RamBus:
         self.dmem.we_o.next   = Consts.M_RD
         self.dmem.cyc_o.next  = True
         self.dmem.stb_o.next  = True
-        self.dmem.cti_o.next  = 0
         # insert a delay waiting for stable signals.
         # Also, insert a loop to check for a stable signal,
         # and ignore glitches.

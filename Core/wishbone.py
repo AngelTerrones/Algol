@@ -36,11 +36,9 @@ class WishboneIntercon:
     :ivar data_o: Data output (from master)
     :ivar data_i: Data input (to master)
     :ivar sel:    Select byte to write
-    :ivar cti:    Cycle Type Identifier
     :ivar cyc:    Valid bus cycle in progress
     :ivar we:     Write enable
     :ivar stb:    Valid data transfer cycle
-    :ivar stall:  Pipeline stall: Slave is not able to accept the transfer in the transaction queue
     :ivar ack:    Normal termination of a bus cycle
     :ivar err:    Abnormal cycle termination
     """
@@ -52,11 +50,9 @@ class WishboneIntercon:
         self.dat_o = Signal(modbv(0)[32:])
         self.dat_i = Signal(modbv(0)[32:])
         self.sel   = Signal(modbv(0)[4:])
-        self.cti   = Signal(modbv(0)[3:])
         self.cyc   = Signal(False)
         self.we    = Signal(False)
         self.stb   = Signal(False)
-        self.stall = Signal(False)
         self.ack   = Signal(False)
         self.err   = Signal(False)
 
@@ -78,11 +74,9 @@ class WishboneMaster:
         self.dat_o   = intercon.dat_o
         self.dat_i   = intercon.dat_i
         self.sel_o   = intercon.sel
-        self.cti_o   = intercon.cti
         self.cyc_o   = intercon.cyc
         self.we_o    = intercon.we
         self.stb_o   = intercon.stb
-        self.stall_i = intercon.stall
         self.ack_i   = intercon.ack
         self.err_i   = intercon.err
 
@@ -104,11 +98,9 @@ class WishboneSlave:
         self.dat_o   = intercon.dat_i
         self.dat_i   = intercon.dat_o
         self.sel_i   = intercon.sel
-        self.cti_i   = intercon.cti
         self.cyc_i   = intercon.cyc
         self.we_i    = intercon.we
         self.stb_i   = intercon.stb
-        self.stall_o = intercon.stall
         self.ack_o   = intercon.ack
         self.err_o   = intercon.err
 
@@ -275,9 +267,6 @@ class WishboneMasterGenerator():
             else:
                 self.wbmsig.we_o.next = False
 
-            # CTI generation
-            self.wbmsig.cti_o.next = 0
-
         return instances()
 
 
@@ -402,8 +391,6 @@ class WishboneSlaveGenerator():
                 self.wbssig.ack_o.next = not self.flagwait and self.wbssig.cyc_i and self.wbssig.stb_i
             else:
                 self.wbssig.ack_o.next = False
-            # stall
-            self.wbssig.stall_o.next = self.flagbusy
             # err
             self.wbssig.err_o.next = self.flagerr
 

@@ -104,23 +104,19 @@ def CoreHDL(clk_i,
             imem_addr_o,
             imem_dat_o,
             imem_sel_o,
-            imem_cti_o,
             imem_cyc_o,
             imem_we_o,
             imem_stb_o,
             imem_dat_i,
-            imem_stall_i,
             imem_ack_i,
             imem_err_i,
             dmem_addr_o,
             dmem_dat_o,
             dmem_sel_o,
-            dmem_cti_o,
             dmem_cyc_o,
             dmem_we_o,
             dmem_stb_o,
             dmem_dat_i,
-            dmem_stall_i,
             dmem_ack_i,
             dmem_err_i,
             IC_BLOCK_WIDTH=3,
@@ -155,24 +151,20 @@ def CoreHDL(clk_i,
         imem_addr_o.next = imem.addr
         imem_dat_o.next  = imem.dat_o
         imem_sel_o.next  = imem.sel
-        imem_cti_o.next  = imem.cti
         imem_cyc_o.next  = imem.cyc
         imem_we_o.next   = imem.we
         imem_stb_o.next  = imem.stb
         imem.dat_i.next  = imem_dat_i
-        imem.stall.next  = imem_stall_i
         imem.ack.next    = imem_ack_i
         imem.err.next    = imem_err_i
         # Data memory
         dmem_addr_o.next = dmem.addr
         dmem_dat_o.next  = dmem.dat_o
         dmem_sel_o.next  = dmem.sel
-        dmem_cti_o.next  = dmem.cti
         dmem_cyc_o.next  = dmem.cyc
         dmem_we_o.next   = dmem.we
         dmem_stb_o.next  = dmem.stb
         dmem.dat_i.next  = dmem_dat_i
-        dmem.stall.next  = dmem_stall_i
         dmem.ack.next    = dmem_ack_i
         dmem.err.next    = dmem_err_i
 
