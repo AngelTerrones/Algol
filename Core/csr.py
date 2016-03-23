@@ -224,7 +224,7 @@ def CSR(clk,
 
     # Connect this register to the IO for simulation purposes.
     # TODO: Remove this and use a debug interface.
-    mtohost         = toHost  # Signal(modbv(0)[32:])
+    mtohost         = Signal(modbv(0)[32:])
     mfromhost       = Signal(modbv(0)[32:])
 
     # aux
@@ -254,6 +254,7 @@ def CSR(clk,
         """
         Some assignments.
         """
+        toHost.next                    = mtohost
         cycle.next                     = cycle_full[32:0]
         cycleh.next                    = cycle_full[64:32]
         time.next                      = time_full[32:0]
