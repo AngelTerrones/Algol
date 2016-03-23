@@ -115,7 +115,7 @@ def DCache(clk_i,
     n_flush_we        = Signal(False)
 
     # refill signals
-    dc_update_addr    = Signal(modbv(0)[LIMIT_WIDTH:])
+    dc_update_addr    = Signal(modbv(0)[LIMIT_WIDTH - 2:])
     evict_data        = Signal(modbv(0)[32:])
 
     # main FSM
@@ -223,7 +223,7 @@ def DCache(clk_i,
 
     @always_comb
     def assignments():
-        final_access.next = (dc_update_addr[BLOCK_WIDTH:] == modbv(~3)[BLOCK_WIDTH:]) and mem_wbm.ack_i and mem_wbm.cyc_o and mem_wbm.stb_o
+        final_access.next = (dc_update_addr[BLOCK_WIDTH - 2:] == modbv(-1)[BLOCK_WIDTH - 2:]) and mem_wbm.ack_i and mem_wbm.cyc_o and mem_wbm.stb_o
         final_flush.next  = flush_addr == 0
         lru_select.next   = lru_pre
         current_lru.next  = lru_out
@@ -381,17 +381,17 @@ def DCache(clk_i,
         else:
             if state == dc_states.READ or state == dc_states.WRITE:
                 if miss and not dirty:
-                    dc_update_addr.next = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH:])
+                    dc_update_addr.next = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH - 2:])
                 elif miss and dirty:
-                    dc_update_addr.next = concat(tag_entry, cpu_wbs.addr_i[WAY_WIDTH:2], modbv(0)[2:])
+                    dc_update_addr.next = concat(tag_entry, cpu_wbs.addr_i[WAY_WIDTH:2])
             elif state == dc_states.FLUSH2:
                 if dirty:
-                    dc_update_addr.next = concat(tag_entry, modbv(0)[BLOCK_WIDTH:])
+                    dc_update_addr.next = concat(tag_entry, modbv(0)[WAY_WIDTH - 2:])
             elif state == dc_states.EVICTING or state == dc_states.FETCH or state == dc_states.FLUSH3:
                 if final_access:
-                    dc_update_addr.next = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH:])
+                    dc_update_addr.next = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH - 2:])
                 elif mem_wbm.ack_i and mem_wbm.stb_o:
-                    dc_update_addr.next = dc_update_addr + modbv(4)[BLOCK_WIDTH:]
+                    dc_update_addr.next = dc_update_addr + modbv(1)[BLOCK_WIDTH - 2:]
             else:
                 dc_update_addr.next = 0
 
@@ -443,7 +443,7 @@ def DCache(clk_i,
         """
         Assignments to the mem_wbm interface for refill operations.
         """
-        mem_wbm.addr_o.next = dc_update_addr if use_cache else cpu_wbs.addr_i
+        mem_wbm.addr_o.next = concat(dc_update_addr, modbv(0)[2:]) if use_cache else cpu_wbs.addr_i
         mem_wbm.dat_o.next  = evict_data if use_cache else cpu_wbs.dat_i
         mem_wbm.sel_o.next  = modbv(0b1111)[4:] if use_cache else cpu_wbs.sel_i
 
@@ -480,7 +480,7 @@ def DCache(clk_i,
         """
         for i in range(0, WAYS):
             cup_clk[i].next    = clk_i
-            cup_addr[i].next   = dc_update_addr[WAY_WIDTH:2]
+            cup_addr[i].next   = dc_update_addr[WAY_WIDTH - 2:]
             cup_data_i[i].next = mem_wbm.dat_i
             cup_we[i].next     = lru_select[i] and mem_wbm.ack_i and state == dc_states.FETCH
 

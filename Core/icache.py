@@ -122,9 +122,9 @@ def ICache(clk_i,
     tag_we             = Signal(False)
 
     # refill signals
-    refill_addr        = Signal(modbv(0)[LIMIT_WIDTH:])
+    refill_addr        = Signal(modbv(0)[LIMIT_WIDTH - 2:])
     refill_valid       = Signal(False)
-    n_refill_addr      = Signal(modbv(0)[LIMIT_WIDTH:])
+    n_refill_addr      = Signal(modbv(0)[LIMIT_WIDTH - 2:])
     n_refill_valid     = Signal(False)
 
     # flush signals
@@ -135,7 +135,7 @@ def ICache(clk_i,
 
     @always_comb
     def assignments():
-        final_fetch.next        = (refill_addr[BLOCK_WIDTH:] == modbv(~3)[BLOCK_WIDTH:]) and mem_wbm.ack_i and mem_wbm.stb_o and mem_wbm.cyc_o
+        final_fetch.next        = (refill_addr[BLOCK_WIDTH - 2:] == modbv(-1)[BLOCK_WIDTH - 2:]) and mem_wbm.ack_i and mem_wbm.stb_o and mem_wbm.cyc_o
         lru_select.next         = lru_pre
         current_lru.next        = lru_out
         access_lru.next         = ~miss_w
@@ -256,7 +256,7 @@ def ICache(clk_i,
                 n_refill_valid.next = False
         elif state == ic_states.READ:
             if miss:
-                n_refill_addr.next  = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH:])
+                n_refill_addr.next  = concat(cpu_wbs.addr_i[LIMIT_WIDTH:BLOCK_WIDTH], modbv(0)[BLOCK_WIDTH - 2:])
                 n_refill_valid.next = True  # not mem_wbm.ready?
         elif state == ic_states.FETCH:
             n_refill_valid.next = True
@@ -266,7 +266,7 @@ def ICache(clk_i,
                     n_refill_addr.next = 0
                 else:
                     n_refill_valid.next = True
-                    n_refill_addr.next  = refill_addr + modbv(4)[BLOCK_WIDTH:]
+                    n_refill_addr.next  = refill_addr + modbv(1)[BLOCK_WIDTH - 2:]
 
     @always(clk_i.posedge)
     def update_fetch():
@@ -368,7 +368,7 @@ def ICache(clk_i,
         """
         Assignments to the mem_wbm interface for refill operations.
         """
-        mem_wbm.addr_o.next = refill_addr
+        mem_wbm.addr_o.next = concat(refill_addr, modbv(0)[2:])
         mem_wbm.dat_o.next  = cpu_wbs.dat_i
         mem_wbm.sel_o.next  = modbv(0)[4:]
 
@@ -403,7 +403,7 @@ def ICache(clk_i,
         for i in range(0, WAYS):
             # ignore data_o from update port
             cup_clk[i].next    = clk_i
-            cup_addr[i].next   = refill_addr[WAY_WIDTH:2]
+            cup_addr[i].next   = refill_addr[WAY_WIDTH - 2:]
             cup_data_i[i].next = mem_wbm.dat_i
             cup_we[i].next     = lru_select[i] & mem_wbm.ack_i
 
