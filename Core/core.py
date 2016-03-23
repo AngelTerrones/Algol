@@ -20,47 +20,87 @@
 # THE SOFTWARE.
 
 from myhdl import always_comb
+from myhdl import Signal
 from Core.dpath import Datapath
 from Core.cpath import Ctrlpath
 from Core.cpath import CtrlIO
 from Core.wishbone import WishboneIntercon
+from Core.icache import ICache
+from Core.dcache import DCache
 
 
-def Core(clk,
-         rst,
+def Core(clk_i,
+         rst_i,
          imem,
          dmem,
-         toHost):
+         toHost,
+         # Configuration parameters
+         IC_BLOCK_WIDTH=3,
+         IC_SET_WIDTH=8,
+         IC_NUM_WAYS=2,
+         DC_BLOCK_WIDTH=3,
+         DC_SET_WIDTH=8,
+         DC_NUM_WAYS=2):
     """
     Core top module.
     This module use interfaces, for use in an integrated SoC.
 
-    :param clk:    System clock
-    :param rst:    System reset
-    :param imem:   Instruction memory port (Wishbone master)
-    :paran dmem:   Data memory port (Wishbone master)
-    :param toHost: CSR's mtohost register. For simulation purposes.
+    :param clk:            System clock
+    :param rst:            System reset
+    :param imem:           Instruction memory port (Wishbone master)
+    :paran dmem:           Data memory port (Wishbone master)
+    :param toHost:         CSR's mtohost register. For simulation purposes
+    :param IC_BLOCK_WIDTH: Number of bits needed to address the bytes in a line (I$)
+    :param IC_SET_WIDTH:   Number of bits needed to address a cache line (I$)
+    :param IC_NUM_WAYS:    Cache associativity (I$)
+    :param DC_BLOCK_WIDTH: Number of bits needed to address the bytes in a line (D$)
+    :param DC_SET_WIDTH:   Number of bits needed to address a cache line (D$)
+    :param DC_NUM_WAYS:    Cache associativity (D$)
     """
-    ctrl_dpath = CtrlIO()
+    ctrl_dpath   = CtrlIO()
+    icache_flush = Signal(False)
+    dcache_flush = Signal(False)
+    cpu_intercon = WishboneIntercon()
+    mem_intercon = WishboneIntercon()
 
-    dpath = Datapath(clk,
-                     rst,
+    dpath = Datapath(clk_i,
+                     rst_i,
                      ctrl_dpath,
                      toHost)
-    cpath = Ctrlpath(clk,
-                     rst,
+    cpath = Ctrlpath(clk_i,
+                     rst_i,
                      ctrl_dpath,
-                     imem,
-                     dmem)
+                     icache_flush,
+                     dcache_flush,
+                     cpu_intercon,
+                     mem_intercon)
+    icache = ICache(clk_i=clk_i,
+                    rst_i=rst_i,
+                    cpu=cpu_intercon,
+                    mem=imem,
+                    invalidate=icache_flush,
+                    D_WIDTH=32,
+                    BLOCK_WIDTH=IC_BLOCK_WIDTH,
+                    SET_WIDTH=IC_SET_WIDTH,
+                    WAYS=IC_NUM_WAYS,
+                    LIMIT_WIDTH=32)
+    dcache = DCache(clk_i=clk_i,
+                    rst_i=rst_i,
+                    cpu=mem_intercon,
+                    mem=dmem,
+                    invalidate=dcache_flush,
+                    D_WIDTH=32,
+                    BLOCK_WIDTH=DC_BLOCK_WIDTH,
+                    SET_WIDTH=DC_SET_WIDTH,
+                    WAYS=DC_NUM_WAYS,
+                    LIMIT_WIDTH=32)
 
-    return dpath, cpath
+    return dpath, cpath, icache, dcache
 
 
-def CoreHDL(clk,
-            rst,
+def CoreHDL(clk_i,
+            rst_i,
             toHost,
-            imem_clk_i,
-            imem_rst_i,
             imem_addr_o,
             imem_dat_o,
             imem_sel_o,
@@ -72,8 +112,6 @@ def CoreHDL(clk,
             imem_stall_i,
             imem_ack_i,
             imem_err_i,
-            dmem_clk_i,
-            dmem_rst_i,
             dmem_addr_o,
             dmem_dat_o,
             dmem_sel_o,
@@ -84,7 +122,13 @@ def CoreHDL(clk,
             dmem_dat_i,
             dmem_stall_i,
             dmem_ack_i,
-            dmem_err_i):
+            dmem_err_i,
+            IC_BLOCK_WIDTH=3,
+            IC_SET_WIDTH=8,
+            IC_NUM_WAYS=2,
+            DC_BLOCK_WIDTH=3,
+            DC_SET_WIDTH=8,
+            DC_NUM_WAYS=2):
     """
     Core top Module.
     This module use single ports, for verilog translation, and avoid
@@ -93,14 +137,21 @@ def CoreHDL(clk,
 
     imem = WishboneIntercon()
     dmem = WishboneIntercon()
-    core = Core(clk=clk,
-                rst=rst,
+    core = Core(clk_i=clk_i,
+                rst_i=rst_i,
                 toHost=toHost,
                 imem=imem,
-                dmem=dmem)
+                dmem=dmem,
+                IC_BLOCK_WIDTH=IC_BLOCK_WIDTH,
+                IC_SET_WIDTH=IC_SET_WIDTH,
+                IC_NUM_WAYS=IC_NUM_WAYS,
+                DC_BLOCK_WIDTH=DC_BLOCK_WIDTH,
+                DC_SET_WIDTH=DC_SET_WIDTH,
+                DC_NUM_WAYS=DC_NUM_WAYS)
 
     @always_comb
     def assign():
+        # Instruction memory
         imem_addr_o.next = imem.addr
         imem_dat_o.next  = imem.dat_o
         imem_sel_o.next  = imem.sel
@@ -112,9 +163,7 @@ def CoreHDL(clk,
         imem.stall.next  = imem_stall_i
         imem.ack.next    = imem_ack_i
         imem.err.next    = imem_err_i
-        imem.clk.next    = imem_clk_i
-        imem.rst.next    = imem_rst_i
-
+        # Data memory
         dmem_addr_o.next = dmem.addr
         dmem_dat_o.next  = dmem.dat_o
         dmem_sel_o.next  = dmem.sel
@@ -126,8 +175,6 @@ def CoreHDL(clk,
         dmem.stall.next  = dmem_stall_i
         dmem.ack.next    = dmem_ack_i
         dmem.err.next    = dmem_err_i
-        dmem.clk.next    = dmem_clk_i
-        dmem.rst.next    = dmem_rst_i
 
     return core, assign
 

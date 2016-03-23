@@ -20,7 +20,6 @@
 # THE SOFTWARE.
 
 from Simulation.core.memory import Memory
-from Core.wishbone import WishboneSlave
 from Core.wishbone import WishboneIntercon
 from Simulation.modules.ram_bus import RamBus
 import random
@@ -29,6 +28,7 @@ from myhdl import Simulation
 from myhdl import StopSimulation
 from myhdl import Error
 from myhdl import delay
+from myhdl import Signal
 from myhdl import traceSignals
 import pytest
 
@@ -40,7 +40,11 @@ BYTES_X_LINE  = 16
 
 def _testbench():
     rb = RamBus(memory_size=MEM_SIZE >> 2)
-    dut = Memory(imem=rb.imem_intercon,
+    dut = Memory(clka_i=rb.clka,
+                 rsta_i=False,
+                 imem=rb.imem_intercon,
+                 clkb_i=rb.clkb,
+                 rstb_i=False,
                  dmem=rb.dmem_intercon,
                  SIZE=MEM_SIZE,
                  HEX=MEM_TEST_FILE,
@@ -111,23 +115,33 @@ def test_memory_assertions():
     """
     Memory: Test assertions
     """
+    clka = Signal(False)
+    rsta = Signal(False)
+    clkb = Signal(False)
+    rstb = Signal(False)
     imem_intercon = WishboneIntercon()
     dmem_intercon = WishboneIntercon()
-    imem = WishboneSlave(imem_intercon)
-    dmem = WishboneSlave(dmem_intercon)
 
     # Test minimun size
     with pytest.raises(AssertionError):
-        Memory(imem=imem,
-               dmem=dmem,
+        Memory(clka_i=clka,
+               rsta_i=rsta,
+               imem=imem_intercon,
+               clkb_i=clkb,
+               rstb_i=rstb,
+               dmem=dmem_intercon,
                SIZE=20,
                HEX=MEM_TEST_FILE,
                BYTES_X_LINE=BYTES_X_LINE)
 
     # test valid filename
     with pytest.raises(AssertionError):
-        Memory(imem=imem,
-               dmem=dmem,
+        Memory(clka_i=clka,
+               rsta_i=rsta,
+               imem=imem_intercon,
+               clkb_i=clkb,
+               rstb_i=rstb,
+               dmem=dmem_intercon,
                SIZE=MEM_SIZE,
                HEX='ERROR',
                BYTES_X_LINE=BYTES_X_LINE)

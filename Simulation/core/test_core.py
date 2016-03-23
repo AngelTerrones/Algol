@@ -24,7 +24,6 @@ from Simulation.core.memory import Memory
 from Core.wishbone import WishboneIntercon
 from myhdl import instance
 from myhdl import always
-from myhdl import always_comb
 from myhdl import Signal
 from myhdl import delay
 from myhdl import modbv
@@ -34,11 +33,20 @@ from myhdl import traceSignals
 from myhdl import now
 from myhdl import Error
 
+# Constans for simulation.
 TICK_PERIOD = 10
-TIMEOUT = 10000
+TIMEOUT     = 10000
+RESET_TIME  = 5
 
 
 def core_testbench(mem_size, hex_file, bytes_line):
+    """
+    Connect the Core to the simulation memory, using wishbone interconnects.
+    Assert the core for RESET_TIME.
+
+    Finish the test after TIMEOUT units of time, or a write to toHost register.
+    If toHost is different of 1, the test failed.
+    """
     clk = Signal(False)
     rst = Signal(False)
     imem = WishboneIntercon()
@@ -46,12 +54,16 @@ def core_testbench(mem_size, hex_file, bytes_line):
 
     toHost = Signal(modbv(0)[32:])
 
-    dut_core = Core(clk=clk,
-                    rst=rst,
+    dut_core = Core(clk_i=clk,
+                    rst_i=rst,
                     imem=imem,
                     dmem=dmem,
                     toHost=toHost)
-    memory = Memory(imem=imem,
+    memory = Memory(clka_i=clk,
+                    rsta_i=rst,
+                    imem=imem,
+                    clkb_i=clk,
+                    rstb_i=rst,
                     dmem=dmem,
                     SIZE=mem_size,
                     HEX=hex_file,
@@ -61,31 +73,27 @@ def core_testbench(mem_size, hex_file, bytes_line):
     def gen_clock():
         clk.next = not clk
 
-    @always_comb
-    def wb_clk_rst():
-        """
-        Assign the clock to wishbone interconnect.
-        """
-        imem.clk.next = clk
-        imem.rst.next = rst
-        dmem.clk.next = clk
-        dmem.rst.next = rst
-
     @always(toHost)
     def toHost_check():
+        """
+        Wait for a write to toHost register.
+        """
         if toHost != 1:
             raise Error('Test failed. MTOHOST = {0}. Time = {1}'.format(toHost, now()))
         raise StopSimulation
 
     @instance
     def timeout():
+        """
+        Wait until timeout.
+        """
         rst.next = True
-        yield delay(5 * TICK_PERIOD)
+        yield delay(RESET_TIME * TICK_PERIOD)
         rst.next = False
         yield delay(TIMEOUT * TICK_PERIOD)
         raise Error("Test failed: Timeout")
 
-    return dut_core, memory, gen_clock, timeout, toHost_check, wb_clk_rst
+    return dut_core, memory, gen_clock, timeout, toHost_check
 
 
 def test_core(mem_size, hex_file, bytes_line, vcd):
