@@ -135,7 +135,7 @@ class CSRFileRWIO:
         Initializes the IO ports.
         """
         self.addr  = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])  # I: Register address
-        self.cmd   = Signal(modbv(0)[CSRCMD.SZ_CMD:])      # I: command
+        self.cmd   = Signal(modbv(0)[CSRCMD.SZ_CMD:])          # I: command
         self.wdata = Signal(modbv(0)[32:])                     # I: input data
         self.rdata = Signal(modbv(0)[32:])                     # O: output data
 
@@ -188,7 +188,6 @@ def CSR(clk,
     :param prv:            Current priviledge mode (valid at MEM stage)
     :param illegal_access: The RW operation is invalid
     :param toHost:         Connected to the CSR's mtohost register. For simulation purposes.
-    This module is necessary for exception handling.
     """
     # registers
     cycle_full      = Signal(modbv(0)[64:])
@@ -307,9 +306,6 @@ def CSR(clk,
 
     @always_comb
     def _wdata_aux():
-        """
-        Select the write data according to the command.
-        """
         if system_wen:
             if rw.cmd == CSRCMD.CSR_SET:
                 wdata_aux.next = rw.rdata | rw.wdata
@@ -322,9 +318,6 @@ def CSR(clk,
 
     @always_comb
     def _interrupt_code():
-        """
-        Set the interrupt code and flag.
-        """
         interrupt_code.next = CSRExceptionCode.I_TIMER
         if prv == CSRModes.PRV_U:
             interrupt_taken.next = (ie & uinterrupt) | minterrupt
@@ -354,9 +347,6 @@ def CSR(clk,
 
     @always(clk.posedge)
     def _mtip_msip():
-        """
-        Handle the flags for interrupt pending.
-        """
         if rst:
             mtip.next = 0
             msip.next = 0
@@ -371,9 +361,6 @@ def CSR(clk,
 
     @always(clk.posedge)
     def _mtie_msie():
-        """
-        Handle the interrupt enable flags.
-        """
         if rst:
             mtie.next = 0
             msie.next = 0
@@ -383,9 +370,6 @@ def CSR(clk,
 
     @always(clk.posedge)
     def _mepc():
-        """
-        Handle writes to the mepc register.
-        """
         if exc_io.exception | interrupt_taken:
             mepc.next = exc_io.exception_pc & ~0x03
         elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MEPC):
@@ -393,9 +377,6 @@ def CSR(clk,
 
     @always(clk.posedge)
     def _mecode_mint():
-        """
-        Handle writes to the 'mecode' and 'mint' registers.
-        """
         if rst:
             mecode.next = 0
             mint.next = 0
@@ -411,9 +392,6 @@ def CSR(clk,
 
     @always(clk.posedge)
     def _mbadaddr():
-        """
-        Handle writes to the 'mbadaddr' address.
-        """
         if exc_io.exception:
             mbadaddr.next = exc_io.exception_pc if code_imem else exc_io.exception_load_addr
         elif wen_internal & (rw.addr == CSRAddressMap.CSR_ADDR_MBADADDR):
@@ -421,9 +399,6 @@ def CSR(clk,
 
     @always_comb
     def _read():
-        """
-        Read CSR registers.
-        """
         if rw.addr == CSRAddressMap.CSR_ADDR_CYCLE:
             rw.rdata.next = cycle
             defined.next = 1
@@ -517,9 +492,6 @@ def CSR(clk,
 
     @always(clk.posedge)
     def _write():
-        """
-        Handle writes to CSR registers.
-        """
         if rst:
             cycle_full.next   = 0
             time_full.next    = 0

@@ -50,7 +50,7 @@ class CtrlSignals:
     """
     Vectorizes the datapath control signal.
 
-    ISA: RV32I + priviledge instructions v1.7
+    ISA: RV32IM + priviledge instructions v1.7
     """
     # Control signals
     #                  Illegal                                                 Valid memory operation                                           OP1 select
@@ -130,7 +130,7 @@ class CtrlSignals:
 
 class CtrlIO:
     """
-    Defines a bundle for the IO interface between the cpath and the dpath.
+    IO interface between the cpath and the dpath.
 
     :ivar id_instruction:     Intruction at ID stage
     :ivar if_kill:            Kill the IF stage
@@ -174,9 +174,6 @@ class CtrlIO:
     :ivar dmem_pipeline:      Data memory access request from dpath
     """
     def __init__(self):
-        """
-        Initializes the IO ports.
-        """
         self.id_instruction     = Signal(modbv(0)[32:])
         self.if_kill            = Signal(False)
         self.id_stall           = Signal(False)
@@ -221,7 +218,7 @@ class CtrlIO:
 
 class MemDpathIO:
     """
-    Defines the interface for memory accesses from dpath
+    Interface for memory accesses from dpath
 
     :ivar addr:  Memory address
     :ivar wdata: Write data
@@ -316,18 +313,12 @@ def Ctrlpath(clk,
 
     @always_comb
     def _ctrl_assignment():
-        """
-        Get the opcode and funct3 fields from the instruction.
-        """
         opcode.next = io.id_instruction[7:0]
         funct3.next = io.id_instruction[15:12]
         funct7.next = io.id_instruction[32:25]
 
     @always_comb
     def _ctrl_signal_assignment():
-        """
-        Instruction decoding.
-        """
         if opcode == Opcodes.RV32_LUI:
             control.next = CtrlSignals.LUI
         elif opcode == Opcodes.RV32_AUIPC:
@@ -481,8 +472,8 @@ def Ctrlpath(clk,
         """
         Individual assignment of control signals.
 
-        Each signal correspond to slice in the vectored control signal (check CtrlSignals class).
-        Except the 'id_csr_cmd' signal: This signal depends if the control is a CSR_IDLE command.
+        Each signal correspond to a slice in the vectored control signal (check CtrlSignals class).
+        'id_csr_cmd' signal: This signal depends if the control is a CSR_IDLE command.
         If it is an CSR_IDLE command, we need to check 'id_rs1_addr': in case of being equal to zero, the
         command does not write to the CSR, becoming a CSR_READ command.
         """
@@ -505,25 +496,13 @@ def Ctrlpath(clk,
 
     @always_comb
     def _assignments2():
-        """
-        Assign to the 'retire', 'eret', 'id_illegal_inst' and 'id_breakpoint' signals.
-
-        Retire: Increment the executed instruction counter at MEM if the pipeline is not stalled, and
-        the instruction have not caused an exception.
-        Eret: Check the eret flag at MEM, no pipeline stall and priviledge mode other that 'USER'.
-        Illegal instruction: From instruction decode. Complement with illegal access to CSR at MEM stage.
-        Breakpoint: Fom instruction decode.
-        """
         io.csr_retire.next   = not io.full_stall and not io.csr_exception
         io.csr_eret.next     = mem_eret and io.csr_prv != CSRModes.PRV_U and not io.full_stall
         id_illegal_inst.next = control[32]
         id_breakpoint.next   = id_ebreak
 
     @always_comb
-    def _assignments3():
-        """
-        Determines address misalignment.
-        """
+    def _misalign_check():
         if_misalign.next  = (io.imem_pipeline.addr[0] if (io.imem_pipeline.typ == Consts.MT_H) or (io.imem_pipeline.typ == Consts.MT_HU) else
                              ((io.imem_pipeline.addr[0] or io.imem_pipeline.addr[1]) if io.imem_pipeline.typ == Consts.MT_W else
                               (False)))
@@ -532,7 +511,7 @@ def Ctrlpath(clk,
                               (False)))
 
     @always_comb
-    def _assignments4():
+    def _mem_exception_check():
         """
         Check for memory related exceptions.
 
@@ -557,16 +536,12 @@ def Ctrlpath(clk,
 
     @always_comb
     def flush_assign():
+        # This needs to be checked
         icache_flush.next = id_fence_i
         dcache_flush.next = False
 
     @always(clk.posedge)
     def _ifid_register():
-        """
-        Internal pipeline register: IF->ID
-
-        Register the exception signals generated in the IF stage.
-        """
         if rst:
             id_imem_fault.next    = False
             id_imem_misalign.next = False
@@ -628,12 +603,6 @@ def Ctrlpath(clk,
 
     @always(clk.posedge)
     def _exmem_register():
-        """
-        Internal pipeline register: EX->MEM
-
-        Register the (exception) signals coming from the EX stage.
-        This stage does not generates eceptions.
-        """
         if rst:
             mem_breakpoint.next        = False
             mem_eret.next              = False
@@ -651,12 +620,6 @@ def Ctrlpath(clk,
 
     @always(clk.posedge)
     def _memwb_register():
-        """
-        Internal pipeline register: MEM->WB
-
-        Register the memory operation executed at MEM. This is necessary for the correct execution of
-        the FENCE.I instruction.
-        """
         if rst:
             wb_mem_funct.next = False
         else:
@@ -664,9 +627,6 @@ def Ctrlpath(clk,
 
     @always_comb
     def _ecall_assignment():
-        """
-        Check the correct enviroment call.
-        """
         mem_ecall_u.next = io.csr_prv == CSRModes.PRV_U and mem_ecall
         mem_ecall_s.next = io.csr_prv == CSRModes.PRV_S and mem_ecall
         mem_ecall_h.next = io.csr_prv == CSRModes.PRV_H and mem_ecall
@@ -674,11 +634,6 @@ def Ctrlpath(clk,
 
     @always_comb
     def _exc_assignment():
-        """
-        Set the exception flag to the CSR, and the exception code.
-
-        Priority for code assignment: IF > ID > MEM.
-        """
         mem_exception.next      = (mem_exception_ex or mem_ld_misalign or mem_ld_fault or
                                    mem_st_misalign or mem_st_misalign or mem_ecall_u or
                                    mem_ecall_s or mem_ecall_h or mem_ecall_m or mem_breakpoint or
@@ -698,21 +653,12 @@ def Ctrlpath(clk,
 
     @always_comb
     def _branch_detect():
-        """
-        Generate branch conditions: EQ, LT and LTU.
-        """
         id_eq.next  = io.id_op1 == io.id_op2
         id_lt.next  = io.id_op1.signed() < io.id_op2.signed()
         id_ltu.next = io.id_op1 < io.id_op2
 
     @always_comb
     def _pc_select():
-        """
-        Set the control signal for the next PC multiplexer.
-
-        Priority: PC from CSR (exception handler or epc), PC for branch and jump instructions, PC for jump
-        register instructions, and PC + 4.
-        """
         io.pc_select.next = (modbv(Consts.PC_EXC)[Consts.SZ_PC_SEL:] if io.csr_exception or io.csr_eret else
                                   (modbv(Consts.PC_BRJMP)[Consts.SZ_PC_SEL:] if ((id_br_type == Consts.BR_J) or
                                                                                  (id_br_type == Consts.BR_NE and not id_eq) or
@@ -726,12 +672,6 @@ def Ctrlpath(clk,
 
     @always_comb
     def _fwd_ctrl():
-        """
-        Set forwarding controls.
-
-        Rules: the read address is not r0, the read address must match the write address, and the instruction must write to the RF (we == 1).
-        Priority: EX > MEM > WB
-        """
         io.id_fwd1_select.next = (modbv(Consts.FWD_EX)[Consts.SZ_FWD:] if io.id_rs1_addr != 0 and io.id_rs1_addr == io.ex_wb_addr and io.ex_wb_we else
                                        (modbv(Consts.FWD_MEM)[Consts.SZ_FWD:] if io.id_rs1_addr != 0 and io.id_rs1_addr == io.mem_wb_addr and io.mem_wb_we else
                                         (modbv(Consts.FWD_WB)[Consts.SZ_FWD:] if io.id_rs1_addr != 0 and io.id_rs1_addr == io.wb_wb_addr and io.wb_wb_we else
@@ -743,9 +683,6 @@ def Ctrlpath(clk,
 
     @always_comb
     def _ctrl_pipeline():
-        """
-        Set control signals for pipeline registers.
-        """
         imem_stall            = io.imem_pipeline.valid and not cyc_ended and not imem_m.ack_i and not io.csr_exception
         dmem_stall            = io.dmem_pipeline.valid and not dmem_m.ack_i and not io.csr_exception
         io.if_kill.next       = io.pc_select != Consts.PC_4
@@ -758,17 +695,11 @@ def Ctrlpath(clk,
 
     @always_comb
     def _exc_detect():
-        """
-        Connect the internal exception registers to the CSR exception ports.
-        """
         io.csr_exception.next      = mem_exception
         io.csr_exception_code.next = mem_exception_code
 
     @always(clk.posedge)
     def reg_instruction():
-        """
-        Register the instruction at the end of the wishbone cycle.
-        """
         if rst:
             instruction_r.next = Consts.NOP
         else:
@@ -792,9 +723,6 @@ def Ctrlpath(clk,
 
     @always_comb
     def _imem_assignment():
-        """
-        Connect the pipeline imem_m port to the control imem_m port.
-        """
         imem_m.addr_o.next          = io.imem_pipeline.addr
         imem_m.dat_o.next           = io.imem_pipeline.wdata
         imem_m.sel_o.next           = 0b0000  # always read
@@ -802,23 +730,10 @@ def Ctrlpath(clk,
 
     @always_comb
     def _dmem_assignment():
-        """
-        Connect the pipeline dmem_m port to the control dmem_m port.
-        """
         dmem_m.addr_o.next = io.dmem_pipeline.addr
 
     @always_comb
     def _dmem_read_data():
-        """
-        Data convertion from dmem_m to pipeline.
-
-        Generate the correct data type:
-        - Signed byte.
-        - Unsigned byte.
-        - Signed half-word
-        - Unsigned half-word
-        - Word
-        """
         if io.dmem_pipeline.typ[2:0] == Consts.MT_B:
             if io.dmem_pipeline.addr[2:0] == 0:
                 io.dmem_pipeline.rdata.next = dmem_m.dat_i[8:0].signed() if not io.dmem_pipeline.typ[2] else dmem_m.dat_i[8:0]
@@ -838,22 +753,6 @@ def Ctrlpath(clk,
 
     @always_comb
     def _dmem_write_data():
-        """
-        Data convertion from pipeline to dmem_m.
-
-        Generate a pattern to write to memory:
-        - Byte: [b, b, b, b]
-        - Half-word: [h, h]
-        - Word: [w]
-        with the wr signal:
-        - Byte: [b3, b2, b1, b0]
-        - Half-word: [h1, h1, h0, h0]
-        - Word: [1, 1, 1, 1]
-        where:
-        - bx = bytes x, x in [3, 2, 1, 0]
-        - hx = halfword x, x in [1, 0]
-        """
-        # set WR
         if io.dmem_pipeline.fcn == Consts.M_WR:
             dmem_m.sel_o.next = (concat(io.dmem_pipeline.addr[2:0] == 3,
                                         io.dmem_pipeline.addr[2:0] == 2,
@@ -867,7 +766,6 @@ def Ctrlpath(clk,
         else:
             dmem_m.sel_o.next = 0b0000
 
-        # Data to memory
         dmem_m.dat_o.next = (concat(io.dmem_pipeline.wdata[8:0],
                                     io.dmem_pipeline.wdata[8:0],
                                     io.dmem_pipeline.wdata[8:0],

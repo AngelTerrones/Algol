@@ -65,14 +65,11 @@ def DCache(clk_i,
     assert not (WAYS & (WAYS - 1)), "Error: WAYS must be a power of 2"
 
     # --------------------------------------------------------------------------
-    # params
     WAY_WIDTH            = BLOCK_WIDTH + SET_WIDTH  # cache mem address width
     TAG_WIDTH            = LIMIT_WIDTH - WAY_WIDTH  # tag size
-    # width and index for tags
     TAGMEM_WAY_WIDTH     = TAG_WIDTH + 2         # Add the valid and dirty bit
     TAGMEM_WAY_VALID     = TAGMEM_WAY_WIDTH - 2  # Valid bit index
     TAGMEM_WAY_DIRTY     = TAGMEM_WAY_WIDTH - 1  # Dirty bit index
-    # calculate the needed LRU bits (from mor1kx_icache.v)
     TAG_LRU_WIDTH        = (WAYS * (WAYS - 1)) >> 1  # (N*(N-1))/2
     # --------------------------------------------------------------------------
     dc_states = enum('IDLE',
@@ -84,7 +81,7 @@ def DCache(clk_i,
                      'FLUSH1',
                      'FLUSH2',
                      'FLUSH3')
-    # ports to memory
+
     tag_rw_port        = [RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]
     tag_flush_port     = [RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAGMEM_WAY_WIDTH) for i in range(WAYS)]
     tag_lru_rw_port    = RAMIOPort(A_WIDTH=SET_WIDTH, D_WIDTH=TAG_LRU_WIDTH)
@@ -95,7 +92,6 @@ def DCache(clk_i,
     data_cache2       = [cache_update_port[i].data_o for i in range(0, WAYS)]
     tag_entry         = Signal(modbv(0)[TAG_WIDTH:])
 
-    # tag in/out signals: For data assignment
     tag_in            = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
     tag_out           = [Signal(modbv(0)[TAGMEM_WAY_WIDTH:]) for _ in range(0, WAYS)]
     lru_in            = Signal(modbv(0)[TAG_LRU_WIDTH:])
@@ -108,17 +104,14 @@ def DCache(clk_i,
     access_lru        = Signal(modbv(0)[WAYS:])
     lru_pre           = Signal(modbv(0)[WAYS:])
 
-    # flush signals
     flush_addr        = Signal(modbv(0)[SET_WIDTH:])
     flush_we          = Signal(False)
     n_flush_addr      = Signal(modbv(0)[SET_WIDTH:])
     n_flush_we        = Signal(False)
 
-    # refill signals
     dc_update_addr    = Signal(modbv(0)[LIMIT_WIDTH - 2:])
     evict_data        = Signal(modbv(0)[32:])
 
-    # main FSM
     state             = Signal(dc_states.IDLE)
     n_state           = Signal(dc_states.IDLE)
 
@@ -147,9 +140,6 @@ def DCache(clk_i,
 
     @always_comb
     def next_state_logic():
-        """
-        Cache FSM. Set the next state.
-        """
         n_state.next = state
         if state == dc_states.IDLE:
             if invalidate:
@@ -213,9 +203,6 @@ def DCache(clk_i,
 
     @always(clk_i.posedge)
     def update_state():
-        """
-        Register the next state.
-        """
         if rst_i:
             state.next = dc_states.IDLE
         else:
@@ -302,10 +289,6 @@ def DCache(clk_i,
 
     @always_comb
     def tag_rport():
-        """
-        Connect to the Tag memory's R/W port.
-        This includes the lru data.
-        """
         for i in range(WAYS):
             trwp_clk[i].next    = clk_i
             trwp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:BLOCK_WIDTH]
@@ -321,11 +304,6 @@ def DCache(clk_i,
 
     @always_comb
     def tag_write():
-        """
-        Update the tag and lru field.
-        Tag: update when failure.
-        lru: update after refilling or hit.
-        """
         for i in range(0, WAYS):
             tag_in[i].next = tag_out[i]
         tag_we.next = False
@@ -347,9 +325,6 @@ def DCache(clk_i,
 
     @always_comb
     def flush_next_state():
-        """
-        Handles the address for flush operations.
-        """
         n_flush_we.next   = False
         n_flush_addr.next = flush_addr
 
@@ -373,9 +348,6 @@ def DCache(clk_i,
 
     @always(clk_i.posedge)
     def update_addr_fsm():
-        """
-        Handles the address for fetch and evict operations.
-        """
         if rst_i:
             dc_update_addr.next  = 0
         else:
@@ -402,10 +374,6 @@ def DCache(clk_i,
 
     @always_comb
     def tag_flush_port_assign():
-        """
-        Connect to the Tag memory's flush port.
-        This includes the lru data.
-        """
         for i in range(WAYS):
             tfp_clk[i].next    = clk_i
             tfp_addr[i].next   = flush_addr
@@ -419,10 +387,6 @@ def DCache(clk_i,
 
     @always_comb
     def cpu_data_assign():
-        """
-        Assignments to the cpu interface.
-        """
-        # cpu data_in assignment: instruction.
         temp = data_cache[0]
         for i in range(0, WAYS):
             if not miss_w[i]:
@@ -431,18 +395,12 @@ def DCache(clk_i,
 
     @always_comb
     def evict_data_assign():
-        """
-        Get the correct data to be evicted using the LRU unit.
-        """
         for i in range(0, WAYS):
             if lru_select[i]:
                 evict_data.next = data_cache2[i]
 
     @always_comb
     def mem_port_assign():
-        """
-        Assignments to the mem_wbm interface for refill operations.
-        """
         mem_wbm.addr_o.next = concat(dc_update_addr, modbv(0)[2:]) if use_cache else cpu_wbs.addr_i
         mem_wbm.dat_o.next  = evict_data if use_cache else cpu_wbs.dat_i
         mem_wbm.sel_o.next  = modbv(0b1111)[4:] if use_cache else cpu_wbs.sel_i
@@ -455,9 +413,6 @@ def DCache(clk_i,
 
     @always_comb
     def cache_mem_rw():
-        """
-        Connect to the Cache memory's R/W port.
-        """
         for i in range(0, WAYS):
             crp_clk[i].next    = clk_i
             crp_addr[i].next   = cpu_wbs.addr_i[WAY_WIDTH:2]
@@ -475,9 +430,6 @@ def DCache(clk_i,
 
     @always_comb
     def cache_mem_update():
-        """
-        Connect to the Cache memory's refill port.
-        """
         for i in range(0, WAYS):
             cup_clk[i].next    = clk_i
             cup_addr[i].next   = dc_update_addr[WAY_WIDTH - 2:]
@@ -486,18 +438,12 @@ def DCache(clk_i,
 
     @always_comb
     def wbs_cpu_flags():
-        """
-        Wishbone slave trigger signals.
-        """
         cpu_err.next  = mem_wbm.err_i
         cpu_wait.next = miss_w_and or not (state == dc_states.READ or state == dc_states.WRITE) if use_cache else not mem_wbm.ack_i
         cpu_busy.next = False
 
     @always_comb
     def wbm_mem_flags():
-        """
-        Wishbone master trigger signals.
-        """
         mem_read.next  = fetch if use_cache else not cpu_wbs.we_i
         mem_write.next = evict if use_cache else cpu_wbs.we_i
         mem_rmw.next   = False

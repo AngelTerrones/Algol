@@ -56,14 +56,10 @@ def Datapath(clk,
     :param ctrlIO: IO bundle. Interface with the cpath module
     :param toHost: Connected to the CSR's mtohost register. For simulation purposes.
     """
-    # Signals
-    # A stage
     a_pc             = Signal(modbv(0)[32:])
-    # IF stage
     if_pc            = Signal(modbv(0)[32:])
     if_instruction   = Signal(modbv(0)[32:])
     if_pc_next       = Signal(modbv(0)[32:])
-    # ID stage
     id_pc            = Signal(modbv(0)[32:])
     id_instruction   = Signal(modbv(0)[32:])
     id_rf_portA      = RFReadPort()
@@ -82,8 +78,6 @@ def Datapath(clk,
     id_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
     id_csr_wdata     = Signal(modbv(0)[32:])
     id_csr_cmd       = Signal(modbv(0)[CSRCMD.SZ_CMD:])
-
-    # EX stage
     ex_pc            = Signal(modbv(0)[32:])
     ex_data_out      = Signal(modbv(0)[32:])
     ex_alu_funct     = Signal(modbv(0)[ALUOp.SZ_OP:])
@@ -100,8 +94,6 @@ def Datapath(clk,
     ex_csr_addr      = Signal(modbv(0)[CSRAddressMap.SZ_ADDR:])
     ex_csr_wdata     = Signal(modbv(0)[32:])
     ex_csr_cmd       = Signal(modbv(0)[CSRCMD.SZ_CMD:])
-
-    # MEM stage
     exc_pc           = Signal(modbv(0)[32:])
     mem_pc           = Signal(modbv(0)[32:])
     mem_alu_out      = Signal(modbv(0)[32:])
@@ -120,8 +112,6 @@ def Datapath(clk,
     mem_csr_wdata    = Signal(modbv(0)[32:])
     mem_csr_rdata    = Signal(modbv(0)[32:])
     mem_csr_cmd      = Signal(modbv(0)[CSRCMD.SZ_CMD:])
-
-    # WB stage
     wb_pc            = Signal(modbv(0)[32:])
     wb_wb_addr       = Signal(modbv(0)[5:])
     wb_wb_wdata      = Signal(modbv(0)[32:])
@@ -154,7 +144,6 @@ def Datapath(clk,
         ctrlIO.imem_pipeline.addr.next  = if_pc
         if_pc_next.next                 = if_pc + 4
         if_instruction.next             = ctrlIO.imem_pipeline.rdata
-        # --
         ctrlIO.imem_pipeline.wdata.next = 0xDEADC0DE
         ctrlIO.imem_pipeline.typ.next   = Consts.MT_W
         ctrlIO.imem_pipeline.fcn.next   = Consts.M_RD
@@ -170,7 +159,6 @@ def Datapath(clk,
                        ctrlIO.pipeline_kill,
                        if_pc,
                        if_instruction,
-                       # ----------
                        id_pc,
                        id_instruction)
 
@@ -228,7 +216,6 @@ def Datapath(clk,
         id_csr_addr.next               = id_instruction[32:20]
         id_csr_cmd.next                = ctrlIO.id_csr_cmd
         id_csr_wdata.next              = id_instruction[20:15] if id_instruction[14] else id_op1
-        # CSR assignments
         ctrlIO.csr_interrupt.next      = csr_exc_io.interrupt
         ctrlIO.csr_interrupt_code.next = csr_exc_io.interrupt_code
         ctrlIO.id_op1.next             = id_op1
@@ -256,7 +243,6 @@ def Datapath(clk,
                        id_csr_addr,
                        id_csr_wdata,
                        id_csr_cmd,
-                       # ----------
                        ex_pc,
                        ex_op1_data,
                        ex_op2_data,
@@ -306,7 +292,6 @@ def Datapath(clk,
                          ex_csr_addr,
                          ex_csr_wdata,
                          ex_csr_cmd,
-                         # -----
                          mem_pc,
                          mem_alu_out,
                          mem_mem_wdata,
@@ -388,6 +373,7 @@ def Datapath(clk,
             op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
             _ex_assignments, exmem_reg, _mem_assignments, csr, mdata_mux, memwb_reg,
             _wb_assignments, exc_pc_mux)
+
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 120
 # flycheck-flake8rc: ".flake8rc"

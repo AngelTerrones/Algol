@@ -74,21 +74,7 @@ class ALUOp:
 
 
 class ALUPortIO:
-    """
-    Defines the IO port.
-
-    :ivar input1:   Data input
-    :ivar input2:   Data input
-    :ivar function: ALU opcode
-    :ivar stall:
-    :ivar kill:
-    :ivar output:   Data output
-    :ivar req_stall:
-    """
     def __init__(self):
-        """
-        Initializes the IO ports.
-        """
         self.input1    = Signal(modbv(0)[32:])
         self.input2    = Signal(modbv(0)[32:])
         self.function  = Signal(modbv(0)[ALUOp.SZ_OP:])
@@ -190,13 +176,9 @@ def ALU(clk,
         else:
             io.output.next = 0
 
-    mult = Multiplier(clk,
-                      rst,
-                      multIO)
+    mult = Multiplier(clk, rst, multIO)
 
-    div = Divider(clk,
-                  rst,
-                  divIO)
+    div = Divider(clk, rst, divIO)
 
     return rtl, mult, div, _assignments, _mult_ops, _assignments2
 

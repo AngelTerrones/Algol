@@ -127,7 +127,7 @@ def CoreHDL(clk_i,
             DC_NUM_WAYS=2):
     """
     Core top Module.
-    This module use single ports, for verilog translation, and avoid
+    This module use single ports for verilog translation and to avoid
     generating ugly names for top ports.
     """
 
