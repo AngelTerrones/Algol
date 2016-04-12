@@ -145,7 +145,10 @@ def main():
     parser_to_verilog.set_defaults(func=convert_to_verilog)
 
     args = parser.parse_args()
-    args.func(args)
+    try:
+        args.func(args)
+    except AttributeError:
+        parser.print_help()
 
 # Local Variables:
 # flycheck-flake8-maximum-line-length: 200
