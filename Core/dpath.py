@@ -22,6 +22,8 @@
 from myhdl import Signal
 from myhdl import always_comb
 from myhdl import modbv
+from myhdl import always
+from myhdl import instances
 from Core.consts import Consts
 from Core.regfile import RegisterFile
 from Core.regfile import RFReadPort
@@ -37,11 +39,6 @@ from Core.csr import CSRAddressMap
 from Core.imm_gen import IMMGen
 from Core.mux import Mux4
 from Core.mux import Mux2
-from Core.pc_reg import PCreg
-from Core.ifid_reg import IFIDReg
-from Core.idex_reg import IDEXReg
-from Core.exmem_reg import EXMEMReg
-from Core.memwb_reg import MEMWBReg
 
 
 def Datapath(clk,
@@ -118,26 +115,24 @@ def Datapath(clk,
     wb_wb_we         = Signal(False)
     wb_rf_writePort  = RFWritePort()
 
-    # ----------------------------------------------------------------------
-    # Build the pipeline.
-    # ----------------------------------------------------------------------
     # A stage
     # ----------------------------------------------------------------------
-    pc_mux = Mux4(ctrlIO.pc_select,
+    pc_mux = Mux4(ctrlIO.pc_select,  # noqa
                   if_pc_next,
                   id_pc_brjmp,
                   id_pc_jalr,
                   exc_pc,
                   a_pc)
+
     # IF stage
     # ----------------------------------------------------------------------
-    pc_reg = PCreg(clk,
-                   rst,
-                   ctrlIO.id_stall,
-                   ctrlIO.full_stall,
-                   ctrlIO.pipeline_kill,
-                   a_pc,
-                   if_pc)
+    @always(clk.posedge)
+    def pc():
+        if rst == 1:
+            if_pc.next = Consts.START_ADDR
+        else:
+            if (not ctrlIO.id_stall and not ctrlIO.full_stall) | ctrlIO.pipeline_kill:
+                if_pc.next = a_pc
 
     @always_comb
     def _pc_next():
@@ -151,48 +146,48 @@ def Datapath(clk,
 
     # ID stage
     # ----------------------------------------------------------------------
-    ifid_reg = IFIDReg(clk,
-                       rst,
-                       ctrlIO.id_stall,
-                       ctrlIO.full_stall,
-                       ctrlIO.if_kill,
-                       ctrlIO.pipeline_kill,
-                       if_pc,
-                       if_instruction,
-                       id_pc,
-                       id_instruction)
+    @always(clk.posedge)
+    def ifid():
+        if rst == 1:
+            id_pc.next          = 0
+            id_instruction.next = Consts.BUBBLE
+        else:
+            id_pc.next          = (id_pc if ctrlIO.id_stall or ctrlIO.full_stall else (if_pc))
+            id_instruction.next = (id_instruction if ctrlIO.id_stall or ctrlIO.full_stall else
+                                   (Consts.BUBBLE if ctrlIO.pipeline_kill or ctrlIO.if_kill else
+                                    (if_instruction)))
 
-    reg_file = RegisterFile(clk,
+    reg_file = RegisterFile(clk,  # noqa
                             id_rf_portA,
                             id_rf_portB,
                             wb_rf_writePort)
 
-    op1_data_fwd = Mux4(ctrlIO.id_fwd1_select,
+    op1_data_fwd = Mux4(ctrlIO.id_fwd1_select,  # noqa
                         id_rs1_data,
                         ex_data_out,
                         mem_wb_wdata,
                         wb_wb_wdata,
                         id_op1)
 
-    op2_data_fwd = Mux4(ctrlIO.id_fwd2_select,
+    op2_data_fwd = Mux4(ctrlIO.id_fwd2_select,  # noqa
                         id_rs2_data,
                         ex_data_out,
                         mem_wb_wdata,
                         wb_wb_wdata,
                         id_op2)
 
-    imm_gen = IMMGen(ctrlIO.id_sel_imm,
+    imm_gen = IMMGen(ctrlIO.id_sel_imm,  # noqa
                      id_instruction,
                      id_imm)
 
-    op1_mux = Mux4(ctrlIO.id_op1_select,
+    op1_mux = Mux4(ctrlIO.id_op1_select,  # noqa
                    id_op1,
                    id_pc,
                    0x00000000,
                    0x00000BAD,
                    id_op1_data)
 
-    op2_mux = Mux4(ctrlIO.id_op2_select,
+    op2_mux = Mux4(ctrlIO.id_op2_select,  # noqa
                    id_op2,
                    id_imm,
                    0x00000004,
@@ -223,44 +218,48 @@ def Datapath(clk,
 
     # EX stage
     # ----------------------------------------------------------------------
-    idex_reg = IDEXReg(clk,
-                       rst,
-                       ctrlIO.id_stall,
-                       ctrlIO.full_stall,
-                       ctrlIO.id_kill,
-                       ctrlIO.pipeline_kill,
-                       id_pc,
-                       id_op1_data,
-                       id_op2_data,
-                       ctrlIO.id_alu_funct,
-                       ctrlIO.id_mem_type,
-                       ctrlIO.id_mem_funct,
-                       ctrlIO.id_mem_valid,
-                       id_mem_wdata,
-                       ctrlIO.id_mem_data_sel,
-                       id_wb_addr,
-                       ctrlIO.id_wb_we,
-                       id_csr_addr,
-                       id_csr_wdata,
-                       id_csr_cmd,
-                       ex_pc,
-                       ex_op1_data,
-                       ex_op2_data,
-                       ex_alu_funct,
-                       ex_mem_type,
-                       ex_mem_funct,
-                       ex_mem_valid,
-                       ex_mem_wdata,
-                       ex_mem_data_sel,
-                       ex_wb_addr,
-                       ex_wb_we,
-                       ex_csr_addr,
-                       ex_csr_wdata,
-                       ex_csr_cmd)
+    @always(clk.posedge)
+    def idex():
+        if rst == 1:
+            ex_pc.next           = 0
+            ex_op1_data.next     = 0
+            ex_op2_data.next     = 0
+            ex_alu_funct.next    = ALUOp.OP_ADD
+            ex_mem_type.next     = Consts.MT_X
+            ex_mem_funct.next    = Consts.M_X
+            ex_mem_valid.next    = False
+            ex_mem_wdata.next    = 0
+            ex_mem_data_sel.next = Consts.WB_X
+            ex_wb_addr.next      = 0
+            ex_wb_we.next        = False
+            ex_csr_addr.next     = 0
+            ex_csr_wdata.next    = 0
+            ex_csr_cmd.next      = CSRCMD.CSR_IDLE
+        else:
+            ex_pc.next           = (ex_pc if (ctrlIO.id_stall or ctrlIO.full_stall) else (id_pc))
+            ex_op1_data.next     = (ex_op1_data if (ctrlIO.id_stall or ctrlIO.full_stall) else (id_op1_data))
+            ex_op2_data.next     = (ex_op2_data if (ctrlIO.id_stall or ctrlIO.full_stall) else (id_op2_data))
+            ex_alu_funct.next    = (ex_alu_funct if (ctrlIO.id_stall or ctrlIO.full_stall) else (ctrlIO.id_alu_funct))
+            ex_mem_type.next     = (ex_mem_type if (ctrlIO.id_stall or ctrlIO.full_stall) else (ctrlIO.id_mem_type))
+            ex_mem_wdata.next    = (ex_mem_wdata if (ctrlIO.id_stall or ctrlIO.full_stall) else (id_mem_wdata))
+            ex_mem_data_sel.next = (ex_mem_data_sel if (ctrlIO.id_stall or ctrlIO.full_stall) else (ctrlIO.id_mem_data_sel))
+            ex_wb_addr.next      = (ex_wb_addr if (ctrlIO.id_stall or ctrlIO.full_stall) else (id_wb_addr))
+            ex_csr_addr.next     = (ex_csr_addr if (ctrlIO.id_stall or ctrlIO.full_stall) else (id_csr_addr))
+            ex_csr_wdata.next    = (ex_csr_wdata if (ctrlIO.id_stall or ctrlIO.full_stall) else (id_csr_wdata))
+            ex_mem_funct.next    = (ex_mem_funct if ctrlIO.full_stall else
+                                    (Consts.M_X if (ctrlIO.pipeline_kill or ctrlIO.id_kill or (ctrlIO.id_stall and not ctrlIO.full_stall)) else
+                                     (ctrlIO.id_mem_funct)))
+            ex_mem_valid.next    = (ex_mem_valid if ctrlIO.full_stall else
+                                    (False if (ctrlIO.pipeline_kill or ctrlIO.id_kill or (ctrlIO.id_stall and not ctrlIO.full_stall)) else
+                                     (ctrlIO.id_mem_valid)))
+            ex_wb_we.next        = (ex_wb_we if ctrlIO.full_stall else
+                                    (False if (ctrlIO.pipeline_kill or ctrlIO.id_kill or (ctrlIO.id_stall and not ctrlIO.full_stall)) else
+                                     (ctrlIO.id_wb_we)))
+            ex_csr_cmd.next      = (ex_csr_cmd if ctrlIO.full_stall else
+                                    (modbv(CSRCMD.CSR_IDLE)[CSRCMD.SZ_CMD:] if (ctrlIO.pipeline_kill or ctrlIO.id_kill or (ctrlIO.id_stall and not ctrlIO.full_stall)) else
+                                     (id_csr_cmd)))
 
-    alu = ALU(clk,
-              rst,
-              aluIO)
+    alu = ALU(clk, rst, aluIO)  # noqa
 
     @always_comb
     def _ex_assignments():
@@ -276,36 +275,36 @@ def Datapath(clk,
 
     # MEM stage
     # ----------------------------------------------------------------------
-    exmem_reg = EXMEMReg(clk,
-                         rst,
-                         ctrlIO.full_stall,
-                         ctrlIO.pipeline_kill,
-                         ex_pc,
-                         ex_data_out,
-                         ex_mem_wdata,
-                         ex_mem_type,
-                         ex_mem_funct,
-                         ex_mem_valid,
-                         ex_mem_data_sel,
-                         ex_wb_addr,
-                         ex_wb_we,
-                         ex_csr_addr,
-                         ex_csr_wdata,
-                         ex_csr_cmd,
-                         mem_pc,
-                         mem_alu_out,
-                         mem_mem_wdata,
-                         mem_mem_type,
-                         mem_mem_funct,
-                         mem_mem_valid,
-                         mem_mem_data_sel,
-                         mem_wb_addr,
-                         mem_wb_we,
-                         mem_csr_addr,
-                         mem_csr_wdata,
-                         mem_csr_cmd)
+    @always(clk.posedge)
+    def exmem():
+        if rst == 1:
+            mem_pc.next           = 0
+            mem_mem_valid.next    = False
+            mem_alu_out.next      = 0
+            mem_mem_wdata.next    = 0
+            mem_mem_type.next     = Consts.MT_X
+            mem_mem_funct.next    = Consts.M_X
+            mem_mem_data_sel.next = Consts.WB_X
+            mem_wb_addr.next      = 0
+            mem_wb_we.next        = False
+            mem_csr_addr.next     = 0
+            mem_csr_wdata.next    = 0
+            mem_csr_cmd.next      = CSRCMD.CSR_IDLE
+        else:
+            mem_pc.next           = (mem_pc if ctrlIO.full_stall else ex_pc)
+            mem_alu_out.next      = (mem_alu_out if ctrlIO.full_stall else ex_data_out)
+            mem_mem_wdata.next    = (mem_mem_wdata if ctrlIO.full_stall else ex_mem_wdata)
+            mem_mem_type.next     = (mem_mem_type if ctrlIO.full_stall else ex_mem_type)
+            mem_mem_funct.next    = (mem_mem_funct if ctrlIO.full_stall else ex_mem_funct)
+            mem_mem_data_sel.next = (mem_mem_data_sel if ctrlIO.full_stall else ex_mem_data_sel)
+            mem_wb_addr.next      = (mem_wb_addr if ctrlIO.full_stall else ex_wb_addr)
+            mem_csr_addr.next     = (mem_csr_addr if ctrlIO.full_stall else ex_csr_addr)
+            mem_csr_wdata.next    = (mem_csr_wdata if ctrlIO.full_stall else ex_csr_wdata)
+            mem_mem_valid.next    = (mem_mem_valid if ctrlIO.full_stall else (False if ctrlIO.pipeline_kill else ex_mem_valid))
+            mem_wb_we.next        = (mem_wb_we if ctrlIO.full_stall else (False if ctrlIO.pipeline_kill else ex_wb_we))
+            mem_csr_cmd.next      = (mem_csr_cmd if (ctrlIO.full_stall) else (modbv(CSRCMD.CSR_IDLE)[CSRCMD.SZ_CMD:] if ctrlIO.pipeline_kill else ex_csr_cmd))
 
-    csr = CSR(clk,
+    csr = CSR(clk,  # noqa
               rst,
               csr_rw,
               csr_exc_io,
@@ -314,14 +313,14 @@ def Datapath(clk,
               ctrlIO.csr_illegal_access,
               toHost)
 
-    mdata_mux = Mux4(mem_mem_data_sel,
+    mdata_mux = Mux4(mem_mem_data_sel,  # noqa
                      mem_alu_out,
                      mem_mem_data,
                      mem_csr_rdata,
                      0x0BADF00D,
                      mem_wb_wdata)
 
-    exc_pc_mux = Mux2(ctrlIO.csr_eret,
+    exc_pc_mux = Mux2(ctrlIO.csr_eret,  # noqa
                       csr_exc_io.exception_handler,
                       csr_exc_io.epc,
                       exc_pc)
@@ -348,18 +347,18 @@ def Datapath(clk,
 
     # WB stage
     # ----------------------------------------------------------------------
-    memwb_reg = MEMWBReg(clk,
-                         rst,
-                         ctrlIO.full_stall,
-                         ctrlIO.pipeline_kill,
-                         mem_pc,
-                         mem_wb_addr,
-                         mem_wb_wdata,
-                         mem_wb_we,
-                         wb_pc,
-                         wb_wb_addr,
-                         wb_wb_wdata,
-                         wb_wb_we)
+    @always(clk.posedge)
+    def memwb():
+        if rst == 1:
+            wb_pc.next       = 0
+            wb_wb_addr.next  = 0
+            wb_wb_wdata.next = 0
+            wb_wb_we.next    = False
+        else:
+            wb_pc.next       = (wb_pc if ctrlIO.full_stall else mem_pc)
+            wb_wb_addr.next  = (wb_wb_addr if ctrlIO.full_stall else mem_wb_addr)
+            wb_wb_wdata.next = (wb_wb_wdata if ctrlIO.full_stall else mem_wb_wdata)
+            wb_wb_we.next    = (wb_wb_we if ctrlIO.full_stall else (False if ctrlIO.pipeline_kill else mem_wb_we))
 
     @always_comb
     def _wb_assignments():
@@ -369,12 +368,9 @@ def Datapath(clk,
         ctrlIO.wb_wb_we.next    = wb_wb_we
         ctrlIO.wb_wb_addr.next  = wb_wb_addr
 
-    return (pc_mux, pc_reg, _pc_next, ifid_reg, reg_file, op1_mux, op2_mux,
-            op1_data_fwd, op2_data_fwd, imm_gen, _id_assignment, idex_reg, alu,
-            _ex_assignments, exmem_reg, _mem_assignments, csr, mdata_mux, memwb_reg,
-            _wb_assignments, exc_pc_mux)
+    return instances()
 
 # Local Variables:
-# flycheck-flake8-maximum-line-length: 120
+# flycheck-flake8-maximum-line-length: 200
 # flycheck-flake8rc: ".flake8rc"
 # End:
