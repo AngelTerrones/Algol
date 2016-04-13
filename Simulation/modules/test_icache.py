@@ -140,7 +140,11 @@ def test_cache():
     Cache: Test loading from memory
     """
     gen_test_file()
-    sim = Simulation(traceSignals(_testbench))
+    trace = False
+    if trace:
+        sim = Simulation(traceSignals(_testbench))
+    else:
+        sim = Simulation(_testbench())
     sim.run()
 
 
