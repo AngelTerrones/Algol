@@ -26,7 +26,6 @@ from myhdl import modbv
 from myhdl import always_comb
 from myhdl import always
 from myhdl import instances
-from myhdl import concat
 from myhdl import enum
 from Core.wishbone import WishboneSlave
 from Core.wishbone import WishboneSlaveGenerator
@@ -49,8 +48,7 @@ def LoadMemory(size_mem,
         lines = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(word_x_line - 1, -1, -1)]
 
     for addr in range(size_mem >> 2):
-        data = int(lines[addr], 16)
-        memory[addr] = Signal(modbv(data)[32:])
+        memory[addr] = int(lines[addr], 16)
 
 
 def Memory(clka_i,
@@ -171,10 +169,10 @@ def Memory(clka_i,
             we            = imem_s.sel_i
             data          = imem_s.dat_i
             i_data_o.next = imem_s.dat_i
-            _memory[_imem_addr].next = concat(data[32:24] if we[3] else _memory[_imem_addr][32:24],
-                                              data[24:16] if we[2] else _memory[_imem_addr][24:16],
-                                              data[16:8] if we[1] else _memory[_imem_addr][16:8],
-                                              data[8:0] if we[0] else _memory[_imem_addr][8:0])
+            _memory[_imem_addr] = ((data if we[3] else _memory[_imem_addr]) & 0xFF000000 |
+                                   (data if we[2] else _memory[_imem_addr]) & 0x00FF0000 |
+                                   (data if we[1] else _memory[_imem_addr]) & 0x0000FF00 |
+                                   (data if we[0] else _memory[_imem_addr]) & 0x000000FF)
 
     @always(clkb_i.posedge)
     def dmem_rtl():
@@ -184,10 +182,10 @@ def Memory(clka_i,
             we            = dmem_s.sel_i
             data          = dmem_s.dat_i
             d_data_o.next = dmem_s.dat_i
-            _memory[_dmem_addr].next = concat(data[32:24] if we[3] else _memory[_dmem_addr][32:24],
-                                              data[24:16] if we[2] else _memory[_dmem_addr][24:16],
-                                              data[16:8] if we[1] else _memory[_dmem_addr][16:8],
-                                              data[8:0] if we[0] else _memory[_dmem_addr][8:0])
+            _memory[_dmem_addr] = ((data if we[3] else _memory[_dmem_addr]) & 0xFF000000 |
+                                   (data if we[2] else _memory[_dmem_addr]) & 0x00FF0000 |
+                                   (data if we[1] else _memory[_dmem_addr]) & 0x0000FF00 |
+                                   (data if we[0] else _memory[_dmem_addr]) & 0x000000FF)
 
     return instances()
 
