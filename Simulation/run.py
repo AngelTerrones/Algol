@@ -45,9 +45,9 @@ def run_simulation(args):
         pytest.main(['-v', '--tb=line', 'Simulation/core/test_core.py', '--all'])
     else:
         if args.vcd:
-            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--hex_file', args.file, '--vcd'])
+            pytest.main(['-s', '-v', '--tb=short', 'Simulation/core/test_core.py', '--hex_file', args.file, '--vcd'])
         else:
-            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--hex_file', args.file])
+            pytest.main(['-s', '-v', '--tb=short', 'Simulation/core/test_core.py', '--hex_file', args.file])
 
 
 def list_module_test():

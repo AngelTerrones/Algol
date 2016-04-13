@@ -53,7 +53,7 @@ def core_testbench(hex_file):
     Finish the test after TIMEOUT units of time, or a write to toHost register.
     If toHost is different of 1, the test failed.
     """
-    clk = Signal(False)
+    clk = Signal(True)
     rst = Signal(False)
     imem = WishboneIntercon()
     dmem = WishboneIntercon()
@@ -98,6 +98,7 @@ def core_testbench(hex_file):
         """
         if toHost != 1:
             raise Error('Test failed. MTOHOST = {0}. Time = {1}'.format(toHost, now()))
+        print("Time: {0}".format(now()))
         raise StopSimulation
 
     @instance
