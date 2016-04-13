@@ -40,16 +40,14 @@ def run_module(args):
 
 def run_simulation(args):
     if args.all:
-        assert not int(args.bytes_line) & (int(args.bytes_line) - 1), "Number of bytes por line must be a power of 2"
         if args.vcd:
             print("Ignoring the vcd flag")
-        pytest.main(['-v', '--tb=line', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--all', '--bytes_line', args.bytes_line])
+        pytest.main(['-v', '--tb=line', 'Simulation/core/test_core.py', '--all'])
     else:
-        assert not int(args.bytes_line) & (int(args.bytes_line) - 1), "Number of bytes por line must be a power of 2"
         if args.vcd:
-            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line, '--vcd'])
+            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--hex_file', args.file, '--vcd'])
         else:
-            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--mem_size', args.mem_size, '--hex_file', args.file, '--bytes_line', args.bytes_line])
+            pytest.main(['-v', '--tb=short', 'Simulation/core/test_core.py', '--hex_file', args.file])
 
 
 def list_module_test():
@@ -127,8 +125,6 @@ def main():
     group_core1 = parser_core.add_mutually_exclusive_group(required=True)
     group_core1.add_argument('-f', '--file', help='Run a specific test')
     group_core1.add_argument('-a', '--all', help='Run all tests', action='store_true')
-    parser_core.add_argument('mem_size', help='Memory size in bytes')
-    parser_core.add_argument('bytes_line', help='Number of bytes per line in the HEX file')
     parser_core.add_argument('--vcd', action='store_true', help='Generate VCD files')
     parser_core.set_defaults(func=run_simulation)
 

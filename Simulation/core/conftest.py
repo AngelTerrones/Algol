@@ -26,27 +26,19 @@ def auto_int(value):
 
 
 def pytest_addoption(parser):
-    parser.addoption('--mem_size', type=auto_int, action='append', default=[],
-                     help='Memory size in bytes')
     parser.addoption('--hex_file', type=str, action='append', default=[],
                      help='Memory image in HEX format')
-    parser.addoption('--bytes_line', type=auto_int, action='append', default=[],
-                     help='Number of bytes por line in the HEX file')
     parser.addoption('--all', action='store_true', default=False, help='Run all RV32 tests')
     parser.addoption('--vcd', action='store_true', default=False, help='Generate VCD files')
 
 
 def pytest_generate_tests(metafunc):
-    if 'mem_size' in metafunc.fixturenames:
-        metafunc.parametrize('mem_size', metafunc.config.option.mem_size)
     if 'hex_file' in metafunc.fixturenames:
         if metafunc.config.option.all:
             list_hex = glob.glob("Simulation/tests/rv32ui-*.hex")
             metafunc.parametrize('hex_file', list_hex)
         else:
             metafunc.parametrize('hex_file', metafunc.config.option.hex_file)
-    if 'bytes_line' in metafunc.fixturenames:
-        metafunc.parametrize('bytes_line', metafunc.config.option.bytes_line)
     if 'vcd' in metafunc.fixturenames:
         metafunc.parametrize('vcd', [metafunc.config.option.vcd])
 

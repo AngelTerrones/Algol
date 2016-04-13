@@ -32,6 +32,12 @@ from myhdl import StopSimulation
 from myhdl import traceSignals
 from myhdl import now
 from myhdl import Error
+import sys
+
+if sys.version_info[0] < 3:
+    import ConfigParser as cp
+else:
+    import configparser as cp
 
 # Constans for simulation.
 TICK_PERIOD = 10
@@ -39,7 +45,7 @@ TIMEOUT     = 10000
 RESET_TIME  = 5
 
 
-def core_testbench(mem_size, hex_file, bytes_line):
+def core_testbench(hex_file):
     """
     Connect the Core to the simulation memory, using wishbone interconnects.
     Assert the core for RESET_TIME.
@@ -54,20 +60,32 @@ def core_testbench(mem_size, hex_file, bytes_line):
 
     toHost = Signal(modbv(0)[32:])
 
+    config = cp.ConfigParser()
+    config.read('Simulation/core/algol.ini')
+
     dut_core = Core(clk_i=clk,
                     rst_i=rst,
                     imem=imem,
                     dmem=dmem,
-                    toHost=toHost)
+                    toHost=toHost,
+                    IC_ENABLE=config.getboolean('ICache', 'Enable'),
+                    IC_BLOCK_WIDTH=config.getint('ICache', 'BlockWidth'),
+                    IC_SET_WIDTH=config.getint('ICache', 'SetWidth'),
+                    IC_NUM_WAYS=config.getint('ICache', 'Ways'),
+                    DC_ENABLE=config.getboolean('DCache', 'Enable'),
+                    DC_BLOCK_WIDTH=config.getint('DCache', 'BlockWidth'),
+                    DC_SET_WIDTH=config.getint('DCache', 'SetWidth'),
+                    DC_NUM_WAYS=config.getint('DCache', 'Ways'))
+
     memory = Memory(clka_i=clk,
                     rsta_i=rst,
                     imem=imem,
                     clkb_i=clk,
                     rstb_i=rst,
                     dmem=dmem,
-                    SIZE=mem_size,
+                    SIZE=int(config.get('Memory', 'Size'), 16),
                     HEX=hex_file,
-                    BYTES_X_LINE=bytes_line)
+                    BYTES_X_LINE=config.getint('Memory', 'Bytes_x_line'))
 
     @always(delay(int(TICK_PERIOD / 2)))
     def gen_clock():
@@ -96,15 +114,15 @@ def core_testbench(mem_size, hex_file, bytes_line):
     return dut_core, memory, gen_clock, timeout, toHost_check
 
 
-def test_core(mem_size, hex_file, bytes_line, vcd):
+def test_core(hex_file, vcd):
     """
     Core: Behavioral test for the RISCV core.
     """
     if vcd:
-        vcd = traceSignals(core_testbench, mem_size, hex_file, bytes_line)
+        vcd = traceSignals(core_testbench, hex_file,)
         sim = Simulation(vcd)
     else:
-        sim = Simulation(core_testbench(mem_size, hex_file, bytes_line))
+        sim = Simulation(core_testbench(hex_file))
 
     sim.run()
 
