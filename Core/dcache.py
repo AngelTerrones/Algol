@@ -446,8 +446,8 @@ def DCache(clk_i,
 
         @always_comb
         def wbm_mem_flags():
-            mem_read.next  = fetch if use_cache else not cpu_wbs.we_i
-            mem_write.next = evict if use_cache else cpu_wbs.we_i
+            mem_read.next  = fetch if use_cache else not cpu_wbs.we_i and cpu_wbs.cyc_i
+            mem_write.next = evict if use_cache else cpu_wbs.we_i and cpu_wbs.cyc_i
             mem_rmw.next   = False
 
         # Remove warnings: Signal is driven but not read
