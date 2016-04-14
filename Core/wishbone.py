@@ -183,7 +183,6 @@ class WishboneMasterGenerator():
                             self.wbm_state.next = self.wbm_states_t.WBM_RMW_RD_WAIT
                 elif self.wbm_state == self.wbm_states_t.WBM_INCYCLE:
                     # Current cycle in progress, but inactive.
-                    # CYC_O is asserted, and STB_O is deasserted.
                     if trig_vector == 0:
                         self.wbm_state.next = self.wbm_states_t.WBM_IDLE
                     else:
@@ -254,10 +253,14 @@ class WishboneMasterGenerator():
             # CYC generation
             if self.wbm_state == self.wbm_states_t.WBM_IDLE:
                 self.wbmsig.cyc_o.next = False
+            elif self.wbm_state == self.wbm_states_t.WBM_INCYCLE and not self.flagread:
+                self.wbmsig.cyc_o.next = False
             else:
                 self.wbmsig.cyc_o.next = True
             # STB generation
-            if self.wbm_state == self.wbm_states_t.WBM_IDLE or self.wbm_state == self.wbm_states_t.WBM_INCYCLE or self.wbm_state == self.wbm_states_t.WBM_RMW_MID_WAIT:
+            if self.wbm_state == self.wbm_states_t.WBM_IDLE or self.wbm_state == self.wbm_states_t.WBM_RMW_MID_WAIT:
+                self.wbmsig.stb_o.next = False
+            elif self.wbm_state == self.wbm_states_t.WBM_INCYCLE and not self.flagread:
                 self.wbmsig.stb_o.next = False
             else:
                 self.wbmsig.stb_o.next = True

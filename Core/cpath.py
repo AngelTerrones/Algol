@@ -785,8 +785,9 @@ def Ctrlpath(clk,
 
     @always_comb
     def iwbm_trigger():
-        im_flagread.next  = not io.imem_pipeline.fcn and io.imem_pipeline.valid and not cyc_ended and not imem_m.ack_i and not io.csr_exception
-        im_flagwrite.next = io.imem_pipeline.fcn and io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
+        # Flag read: ignore ack signal: keep reading
+        im_flagread.next  = not io.imem_pipeline.fcn and io.imem_pipeline.valid and not cyc_ended and not io.csr_exception
+        im_flagwrite.next = False  # io.imem_pipeline.fcn and io.imem_pipeline.valid and not imem_m.ack_i and not io.csr_exception
         im_flagrmw.next   = False
 
     @always_comb
