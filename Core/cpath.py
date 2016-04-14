@@ -792,7 +792,7 @@ def Ctrlpath(clk,
 
     @always_comb
     def dwbm_trigger():
-        dm_flagread.next  = not io.dmem_pipeline.fcn and io.dmem_pipeline.valid and not dmem_m.ack_i and not io.csr_exception
+        dm_flagread.next  = not io.dmem_pipeline.fcn and io.dmem_pipeline.valid and not io.csr_exception
         dm_flagwrite.next = io.dmem_pipeline.fcn and io.dmem_pipeline.valid and not dmem_m.ack_i and not io.csr_exception
         dm_flagrmw.next   = False
 

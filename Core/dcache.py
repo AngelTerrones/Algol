@@ -476,13 +476,15 @@ def DCache(clk_i,
             mem.addr.next  = cpu.addr
             mem.dat_o.next = cpu.dat_o
             mem.sel.next   = cpu.sel
-            mem.cyc.next   = cpu.cyc
             mem.we.next    = cpu.we
-            mem.stb.next   = cpu.stb
-            cpu.ack.next   = mem.ack
             cpu.dat_i.next = mem.dat_i
+            cpu.ack.next   = mem.ack
             cpu.err.next   = mem.err
 
+        @always(clk_i.posedge)
+        def classic_cycle():
+            mem.cyc.next   = cpu.cyc if not mem.ack else False
+            mem.stb.next   = cpu.stb if not mem.ack else False
         return instances()
 
 # Local Variables:
