@@ -35,7 +35,8 @@ def pytest_addoption(parser):
 def pytest_generate_tests(metafunc):
     if 'hex_file' in metafunc.fixturenames:
         if metafunc.config.option.all:
-            list_hex = glob.glob("Simulation/tests/rv32ui-*.hex")
+            list_hex = glob.glob("Simulation/tests/rv32mi-p-*.hex")
+            list_hex = list_hex + glob.glob("Simulation/tests/rv32ui-*.hex")
             metafunc.parametrize('hex_file', list_hex)
         else:
             metafunc.parametrize('hex_file', metafunc.config.option.hex_file)
