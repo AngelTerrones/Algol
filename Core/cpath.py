@@ -485,7 +485,7 @@ def Ctrlpath(clk,
         io.id_mem_type.next     = control[19:16]
         io.id_mem_funct.next    = control[19]
         io.id_mem_valid.next    = control[20]
-        io.id_csr_cmd.next      = control[24:21] if (control[24:21] == CSRCMD.CSR_IDLE or io.id_rs1_addr != 0) else modbv(CSRCMD.CSR_READ)[CSRCMD.SZ_CMD:]
+        io.id_csr_cmd.next      = (modbv(CSRCMD.CSR_READ)[CSRCMD.SZ_CMD:] if (control[24:21] != CSRCMD.CSR_IDLE and funct3 != SystemFunct3.RV32_F3_CSRRW and io.id_rs1_addr == 0) else control[24:21])
         io.id_mem_data_sel.next = control[26:24]
         io.id_wb_we.next        = control[26]
         id_eret.next            = control[27]

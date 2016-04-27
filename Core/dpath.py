@@ -311,6 +311,7 @@ def Datapath(clk,
               ctrlIO.csr_retire,
               ctrlIO.csr_prv,
               ctrlIO.csr_illegal_access,
+              ctrlIO.full_stall,
               toHost)
 
     mdata_mux = Mux4(mem_mem_data_sel,  # noqa

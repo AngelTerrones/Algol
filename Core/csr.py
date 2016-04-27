@@ -176,6 +176,7 @@ def CSR(clk,
         retire,
         prv,
         illegal_access,
+        stall,
         toHost):
     """
     The Control and Status Registers (CSR)
@@ -268,7 +269,7 @@ def CSR(clk,
         illegal_access.next            = illegal_region or (system_en and (not defined))
         exc_io.epc.next                = mepc
         ie.next                        = priv_stack[0]
-        wen_internal.next              = system_wen
+        wen_internal.next              = system_wen and not stall
         uinterrupt.next                = 0
         minterrupt.next                = mtie & mtimer_expired
         mcpuid.next                    = (1 << 20) | (1 << 8)  # RV32I, support for U mode
@@ -292,7 +293,7 @@ def CSR(clk,
         prv.next            = priv_stack[3:1]
         mtimer_expired.next = mtimecmp == mtime
         system_en.next      = rw.cmd[2]
-        system_wen.next     = rw.cmd[0] | rw.cmd[1]
+        system_wen.next     = (rw.cmd[0] | rw.cmd[1])
 
     @always_comb
     def assigments3():
@@ -306,7 +307,7 @@ def CSR(clk,
 
     @always_comb
     def _wdata_aux():
-        if system_wen:
+        if system_wen and not stall:
             if rw.cmd == CSRCMD.CSR_SET:
                 wdata_aux.next = rw.rdata | rw.wdata
             elif rw.cmd == CSRCMD.CSR_CLEAR:
