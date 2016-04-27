@@ -207,10 +207,11 @@ def Datapath(clk,
         id_csr_addr.next               = id_instruction[32:20]
         id_mem_wdata.next              = id_op2
         id_pc_brjmp.next               = id_pc.signed() + id_imm.signed()
-        id_pc_jalr.next                = id_op1.signed() + id_imm.signed()
+        id_pc_jalr.next                = (id_op1.signed() + id_imm.signed()) & ~0x01
         id_csr_addr.next               = id_instruction[32:20]
         id_csr_cmd.next                = ctrlIO.id_csr_cmd
         id_csr_wdata.next              = id_instruction[20:15] if id_instruction[14] else id_op1
+        ctrlIO.id_next_pc.next         = a_pc
         ctrlIO.csr_interrupt.next      = csr_exc_io.interrupt
         ctrlIO.csr_interrupt_code.next = csr_exc_io.interrupt_code
         ctrlIO.id_op1.next             = id_op1

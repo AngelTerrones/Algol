@@ -139,6 +139,7 @@ class CtrlIO:
     :ivar full_stall:         Stall whole pipeline
     :ivar pipeline_kill:      Kill the pipeline
     :ivar pc_select:          Select next PC
+    :ivar id_next_pc:         The next PC, not registered
     :ivar id_op1_select:      Data select for OP1 at ID stage
     :ivar id_op2_select:      Data select for OP2 at ID stage
     :ivar id_sel_imm:         Select the Immediate
@@ -181,6 +182,7 @@ class CtrlIO:
         self.full_stall         = Signal(False)
         self.pipeline_kill      = Signal(False)
         self.pc_select          = Signal(modbv(0)[Consts.SZ_PC_SEL:])
+        self.id_next_pc         = Signal(modbv(0)[32:])
         self.id_op1_select      = Signal(modbv(0)[Consts.SZ_OP1:])
         self.id_op2_select      = Signal(modbv(0)[Consts.SZ_OP2:])
         self.id_sel_imm         = Signal(modbv(0)[Consts.SZ_IMM:])
@@ -586,10 +588,12 @@ def Ctrlpath(clk,
                 ex_ecall.next          = False
                 ex_csr_cmd.next        = CSRCMD.CSR_IDLE
             elif not io.id_stall and not io.full_stall:
+                id_jump_misalign       = io.id_next_pc[0] or io.id_next_pc[1]
+
                 ex_exception.next      = (id_imem_misalign or id_imem_fault or id_illegal_inst or
-                                          id_breakpoint or io.csr_interrupt)
+                                          id_breakpoint or io.csr_interrupt or id_jump_misalign)
                 ex_exception_code.next = (io.csr_interrupt_code if io.csr_interrupt else
-                                          (modbv(CSRExceptionCode.E_INST_ADDR_MISALIGNED)[CSRExceptionCode.SZ_ECODE:] if id_imem_misalign else
+                                          (modbv(CSRExceptionCode.E_INST_ADDR_MISALIGNED)[CSRExceptionCode.SZ_ECODE:] if id_imem_misalign or id_jump_misalign else
                                            (modbv(CSRExceptionCode.E_INST_ACCESS_FAULT)[CSRExceptionCode.SZ_ECODE:] if id_imem_fault else
                                             (modbv(CSRExceptionCode.E_ILLEGAL_INST)[CSRExceptionCode.SZ_ECODE:] if id_illegal_inst else
                                              (modbv(CSRExceptionCode.E_BREAKPOINT)[CSRExceptionCode.SZ_ECODE:] if id_breakpoint else
