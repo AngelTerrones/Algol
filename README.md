@@ -14,6 +14,7 @@ Algol is free and open hardware licensed under the [MIT license](https://en.wiki
 - [Getting Started](#getting-started)
 - [Software Details](#software-details)
 - [Directory Layout](#directory-layout)
+- [Build the toolchain](#build-the-toolchain)
 - [License](#license)
 
 ## Processor Details
@@ -79,7 +80,8 @@ Testbenchs for module verification. Uses the pure-python MyHDL simulator.
 
 ##### tests/
 
-Basic instruction-level tests. Taken from [riscv-tests](http://riscv.org/software-tools/riscv-tests/).
+Basic instruction-level tests. Taken from [riscv-tests](http://riscv.org/software-tools/riscv-tests/) 
+(git rev ac467e1).
 
 
 ## CPU Verification
@@ -111,11 +113,7 @@ Sub-commands:
 Type `./main core -h` to get the help for the `core` sub-command:
 
 ```
-usage: main core [-h] (-f FILE | -a) [--vcd] mem_size bytes_line
-
-positional arguments:
-  mem_size              Memory size in bytes
-  bytes_line            Number of bytes per line in the HEX file
+usage: main core [-h] (-f FILE | -a) [--vcd]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -128,7 +126,7 @@ optional arguments:
 To verify the CPU using a single ISA test (using `pytest`):
 
 ```
-./main core -f Simulation/tests/rv32ui-p-lw.hex 0x20000 16
+./main core -f Simulation/tests/rv32ui-p-lw.hex
 Test session starts (platform: linux, Python 3.5.1, pytest 2.9.1, pytest-sugar 0.5.1)
 cachedir: .cache
 rootdir: /home/angelterrones/Projects/Algol, inifile:
@@ -140,7 +138,34 @@ Results (6.81s):
        1 passed
 ```
 
-To verify the CPU using all the `rv32ui-p-` tests: `./main core -a 0x20000 16`
+To verify the CPU using all the `rv32ui-p-` tests: `./main core -a`
+
+## Build the toolchain
+
+The default settings in the [riscv-tools](https://github.com/riscv/riscv-tools) build
+scripts will build a compiler, assembler and linker that can target any RISC-V ISA.
+
+The following commands will build the RISC-V gnu toolchain and libraries, and install it in `/opt/riscv`:
+
+    # Ubuntu packages needed:
+    sudo apt-get install autoconf automake autotools-dev curl libmpc-dev libmpfr-dev \
+            libgmp-dev gawk build-essential bison flex texinfo gperf
+
+    sudo mkdir /opt/riscv
+    sudo chown $USER /opt/riscv
+
+    cd /folder/to/download/toolchain
+    git clone https://github.com/riscv/riscv-gnu-toolchain
+    cd riscv-gnu-toolchain
+    git checkout f2a2c87
+
+    mkdir build; cd build
+    ../configure --prefix=/opt/riscv
+    make -j$(nproc)
+
+The commands will all be named using the prefix `riscv64-unknown-elf-`.
+
+*Note: This instructions are for git rev f2a2c87 (2016-02-27) of riscv-gnu-toolchain.*
 
 ## License
 

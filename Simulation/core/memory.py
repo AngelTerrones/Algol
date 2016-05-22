@@ -48,7 +48,10 @@ def LoadMemory(size_mem,
         lines = [line[8 * i:8 * (i + 1)] for line in lines_f for i in range(word_x_line - 1, -1, -1)]
 
     for addr in range(size_mem >> 2):
-        memory[addr] = int(lines[addr], 16)
+        if addr < len(lines):
+            memory[addr] = int(lines[addr], 16)
+        else:
+            memory[addr] = 0
 
 
 def Memory(clka_i,

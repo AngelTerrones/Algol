@@ -64,14 +64,12 @@ def list_module_test():
 
 
 def compile_tests(args):
-    make_process = subprocess.Popen("autoconf; ./configure; make -j$(nproc)", stderr=subprocess.STDOUT,
-                                    cwd='Simulation/tests', shell=True)
+    make_process = subprocess.Popen("make -j$(nproc)", stderr=subprocess.STDOUT, cwd='Simulation/tests', shell=True)
     assert make_process.wait() == 0, 'Unable to compile tests.'
 
 
 def clean_tests(args):
-    make_process = subprocess.Popen("make clean", stderr=subprocess.STDOUT,
-                                    cwd='Simulation/tests', shell=True)
+    make_process = subprocess.Popen("make clean", stderr=subprocess.STDOUT, cwd='Simulation/tests', shell=True)
     assert make_process.wait() == 0, 'Unable to clean test folder.'
 
 

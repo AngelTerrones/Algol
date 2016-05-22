@@ -61,8 +61,10 @@ docs/_build/
 # PyBuilder
 target/
 
-# Hex files
+# Hex/dump files
 *.hex
+*.dump
+rv32*i-*
 
 # VCD files
 *.vcd*
